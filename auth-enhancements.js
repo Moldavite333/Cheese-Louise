@@ -1,7 +1,8 @@
-// Small auth UX improvements layered on top of app.js.
-// Keeps the core v1.2 logic untouched while making login easier on mobile.
+// Auth UX improvements layered on top of app.js.
+// Keeps the core v1.2 logic untouched while making login and recovery easier on mobile.
 
 const AUTH_REDIRECT_URL = 'https://moldavite333.github.io/Cheese-Louise/';
+const RECOVERY_PENDING_KEY = 'cheeseLouiseRecoveryPending';
 let recoveryMode = false;
 
 function authScreen(note=''){
@@ -23,7 +24,7 @@ function authScreen(note=''){
             <input id="password" class="search" type="password" placeholder="Password" autocomplete="current-password" style="min-width:0" />
             <button id="passwordToggle" class="secondary" type="button" onclick="togglePassword('password','passwordToggle')" aria-label="Show password">Show</button>
           </div>
-          <button class="primary" onclick="signIn()">Sign in</button>
+          <button class="primary" onclick="signInWithRecoveryCleanup()">Sign in</button>
           <button class="secondary" onclick="signUp()">Create account</button>
           <button class="secondary" type="button" onclick="requestPasswordReset()" style="background:transparent;border-color:transparent">Forgot password?</button>
         </div>
@@ -49,6 +50,7 @@ function recoveryScreen(note='Choose a new password for your Cheese Louise accou
           </div>
           <input id="confirmPassword" class="search" type="password" placeholder="Confirm new password" autocomplete="new-password" />
           <button class="primary" onclick="finishPasswordReset()">Save new password</button>
+          <button class="secondary" type="button" onclick="cancelPasswordReset()">Cancel</button>
         </div>
       </div>
     </section>
@@ -66,6 +68,17 @@ window.togglePassword = function(inputId='password', buttonId='passwordToggle'){
   input.focus();
 };
 
+window.signInWithRecoveryCleanup = async function(){
+  const email=document.getElementById('email')?.value.trim();
+  const password=document.getElementById('password')?.value || '';
+  if(!email||!password) return authScreen('Enter your email and password.');
+  const {error}=await db.auth.signInWithPassword({email,password});
+  if(error) return authScreen(error.message);
+  localStorage.removeItem(RECOVERY_PENDING_KEY);
+  recoveryMode = false;
+  await boot();
+};
+
 window.requestPasswordReset = async function(){
   const email = document.getElementById('email')?.value.trim();
   if(!email) return authScreen('Enter your email address first, then tap Forgot password.');
@@ -73,6 +86,10 @@ window.requestPasswordReset = async function(){
   const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: AUTH_REDIRECT_URL });
   if(error) return authScreen(error.message);
 
+  // Supabase creates a temporary authenticated session when the recovery link is opened.
+  // Remember that a recovery is pending so app.js cannot mistake that temporary session
+  // for a normal login and send the user into workspace onboarding.
+  localStorage.setItem(RECOVERY_PENDING_KEY, '1');
   authScreen('Password reset email sent. Open the newest email from Supabase and tap the reset link.');
 };
 
@@ -89,6 +106,7 @@ window.finishPasswordReset = async function(){
   const { error } = await db.auth.updateUser({ password });
   if(error) return recoveryScreen(error.message);
 
+  localStorage.removeItem(RECOVERY_PENDING_KEY);
   recoveryMode = false;
   await db.auth.signOut();
   session = null;
@@ -96,19 +114,47 @@ window.finishPasswordReset = async function(){
   authScreen('Password updated. Sign in with your new password.');
 };
 
+window.cancelPasswordReset = async function(){
+  localStorage.removeItem(RECOVERY_PENDING_KEY);
+  recoveryMode = false;
+  await db.auth.signOut();
+  session = null;
+  history.replaceState({}, document.title, AUTH_REDIRECT_URL);
+  authScreen('Password reset cancelled.');
+};
+
 // Supabase emits PASSWORD_RECOVERY after a valid recovery link creates a temporary session.
 db.auth.onAuthStateChange((event,newSession)=>{
   if(event === 'PASSWORD_RECOVERY'){
+    localStorage.setItem(RECOVERY_PENDING_KEY, '1');
     recoveryMode = true;
     session = newSession;
     recoveryScreen();
   }
 });
 
-// Helpful fallback while Supabase is processing an implicit recovery-link hash.
+// Capture the recovery hash if it is still present.
 if(window.location.hash.includes('type=recovery')){
-  recoveryMode = true;
-  recoveryScreen('Reset link opened. Enter your new password below.');
-}else if(!session){
-  authScreen();
+  localStorage.setItem(RECOVERY_PENDING_KEY, '1');
 }
+
+// app.js can finish processing Supabase's recovery token before this helper script loads.
+// If that happened, the URL hash may already be gone and app.js may have rendered the
+// workspace onboarding screen. The pending marker lets us detect the temporary recovery
+// session and force the correct reset-password screen back on top.
+(async function restoreRecoveryScreen(){
+  const pending = localStorage.getItem(RECOVERY_PENDING_KEY) === '1';
+  if(!pending){
+    if(!session) authScreen();
+    return;
+  }
+
+  const { data } = await db.auth.getSession();
+  if(data?.session){
+    recoveryMode = true;
+    session = data.session;
+    recoveryScreen('Reset link verified. Now choose your new password.');
+  }else{
+    authScreen('Open the password reset email and tap the newest reset link.');
+  }
+})();
