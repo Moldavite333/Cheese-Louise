@@ -1,0 +1,16 @@
+{
+  "name": "Cheese Louise HQ",
+  "short_name": "Cheese Louise",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#111217",
+  "theme_color": "#111217",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
