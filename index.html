@@ -12,8 +12,14 @@
 </head>
 <body>
   <div id="app"></div>
+  <script>
+    // Capture Supabase's one-time recovery marker before supabase-js/app.js can
+    // consume and clear the URL hash. This matters when reset emails open in a
+    // different mobile browser/webview than the one that requested the reset.
+    window.__CL_RECOVERY_BOOT = window.location.hash.includes('type=recovery');
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
-  <script src="auth-enhancements.js?v=3"></script>
+  <script src="auth-enhancements.js?v=4"></script>
 </body>
 </html>
