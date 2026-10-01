@@ -3,7 +3,7 @@
 
 const AUTH_REDIRECT_URL = 'https://moldavite333.github.io/Cheese-Louise/';
 const RECOVERY_PENDING_KEY = 'cheeseLouiseRecoveryPending';
-let recoveryMode = false;
+let recoveryMode = !!window.__CL_RECOVERY_BOOT;
 
 function authScreen(note=''){
   const previousName = document.getElementById('displayName')?.value || '';
@@ -76,6 +76,7 @@ window.signInWithRecoveryCleanup = async function(){
   if(error) return authScreen(error.message);
   localStorage.removeItem(RECOVERY_PENDING_KEY);
   recoveryMode = false;
+  window.__CL_RECOVERY_BOOT = false;
   await boot();
 };
 
@@ -86,9 +87,6 @@ window.requestPasswordReset = async function(){
   const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: AUTH_REDIRECT_URL });
   if(error) return authScreen(error.message);
 
-  // Supabase creates a temporary authenticated session when the recovery link is opened.
-  // Remember that a recovery is pending so app.js cannot mistake that temporary session
-  // for a normal login and send the user into workspace onboarding.
   localStorage.setItem(RECOVERY_PENDING_KEY, '1');
   authScreen('Password reset email sent. Open the newest email from Supabase and tap the reset link.');
 };
@@ -108,6 +106,7 @@ window.finishPasswordReset = async function(){
 
   localStorage.removeItem(RECOVERY_PENDING_KEY);
   recoveryMode = false;
+  window.__CL_RECOVERY_BOOT = false;
   await db.auth.signOut();
   session = null;
   history.replaceState({}, document.title, AUTH_REDIRECT_URL);
@@ -117,10 +116,34 @@ window.finishPasswordReset = async function(){
 window.cancelPasswordReset = async function(){
   localStorage.removeItem(RECOVERY_PENDING_KEY);
   recoveryMode = false;
+  window.__CL_RECOVERY_BOOT = false;
   await db.auth.signOut();
   session = null;
   history.replaceState({}, document.title, AUTH_REDIRECT_URL);
   authScreen('Password reset cancelled.');
+};
+
+// Protect recovery mode from app.js's normal authenticated rendering.
+// app.js begins booting before this helper loads; these wrappers ensure that if
+// its async boot finishes later, it still cannot replace the reset form with
+// workspace onboarding or the main app.
+const originalOnboardingScreen = onboardingScreen;
+const originalRender = render;
+
+onboardingScreen = function(note=''){
+  if(recoveryMode || window.__CL_RECOVERY_BOOT){
+    recoveryMode = true;
+    return recoveryScreen(note || 'Reset link verified. Now choose your new password.');
+  }
+  return originalOnboardingScreen(note);
+};
+
+render = function(){
+  if(recoveryMode || window.__CL_RECOVERY_BOOT){
+    recoveryMode = true;
+    return recoveryScreen('Reset link verified. Now choose your new password.');
+  }
+  return originalRender();
 };
 
 // Supabase emits PASSWORD_RECOVERY after a valid recovery link creates a temporary session.
@@ -128,22 +151,20 @@ db.auth.onAuthStateChange((event,newSession)=>{
   if(event === 'PASSWORD_RECOVERY'){
     localStorage.setItem(RECOVERY_PENDING_KEY, '1');
     recoveryMode = true;
+    window.__CL_RECOVERY_BOOT = true;
     session = newSession;
     recoveryScreen();
   }
 });
 
-// Capture the recovery hash if it is still present.
-if(window.location.hash.includes('type=recovery')){
+// index.html captures the recovery hash before app.js/Supabase can consume it.
+if(window.__CL_RECOVERY_BOOT || window.location.hash.includes('type=recovery')){
   localStorage.setItem(RECOVERY_PENDING_KEY, '1');
+  recoveryMode = true;
 }
 
-// app.js can finish processing Supabase's recovery token before this helper script loads.
-// If that happened, the URL hash may already be gone and app.js may have rendered the
-// workspace onboarding screen. The pending marker lets us detect the temporary recovery
-// session and force the correct reset-password screen back on top.
 (async function restoreRecoveryScreen(){
-  const pending = localStorage.getItem(RECOVERY_PENDING_KEY) === '1';
+  const pending = recoveryMode || localStorage.getItem(RECOVERY_PENDING_KEY) === '1';
   if(!pending){
     if(!session) authScreen();
     return;
@@ -154,6 +175,10 @@ if(window.location.hash.includes('type=recovery')){
     recoveryMode = true;
     session = data.session;
     recoveryScreen('Reset link verified. Now choose your new password.');
+  }else if(window.__CL_RECOVERY_BOOT){
+    // Supabase may still be exchanging the recovery token. Keep the reset UI in
+    // place instead of dropping back into normal sign-in while that completes.
+    recoveryScreen('Verifying your reset link…');
   }else{
     authScreen('Open the password reset email and tap the newest reset link.');
   }
