@@ -1,9 +1,10 @@
 // Small auth UX improvements layered on top of app.js.
 // Keeps the core v1.2 logic untouched while making login easier on mobile.
 
-const originalAuthScreen = authScreen;
+const AUTH_REDIRECT_URL = 'https://moldavite333.github.io/Cheese-Louise/';
+let recoveryMode = false;
 
-authScreen = function(note=''){
+function authScreen(note=''){
   const previousName = document.getElementById('displayName')?.value || '';
   const previousEmail = document.getElementById('email')?.value || '';
 
@@ -20,20 +21,43 @@ authScreen = function(note=''){
           <input id="email" class="search" type="email" placeholder="Email" value="${esc(previousEmail)}" autocomplete="email" />
           <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center">
             <input id="password" class="search" type="password" placeholder="Password" autocomplete="current-password" style="min-width:0" />
-            <button id="passwordToggle" class="secondary" type="button" onclick="togglePassword()" aria-label="Show password">Show</button>
+            <button id="passwordToggle" class="secondary" type="button" onclick="togglePassword('password','passwordToggle')" aria-label="Show password">Show</button>
           </div>
           <button class="primary" onclick="signIn()">Sign in</button>
           <button class="secondary" onclick="signUp()">Create account</button>
+          <button class="secondary" type="button" onclick="requestPasswordReset()" style="background:transparent;border-color:transparent">Forgot password?</button>
         </div>
         ${note ? message(note) : ''}
       </div>
     </section>
   </div>`);
-};
+}
 
-window.togglePassword = function(){
-  const input = document.getElementById('password');
-  const button = document.getElementById('passwordToggle');
+function recoveryScreen(note='Choose a new password for your Cheese Louise account.'){
+  shell(`<div class="app-shell" style="max-width:520px;margin:0 auto;padding-top:8vh">
+    <section class="section">
+      <div class="card card-pad">
+        <div class="brand-row" style="margin-bottom:18px">
+          <div class="brand"><div class="brand-mark">CL</div><div>Cheese Louise HQ</div></div>
+        </div>
+        <div class="page-title">Reset password</div>
+        <div class="subtle">${esc(note)}</div>
+        <div style="display:grid;gap:10px;margin-top:18px">
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center">
+            <input id="newPassword" class="search" type="password" placeholder="New password" autocomplete="new-password" style="min-width:0" />
+            <button id="newPasswordToggle" class="secondary" type="button" onclick="togglePassword('newPassword','newPasswordToggle')">Show</button>
+          </div>
+          <input id="confirmPassword" class="search" type="password" placeholder="Confirm new password" autocomplete="new-password" />
+          <button class="primary" onclick="finishPasswordReset()">Save new password</button>
+        </div>
+      </div>
+    </section>
+  </div>`);
+}
+
+window.togglePassword = function(inputId='password', buttonId='passwordToggle'){
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
   if(!input || !button) return;
   const showing = input.type === 'text';
   input.type = showing ? 'password' : 'text';
@@ -42,8 +66,49 @@ window.togglePassword = function(){
   input.focus();
 };
 
-// app.js may have already drawn the original auth screen before this file loaded.
-// Redraw it once with the improved controls when no session exists yet.
-if(!session){
+window.requestPasswordReset = async function(){
+  const email = document.getElementById('email')?.value.trim();
+  if(!email) return authScreen('Enter your email address first, then tap Forgot password.');
+
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: AUTH_REDIRECT_URL });
+  if(error) return authScreen(error.message);
+
+  authScreen('Password reset email sent. Open the newest email from Supabase and tap the reset link.');
+};
+
+window.finishPasswordReset = async function(){
+  const password = document.getElementById('newPassword')?.value || '';
+  const confirm = document.getElementById('confirmPassword')?.value || '';
+
+  if(password.length < 6) return recoveryScreen('Use a password at least 6 characters long.');
+  if(password !== confirm) return recoveryScreen('Those passwords do not match. Try again.');
+
+  const { data: sessionData } = await db.auth.getSession();
+  if(!sessionData?.session) return recoveryScreen('The reset link is no longer active. Request a new password reset email.');
+
+  const { error } = await db.auth.updateUser({ password });
+  if(error) return recoveryScreen(error.message);
+
+  recoveryMode = false;
+  await db.auth.signOut();
+  session = null;
+  history.replaceState({}, document.title, AUTH_REDIRECT_URL);
+  authScreen('Password updated. Sign in with your new password.');
+};
+
+// Supabase emits PASSWORD_RECOVERY after a valid recovery link creates a temporary session.
+db.auth.onAuthStateChange((event,newSession)=>{
+  if(event === 'PASSWORD_RECOVERY'){
+    recoveryMode = true;
+    session = newSession;
+    recoveryScreen();
+  }
+});
+
+// Helpful fallback while Supabase is processing an implicit recovery-link hash.
+if(window.location.hash.includes('type=recovery')){
+  recoveryMode = true;
+  recoveryScreen('Reset link opened. Enter your new password below.');
+}else if(!session){
   authScreen();
 }
