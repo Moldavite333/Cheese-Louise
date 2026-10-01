@@ -1,59 +1,49 @@
-# Cheese Louise HQ v1.1
+# Cheese Louise HQ v1.2
 
-A mobile-first shared podcast workspace prototype for Cheese Louise.
+A mobile-first shared podcast workspace for **Cheese Louise**.
 
-## What works in v1.1
+## v1.2 — real shared sync
 
-- Nick / Jenny profile switching
-- Per-person movie voting: Yes / Maybe / No
+The app now uses Supabase instead of browser-only storage for the shared workspace.
+
+### Shared features
+
+- Separate Nick / Jenny logins
+- Shared workspace with a one-time join code
+- Movie Radar
+- Per-person Yes / Maybe / No voting
 - Per-person bookmarks
 - Shared movie comments
-- Mutual-pick and split-decision logic
-- Home dashboard with items needing your vote
-- Movie search and filters
+- Shared episode pipeline
 - Shared schedule
-- Episode pipeline scaffold
-- Show Lab: Ideas → Testing → Working → Retired
-- Quick Add from anywhere
+- Shared Show Lab ideas
 - Activity feed
-- Mobile-first responsive design
-- Installable PWA manifest
-- Local persistence with `localStorage`
+- Realtime updates across devices
+- Row Level Security so only signed-in workspace members can read/write workspace data
+- One-time import of the old v1.1 local browser data when the first workspace is created
 
-## Important limitation
+## First-time setup
 
-This prototype stores data in the browser on the current device. It does **not yet sync between Nick's and Jenny's phones**. The UI/data structure is deliberately designed so v1.2 can swap the storage layer to Supabase without redesigning the app.
+1. Open the app.
+2. Nick creates an account and confirms the email if Supabase asks for confirmation.
+3. Nick creates **Cheese Louise HQ**.
+4. If old v1.1 browser data is found, choose **Import**.
+5. Copy the join code shown at the top of the app.
+6. Jenny creates her own account, confirms her email if needed, then joins using that code.
 
-## Run locally
+After that, changes are stored in Supabase and shared between both phones.
 
-Open `index.html` in a browser, or serve the folder with any simple static server.
+## Hosting
 
-Example:
+The frontend remains a static PWA and can be hosted with GitHub Pages from `main`.
 
-```bash
-python3 -m http.server 8080
-```
+The Supabase publishable key is intentionally client-side. Authorization is enforced with Supabase Auth + Postgres Row Level Security. No Supabase secret/service key is included in this repository.
 
-Then open `http://localhost:8080`.
+## Next upgrades
 
-## Publish to GitHub Pages
-
-1. Create a new GitHub repository.
-2. Upload all files in this folder to the repository root.
-3. In GitHub: **Settings → Pages**.
-4. Choose **Deploy from a branch**.
-5. Choose `main` and `/ (root)`.
-6. Save.
-
-The app will then be available at the repository's GitHub Pages URL.
-
-## Recommended v1.2
-
-- Supabase Auth: separate Nick and Jenny accounts
-- Supabase Postgres: shared synced data
-- Supabase Realtime: comments, votes, schedule updates appear instantly
-- Real movie ingestion from TMDB / Hallmark / Lifetime sources
+- Automated movie ingestion from Hallmark, Lifetime, MarVista, Reel One, and related sources
 - Full episode-outline editor
 - Romantiverse Rules database
 - Bingo card builder
-- Cocktail database
+- Cocktail database and movie/cocktail matching
+- Better calendar views and reminders
