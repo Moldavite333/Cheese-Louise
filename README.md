@@ -1,4 +1,4 @@
-# Cheese Louise HQ v1.10
+# Cheese Louise HQ v1.11
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
@@ -35,18 +35,29 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Retire / restore traits without breaking old movies
 - **Romantiverse Interpreter** for context-aware first-pass Cheese Ratings
 - Exact-match, inferred-context, and multi-clue pattern detection
-- Confidence and explanation shown for inferred Cheese Tray-Ts
+- Confidence and explanation shown for inferred Cheese Traits
 - New Finds can be added with the likely traits accepted or added without them
 - Saved movies can run the same Romantiverse inference from their synopsis
 - Human confirmation remains authoritative; inferred traits can always be removed or edited
 - Trait combinations, minimum Cheese Rating, Holiday, Season, provider, and release-timing filtering
 - Saved filter presets
 
+### Rules of the Romantiverse
+
+- Shared persistent rulebook for Nick and Jenny
+- Automatic stable rule numbering
+- **Canon**, **Proposed**, and **Retired** states
+- Notes/examples on each rule
+- Search and status filtering
+- Rules stay in the historical log instead of being deleted when they stop applying
+- Rule changes appear in shared activity
+
 ### Podcast planning
 
 - Episode pipeline with status, linked movie, release date, guest, cocktail, working notes, and full episode outline editor
 - Shared schedule for watch, record, edit, release, premiere, guest, and other events
 - Show Lab with Ideas / Testing / Working / Retired stages
+- Show Lab and Rules of the Romantiverse share the same planning area
 - Quick capture and explicit Show Lab idea creation
 
 ## Movie discovery source
@@ -75,8 +86,7 @@ The Supabase publishable key is intentionally client-side. Authorization is enfo
 
 ## Still on the roadmap
 
-- Dedicated **Rules of the Romantiverse** database
-- Larger / more exhaustive Cheese Tray-T taxonomy and inference vocabulary
+- Larger / more exhaustive Cheese Trait taxonomy and inference vocabulary
 - **Romantiverse Bingo** card builder and per-episode card
 - Cocktail database with trait-based movie/cocktail matching
 - Richer calendar views and reminders
