@@ -314,11 +314,10 @@ window.go = function(tab){
   return rvRulesOriginalGo(tab);
 };
 
-// Update the search hint now that the shared HQ contains a rulebook too.
+// Update the visible build marker without changing global search behavior.
 const rvRulesOriginalTopbar = topbar;
 topbar = function(){
   return rvRulesOriginalTopbar()
-    .replace('Search movies, notes, ideas…','Search movies, notes, ideas, rules…')
     .replace('>v1.10<','>v1.11<')
     .replace('>v1.9<','>v1.11<')
     .replace('>v1.8<','>v1.11<');
