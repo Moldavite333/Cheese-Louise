@@ -1,0 +1,34 @@
+/* Cheese Louise v1.5 — automatic New Finds */
+.discovery-section{padding-top:0}
+.new-find-panel{display:grid;gap:12px}
+.new-find-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.small-title{font-size:1.35rem}
+.new-find-stats{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.new-find-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.new-find-card{display:grid;grid-template-columns:110px 1fr;overflow:hidden;min-height:190px}
+.new-find-poster{background:#0d0f14;min-height:190px}
+.new-find-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.new-find-poster-fallback{height:100%;display:grid;place-items:center;font-size:2rem;font-weight:900;color:#f4c84b}
+.new-find-body{padding:14px;min-width:0}
+.new-find-body h3{margin:4px 0 4px;font-size:1.1rem;line-height:1.2}
+.new-find-body p{margin:10px 0;color:#d7d9df;font-size:.93rem;line-height:1.35}
+.new-find-topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.radar-match{font-size:.78rem;font-weight:800;color:#f4c84b;white-space:nowrap}
+.provider-line{margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.new-find-score{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0}
+.new-find-why{margin-top:10px}
+.new-find-why summary{cursor:pointer;color:#f4c84b;font-weight:700}
+.new-find-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.button-link{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border-radius:10px;border:1px solid #343946;color:#f2f3f5;text-decoration:none;background:#20232c;font-size:.9rem}
+.discovery-more{justify-self:center;margin-top:2px}
+.discovery-loading{display:flex;align-items:center;gap:10px;padding:18px 0;color:#d7d9df}
+.discovery-spinner{display:inline-block;animation:cheesePulse 1.1s ease-in-out infinite}
+@keyframes cheesePulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.18);opacity:1}}
+@media(max-width:520px){
+  .new-find-grid{grid-template-columns:1fr}
+  .new-find-card{grid-template-columns:92px 1fr}
+  .new-find-poster{min-height:170px}
+  .new-find-body{padding:12px}
+  .new-find-body p{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .new-find-actions .primary,.new-find-actions .secondary,.new-find-actions .button-link{font-size:.82rem;padding:8px 9px}
+}
