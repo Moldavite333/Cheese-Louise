@@ -1,0 +1,54 @@
+/* Cheese Louise v1.3 — Cheese Traits UI */
+.active-filter{border-color:var(--accent)!important;color:var(--accent)!important;background:rgba(244,200,75,.08)!important}
+.movie-header-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.results-line{margin:12px 0;color:var(--muted);font-size:13px}
+.results-line strong{color:var(--text)}
+.trait-pill b{color:var(--accent);margin-left:2px}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.preset-wrap{display:inline-flex;align-items:stretch}
+.preset-wrap .preset-button{border-radius:12px 0 0 12px}
+.preset-delete{border:1px solid var(--line);border-left:0;background:var(--panel);color:var(--muted);border-radius:0 12px 12px 0;padding:0 9px}
+.preset-delete:hover{color:var(--bad)}
+.filter-panel{margin:10px 0 14px}
+.filter-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.score-filter{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.score-filter input[type=range]{width:100%;accent-color:var(--accent)}
+.filter-category{padding-top:14px}
+.trait-chip-grid{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.trait-chip{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 10px;font-size:12px}
+.trait-chip b{color:var(--accent)}
+.trait-chip.selected{border-color:var(--accent);background:rgba(244,200,75,.12);color:var(--accent)}
+.preset-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.movie-modal{max-width:760px}
+.cheese-total{display:flex;align-items:baseline;gap:10px;color:var(--accent);font-weight:850;margin:5px 0}
+.cheese-total strong{font-size:38px;line-height:1}
+.movie-status-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:12px 0 16px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.trait-tools{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.trait-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.trait-picker{display:flex;flex-direction:column;gap:14px}
+.trait-category{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.trait-category-title{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;background:var(--panel-2);font-weight:800}
+.trait-toggle-list{display:flex;flex-direction:column}
+.trait-toggle{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--text);padding:11px 12px;text-align:left}
+.trait-toggle:first-child{border-top:0}
+.trait-toggle:hover{background:rgba(255,255,255,.03)}
+.trait-toggle.selected{background:rgba(244,200,75,.09)}
+.trait-toggle.selected .trait-check,.trait-toggle.selected .trait-points{color:var(--accent)}
+.trait-toggle.retired{opacity:.62}
+.trait-check{font-size:18px;text-align:center;color:var(--muted)}
+.trait-name{font-weight:650}
+.trait-name em{font-weight:500;color:var(--muted);font-size:11px}
+.trait-points{font-weight:900;color:var(--muted)}
+.trait-manager{max-width:780px}
+.trait-manager-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.manager-category{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.manager-trait{display:grid;grid-template-columns:minmax(0,1fr) 54px auto auto;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel)}
+.manager-trait:first-of-type{border-top:0}
+.manager-points{font-weight:900;color:var(--accent);text-align:right}
+.retired-row{opacity:.58}
+@media(max-width:620px){
+  .score-filter{grid-template-columns:1fr auto}.score-filter label{grid-column:1/-1}.score-filter input[type=range]{grid-column:1/2}
+  .trait-tools{grid-template-columns:1fr}.trait-tools .secondary{width:100%}
+  .manager-trait{grid-template-columns:1fr 44px;grid-template-areas:"name points" "edit retire"}.manager-trait>div:first-child{grid-area:name}.manager-points{grid-area:points}.manager-trait button:nth-of-type(1){grid-area:edit}.manager-trait button:nth-of-type(2){grid-area:retire}
+  .movie-status-row .filter{flex:1 1 42%}
+}
