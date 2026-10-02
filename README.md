@@ -1,4 +1,4 @@
-# Cheese Louise HQ v1.6
+# Cheese Louise HQ v1.10
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
@@ -18,6 +18,7 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Automatic TMDB movie discovery with a **New Finds** intake
 - Posters, synopsis, release dates, TMDB source links, and US streaming-provider information when available
 - Automatic Holiday / Special and Season classification
+- Shared Radar filters across both New Finds and saved movies
 - **Needs Review** intake status so discovered movies do not silently become permanent picks
 - Duplicate protection using TMDB IDs
 - Manual Add Movie remains available for obscure titles
@@ -32,8 +33,13 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Each selected trait contributes its point value to the movie's Cheese Rating
 - Editing a trait point value recalculates movies using that trait
 - Retire / restore traits without breaking old movies
-- Synopsis-based trait suggestions
-- Trait combinations, minimum Cheese Rating, Holiday, and Season filtering
+- **Romantiverse Interpreter** for context-aware first-pass Cheese Ratings
+- Exact-match, inferred-context, and multi-clue pattern detection
+- Confidence and explanation shown for inferred Cheese Tray-Ts
+- New Finds can be added with the likely traits accepted or added without them
+- Saved movies can run the same Romantiverse inference from their synopsis
+- Human confirmation remains authoritative; inferred traits can always be removed or edited
+- Trait combinations, minimum Cheese Rating, Holiday, Season, provider, and release-timing filtering
 - Saved filter presets
 
 ### Podcast planning
@@ -46,6 +52,8 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 ## Movie discovery source
 
 The current automatic hunter uses TMDB as the broad movie metadata source and TMDB's watch-provider data, which is supplied by JustWatch. It searches broadly for romance and TV-movie candidates, then applies Cheese Louise signals to rank suspiciously cheesy possibilities.
+
+The Romantiverse Interpreter sits on top of that raw metadata. It does not treat the synopsis as a perfect source of truth: it looks for explicit Cheese Traits, broader Romantiverse language, and combinations of clues such as a hometown return plus a high-powered career. It produces an estimate and explanation, while Nick and Jenny remain the final judges of which traits actually count.
 
 This is intentionally broader than Hallmark alone so Netflix, Lifetime, Prime, streaming originals, self-aware camp, and other studios can surface. Studio-specific feeds may be added later to improve completeness for networks whose upcoming movies appear late or inconsistently in TMDB.
 
@@ -68,6 +76,7 @@ The Supabase publishable key is intentionally client-side. Authorization is enfo
 ## Still on the roadmap
 
 - Dedicated **Rules of the Romantiverse** database
+- Larger / more exhaustive Cheese Tray-T taxonomy and inference vocabulary
 - **Romantiverse Bingo** card builder and per-episode card
 - Cocktail database with trait-based movie/cocktail matching
 - Richer calendar views and reminders
