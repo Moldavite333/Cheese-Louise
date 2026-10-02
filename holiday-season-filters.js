@@ -1,4 +1,4 @@
-// Cheese Louise v1.4 — Holiday + season metadata and Movie Radar filters.
+// Cheese Louise v1.9 — Holiday + season metadata and Movie Radar filters.
 // Loaded after cheese-traits.js so it extends the existing Cheese Radar UI.
 
 const CL_HOLIDAYS = [
@@ -40,14 +40,14 @@ function clHolidaySeasonFilterHtml(){
     <div class="kicker">Holiday / Special</div>
     <div class="trait-chip-grid">
       <button class="trait-chip ${!movieFilters.holiday?'selected':''}" onclick="setHolidayFilter('')">All</button>
-      ${CL_HOLIDAYS.map(v=>`<button class="trait-chip ${clNorm(movieFilters.holiday)===clNorm(v)?'selected':''}" onclick="setHolidayFilter(${JSON.stringify(v)})">${esc(v)}</button>`).join('')}
+      ${CL_HOLIDAYS.map((v,i)=>`<button class="trait-chip ${clNorm(movieFilters.holiday)===clNorm(v)?'selected':''}" onclick="setHolidayFilterByIndex(${i})">${esc(v)}</button>`).join('')}
     </div>
   </div>
   <div class="filter-category">
     <div class="kicker">Season</div>
     <div class="trait-chip-grid">
       <button class="trait-chip ${!movieFilters.season?'selected':''}" onclick="setSeasonFilter('')">All</button>
-      ${CL_SEASONS.map(v=>`<button class="trait-chip ${clNorm(movieFilters.season)===clNorm(v)?'selected':''}" onclick="setSeasonFilter(${JSON.stringify(v)})">${esc(v)}</button>`).join('')}
+      ${CL_SEASONS.map((v,i)=>`<button class="trait-chip ${clNorm(movieFilters.season)===clNorm(v)?'selected':''}" onclick="setSeasonFilterByIndex(${i})">${esc(v)}</button>`).join('')}
     </div>
   </div>`;
 }
@@ -161,6 +161,11 @@ applyFilterPreset = function(id){
 
 window.setHolidayFilter=(value)=>{movieFilters.holiday=value||null;render()};
 window.setSeasonFilter=(value)=>{movieFilters.season=value||null;render()};
+// Use numeric indexes in inline HTML handlers so apostrophes/quotes in holiday names
+// cannot break the onclick attribute. These wrappers call whatever fast handler is
+// currently installed (v1.8+ overrides setHolidayFilter/setSeasonFilter later).
+window.setHolidayFilterByIndex=(index)=>window.setHolidayFilter(CL_HOLIDAYS[Number(index)]||'');
+window.setSeasonFilterByIndex=(index)=>window.setSeasonFilter(CL_SEASONS[Number(index)]||'');
 window.setMovieHolidaySeason=setMovieHolidaySeason;
 window.addMovie=addMovie;
 window.saveCurrentFilterPreset=saveCurrentFilterPreset;
