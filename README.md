@@ -1,4 +1,4 @@
-# Cheese Louise HQ v1.12
+# Cheese Louise HQ v1.13
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
@@ -56,11 +56,20 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 
 - Shared cocktail library with two clear types: **Original Cocktail** and **Cheese Louise Cocktail**
 - Cheese Louise variations can link back to the Original Cocktail they are based on
-- Stores spirit, style, flavor tags, ingredients, glassware, garnish, method, notes, strength, tested state, rating, season, holiday, and batchability
-- Movie/cocktail matchmaker uses Holiday, Season, Cheese Traits, and Romantiverse clues to rank cocktails already in the library
-- Generator can start from the best-matching Original Cocktail and create an editable Cheese Louise variation
-- Starter library of classic originals including Old Fashioned, Manhattan, Negroni, French 75, Daiquiri, Margarita, Whiskey Sour, Sidecar, Moscow Mule, Tom Collins, Mai Tai, Espresso Martini, Hot Toddy, and Champagne Cocktail
-- Episode workspace can choose a cocktail directly from the library and compare **Original Cocktail** vs **Cheese Louise Cocktail** matches for the linked movie
+- Stores spirit, style, flavor tags, ingredients, glassware, garnish, method, notes, strength, tested state, rating, season, holiday, batchability, and source provenance
+- Keeps the starter classic library while also loading a broad online Original Cocktail catalog from TheCocktailDB
+- Recognizes current IBA official cocktails and their IBA categories by normalized cocktail name
+- Online originals can be imported into the shared Cheese Louise Bar only when Nick or Jenny chooses to save/use them
+- Movie matching now builds a granular flavor fingerprint from the synopsis, title, Holiday, Season, confirmed Cheese Traits, Romantiverse inference, providers/settings, and story/location clues
+- Original Cocktail matching compares that movie fingerprint against ingredients, spirit, cocktail family, preparation/style, flavor tags, IBA status, and saved ratings
+- Recent podcast use applies diversity penalties so the same cocktail, base spirit, or cocktail family does not keep winning every movie
+- **Cheese Louise Versions** automatically creates three deliberately different options:
+  - **Familiar** — strongest thematic classic riff
+  - **Craft** — high-match option with a modern craft-bar technique/trend lens
+  - **Wildcard** — a contrasting spirit/family that still makes thematic sense
+- Each generated option explains **why this drink** and can be edited before saving
+- Craft/trend weighting uses curated signals from PUNCH, Liquor.com, and Imbibe without copying their editorial recipes
+- Episode workspace can search the same broad Original Cocktail catalog or generate three fresh Cheese Louise versions for the linked movie
 
 ### Podcast planning
 
@@ -78,6 +87,12 @@ The Romantiverse Interpreter sits on top of that raw metadata. It does not treat
 
 This is intentionally broader than Hallmark alone so Netflix, Lifetime, Prime, streaming originals, self-aware camp, and other studios can surface. Studio-specific feeds may be added later to improve completeness for networks whose upcoming movies appear late or inconsistently in TMDB.
 
+## Cocktail intelligence sources
+
+The v1.13 Cocktail Intelligence layer uses **TheCocktailDB API** as its broad machine-readable Original Cocktail catalog. Results are normalized in the browser and cached for 24 hours. Saving or using an online recipe imports a local shared copy with its source ID and URL so the episode still points to an explicit recipe.
+
+IBA status is a curated recognition layer based on the current official IBA cocktail names and categories; the app does not scrape the IBA site at runtime. Editorial sources such as PUNCH, Liquor.com, and Imbibe are used only as a craft/trend lens for techniques and weighting. Their recipe text is not copied into the Cheese Louise database.
+
 ## First-time setup
 
 1. Open the app.
@@ -93,6 +108,8 @@ After that, changes are stored in Supabase and shared between both users.
 The frontend is hosted as a static PWA on GitHub Pages from `main`.
 
 The Supabase publishable key is intentionally client-side. Authorization is enforced with Supabase Auth + Postgres Row Level Security. The private TMDB read token is stored as a Supabase Edge Function secret and is not committed to GitHub.
+
+TheCocktailDB's public development endpoint is called directly from the browser. If Cheese Louise is later packaged for an app store or needs a private/premium cocktail API key, that key should move behind a Supabase Edge Function instead of being committed to the frontend.
 
 ## Still on the roadmap
 
