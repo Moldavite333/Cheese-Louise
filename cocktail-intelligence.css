@@ -1,0 +1,26 @@
+/* Cheese Louise v1.13 — Cocktail Intelligence */
+.cl-intelligence-panel{overflow:hidden}
+.cl-online-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 2px}
+.link-button{background:none;border:0;padding:0;color:var(--yellow,#f4c84b);font:inherit;text-decoration:underline;cursor:pointer}
+.cl-fingerprint{margin-top:10px;padding:10px 12px;border:1px solid rgba(244,200,75,.22);border-radius:12px;background:rgba(244,200,75,.06);font-size:.9rem}
+.cl-trend-lens{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03)}
+.cl-trend-lens summary{cursor:pointer;font-weight:700}
+.cl-source-link{text-decoration:none;color:inherit}
+.cl-source-pill{opacity:.92}
+.cl-result-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.cl-smart-match-card{border-color:rgba(255,255,255,.09)}
+.cl-generate-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.cl-generated-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.cl-generated-card{position:relative;overflow:hidden}
+.cl-generated-card:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:currentColor;opacity:.45}
+.cl-role-familiar{color:inherit}
+.cl-role-craft{box-shadow:inset 0 0 0 1px rgba(244,200,75,.12)}
+.cl-role-wildcard{box-shadow:inset 0 0 0 1px rgba(232,92,120,.12)}
+.cl-generated-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.cl-generated-head h3{margin:4px 0 0}
+.cl-why-box{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.035)}
+.cl-smart-episode-list{display:grid;gap:10px;margin-top:10px}
+.cl-smart-episode-list .cl-match-card{margin:0}
+@media (min-width:760px){
+  .cl-generated-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
