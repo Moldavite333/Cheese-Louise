@@ -1,4 +1,4 @@
-# Cheese Louise HQ v1.11
+# Cheese Louise HQ v1.12
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
@@ -52,6 +52,16 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Rules stay in the historical log instead of being deleted when they stop applying
 - Rule changes appear in shared activity
 
+### Cheese Louise Bar
+
+- Shared cocktail library with two clear types: **Original Cocktail** and **Cheese Louise Cocktail**
+- Cheese Louise variations can link back to the Original Cocktail they are based on
+- Stores spirit, style, flavor tags, ingredients, glassware, garnish, method, notes, strength, tested state, rating, season, holiday, and batchability
+- Movie/cocktail matchmaker uses Holiday, Season, Cheese Traits, and Romantiverse clues to rank cocktails already in the library
+- Generator can start from the best-matching Original Cocktail and create an editable Cheese Louise variation
+- Starter library of classic originals including Old Fashioned, Manhattan, Negroni, French 75, Daiquiri, Margarita, Whiskey Sour, Sidecar, Moscow Mule, Tom Collins, Mai Tai, Espresso Martini, Hot Toddy, and Champagne Cocktail
+- Episode workspace can choose a cocktail directly from the library and compare **Original Cocktail** vs **Cheese Louise Cocktail** matches for the linked movie
+
 ### Podcast planning
 
 - Episode pipeline with status, linked movie, release date, guest, cocktail, working notes, and full episode outline editor
@@ -88,7 +98,6 @@ The Supabase publishable key is intentionally client-side. Authorization is enfo
 
 - Larger / more exhaustive Cheese Trait taxonomy and inference vocabulary
 - **Romantiverse Bingo** card builder and per-episode card
-- Cocktail database with trait-based movie/cocktail matching
 - Richer calendar views and reminders
 - Studio-specific upcoming-release collectors for even better Hallmark / Lifetime / MarVista / Reel One coverage
 - Offline-first/service-worker support
