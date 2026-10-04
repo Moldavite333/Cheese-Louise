@@ -28,6 +28,75 @@ function discoveryEstimate(candidate){
   return {traits,score:Math.min(100,traits.reduce((sum,t)=>sum+Number(t.points||0),0))};
 }
 
+
+function discoverySavedMovie(candidate){
+  if(!candidate) return null;
+  return (state.movies||[]).find(m=>
+    Number(m.tmdb_id)===Number(candidate.tmdb_id) &&
+    (m.tmdb_type||'movie')===(candidate.tmdb_type||'movie')
+  ) || null;
+}
+
+function discoveryVoteLabel(value){
+  return value==='yes'?'❤️ Yes':value==='maybe'?'🤔 Maybe':value==='no'?'❌ No':'Not voted';
+}
+
+function discoverySharedVoteSummary(movie){
+  if(!movie) return '<div class="subtle discovery-vote-note">Voting saves this movie to the shared Radar so both of you can weigh in.</div>';
+  const rows=(members||[]).map(member=>{
+    const name=memberName(member.user_id);
+    const value=movie.votes?.[member.user_id];
+    return `<span class="pill">${esc(name)}: <strong>${esc(discoveryVoteLabel(value))}</strong></span>`;
+  }).join('');
+  return `<div class="pills discovery-shared-votes">${rows}</div><div class="subtle discovery-vote-consensus">${esc(consensus(movie))}</div>`;
+}
+
+function discoveryVoteControls(candidate,compact=false){
+  const saved=discoverySavedMovie(candidate);
+  const current=saved?.votes?.[me()];
+  const action=(value)=>saved
+    ? `vote('${saved.id}','${value}')`
+    : `voteDiscoveredMovie(${Number(candidate.tmdb_id)},'${value}')`;
+  return `<div class="discovery-watch-choice ${compact?'compact':''}">
+    <div class="kicker">Would you watch it?</div>
+    <div class="vote-row discovery-vote-row">
+      <button class="vote-btn ${current==='yes'?'active-yes':''}" onclick="${action('yes')}">❤️ Yes</button>
+      <button class="vote-btn ${current==='maybe'?'active-maybe':''}" onclick="${action('maybe')}">🤔 Maybe</button>
+      <button class="vote-btn ${current==='no'?'active-no':''}" onclick="${action('no')}">❌ No</button>
+    </div>
+    ${discoverySharedVoteSummary(saved)}
+  </div>`;
+}
+
+async function voteDiscoveredMovie(tmdbId,value){
+  const candidate=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(tmdbId));
+  if(!candidate||!workspace) return;
+
+  let saved=discoverySavedMovie(candidate);
+  if(!saved){
+    const estimate=typeof discoveryEstimate==='function'?discoveryEstimate(candidate):{score:0};
+    await addDiscoveredMovie(Number(tmdbId),false);
+    saved=discoverySavedMovie(candidate);
+    if(!saved) return;
+
+    // A watch vote should not silently "confirm" Cheese Traits. Preserve the
+    // Cheese Master's preliminary score, while trait confirmation remains a
+    // separate human action.
+    if(Number(estimate?.score||0)>0 && Number(saved.cheese_score||0)===0){
+      await db.from('movies').update({
+        cheese_score:Math.max(0,Math.min(100,Number(estimate.score||0))),
+        updated_at:new Date().toISOString()
+      }).eq('id',saved.id);
+    }
+  }
+
+  clDiscoveryMovieDetailId=null;
+  selectedMovie=saved.id;
+  await vote(saved.id,value);
+}
+window.voteDiscoveredMovie=voteDiscoveredMovie;
+window.discoveryVoteControls=discoveryVoteControls;
+
 function discoveryMatchesCurrentView(c){
   const q=(searchText||'').trim().toLowerCase();
   if(q){
@@ -63,6 +132,7 @@ function discoveryCard(c){
       <div class="new-find-score"><strong>Estimated Cheese Rating</strong><span class="cheese-score">🧀 ${est.score}</span></div>
       ${est.traits.length?`<div class="pills">${est.traits.slice(0,5).map(t=>`<span class="pill trait-pill">${esc(t.name)} <b>+${t.points}</b></span>`).join('')}${est.traits.length>5?`<span class="pill">+${est.traits.length-5} more</span>`:''}</div>`:'<div class="subtle">No exact Cheese Traits confidently matched yet.</div>'}
       ${why.length?`<details class="new-find-why"><summary>Why is this on my radar?</summary><div class="pills">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></details>`:''}
+      ${discoveryVoteControls(c,true)}
       <div class="new-find-actions">
         <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},true)">${est.traits.length?`Add + confirm ${est.traits.length} traits`:'Add to Radar'}</button>
         ${est.traits.length?`<button class="secondary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add only</button>`:''}
