@@ -104,6 +104,7 @@ function clSavedMovieDetailModal(){
         <button class="vote-btn ${v==='maybe'?'active-maybe':''}" onclick="vote('${m.id}','maybe')">🤔 Maybe</button>
         <button class="vote-btn ${v==='no'?'active-no':''}" onclick="vote('${m.id}','no')">❌ No</button>
       </div>
+      ${typeof discoverySharedVoteSummary==='function'?discoverySharedVoteSummary(m):`<div class="subtle">${esc(consensus(m))}</div>`}
     </section>
 
     <section class="cl-movie-detail-section">
@@ -153,6 +154,10 @@ function clDiscoveryMovieDetailModal(){
     <section class="cl-movie-detail-section cl-synopsis-section">
       <div class="kicker">Full synopsis</div>
       <p>${esc(c.summary||'No synopsis is available yet.')}</p>
+    </section>
+
+    <section class="cl-movie-detail-section cl-discovery-vote-section">
+      ${typeof discoveryVoteControls==='function'?discoveryVoteControls(c,false):''}
     </section>
 
     <section class="cl-movie-detail-section">
@@ -241,6 +246,13 @@ document.addEventListener('keydown',event=>{
     .cl-synopsis-section p{font-size:1.05rem;line-height:1.65;margin:8px 0 0;white-space:normal}
     .cl-movie-detail-traits,.cl-movie-detail-tags{margin-top:10px}
     .cl-detail-votes,.cl-detail-status-row{margin-top:10px;flex-wrap:wrap}
+    .discovery-watch-choice{display:grid;gap:10px}
+    .discovery-watch-choice.compact{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
+    .discovery-vote-row{display:flex;flex-wrap:wrap;gap:8px}
+    .discovery-vote-row .vote-btn{min-height:44px;min-width:96px}
+    .discovery-shared-votes{margin-top:2px}
+    .discovery-vote-consensus,.discovery-vote-note{margin-top:2px}
+    .cl-discovery-vote-section{background:rgba(244,200,75,.05);border-radius:14px;padding:16px}
     .cl-detail-editor{padding-bottom:4px}
     .cl-detail-editor>summary{cursor:pointer;padding:4px 0 10px}
     @media(max-width:680px){
