@@ -1,0 +1,132 @@
+/* Cheese Louise HQ — mobile-first polish
+   Loaded last so it can safely improve phone layouts without changing desktop. */
+
+@media (max-width: 700px){
+  html,body{max-width:100%;overflow-x:hidden}
+  body{-webkit-text-size-adjust:100%;touch-action:manipulation}
+  .app-shell{width:100%;max-width:none;padding:0 10px calc(94px + env(safe-area-inset-bottom))}
+
+  /* Make the sticky HQ header feel like a phone app, not a squeezed desktop page. */
+  .topbar{padding:8px 0 7px}
+  .brand-row{gap:8px;align-items:center}
+  .brand{min-width:0;font-size:.94rem}
+  .brand-mark{width:32px;height:32px;border-radius:9px;flex:0 0 auto}
+  .profile-switch{max-width:52vw;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;flex:0 1 auto}
+  .profile-switch::-webkit-scrollbar{display:none}
+  .profile-switch button{white-space:nowrap;padding:7px 9px;font-size:.8rem}
+  .search-row{margin-top:7px;gap:6px}
+  .search-row .search{min-width:0}
+  .quick-add{width:44px;min-width:44px;height:44px}
+
+  /* Prevent iOS from zooming forms and make everything comfortably tappable. */
+  input,textarea,select,.search{font-size:16px!important;max-width:100%}
+  button,.primary,.secondary,.filter,.button-link{min-height:44px}
+  button{touch-action:manipulation}
+
+  .section{padding:12px 0}
+  .page-title{font-size:1.65rem;line-height:1.08}
+  .big-title{font-size:1.45rem}
+  .card-pad{padding:13px}
+  .hero-grid,.movie-grid,.idea-columns{grid-template-columns:1fr}
+  .stat-grid{gap:8px}
+  .stat{padding:11px}
+  .stat .num{font-size:1.4rem}
+
+  /* Keep dense control groups usable without wrapping into giant walls of buttons. */
+  .toolbar,.preset-row,.trait-chip-grid,.rv-bingo-category-chips{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+    padding-bottom:3px;
+  }
+  .toolbar::-webkit-scrollbar,.preset-row::-webkit-scrollbar,.trait-chip-grid::-webkit-scrollbar,.rv-bingo-category-chips::-webkit-scrollbar{display:none}
+  .toolbar > *,.preset-row > *,.trait-chip-grid > *,.rv-bingo-category-chips > *{flex:0 0 auto}
+  .movie-header-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .movie-header-actions > *{width:100%;min-width:0}
+  .preset-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .preset-actions > *{width:100%;min-width:0}
+
+  /* New Finds: full-width movie cards are much easier to scan on a phone. */
+  .new-find-header{display:grid;grid-template-columns:1fr;gap:9px}
+  .new-find-header > button{width:100%}
+  .new-find-grid{grid-template-columns:1fr;gap:11px}
+  .new-find-card{grid-template-columns:1fr;min-height:0}
+  .new-find-poster{min-height:0;aspect-ratio:16/8.7}
+  .new-find-poster img{width:100%;height:100%;object-fit:cover}
+  .new-find-body{padding:12px}
+  .new-find-body h3{font-size:1.08rem}
+  .new-find-body p{font-size:.9rem;line-height:1.38;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .new-find-topline{align-items:flex-start;flex-wrap:wrap}
+  .provider-line{white-space:normal;overflow:visible;text-overflow:clip}
+  .new-find-score{align-items:baseline}
+  .new-find-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .new-find-actions > *{width:100%;min-width:0}
+  .new-find-actions > .primary:first-child{grid-column:1/-1}
+
+  /* Movie cards and voting. */
+  .poster{aspect-ratio:16/8.5;padding:11px}
+  .movie-body{padding:12px;gap:9px}
+  .vote-row{gap:6px}
+  .vote-btn{padding:9px 5px;font-size:.85rem}
+  .actions{display:grid;grid-template-columns:1fr 1fr}
+  .actions button{width:100%}
+
+  /* Modals become phone-sized sheets instead of narrow desktop dialogs. */
+  .modal-backdrop{align-items:end}
+  .modal{
+    width:100%;
+    max-width:none!important;
+    max-height:92dvh;
+    border-radius:18px 18px 0 0;
+    padding:14px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  .modal-header{position:sticky;top:-14px;z-index:3;background:#171920;padding:12px 0 9px;margin-top:-2px}
+  .close{width:44px;height:44px;flex:0 0 auto}
+  .movie-status-row{gap:6px}
+  .movie-status-row .filter{flex:1 1 45%}
+  .trait-tools{grid-template-columns:1fr}
+  .trait-tools .secondary{width:100%}
+  .trait-actions{display:grid;grid-template-columns:1fr 1fr}
+  .trait-actions > *{width:100%}
+
+  /* Preserve a real 7-day calendar, but allow intentional horizontal swiping. */
+  .calendar{
+    grid-template-columns:repeat(7,minmax(112px,1fr));
+    gap:6px;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scroll-snap-type:x proximity;
+    padding-bottom:5px;
+  }
+  .day{min-height:88px;scroll-snap-align:start}
+
+  /* Bingo editor/play stays entirely inside the phone viewport. */
+  .rv-bingo-card-shell,.rv-bingo-editor-controls,.rv-bingo-player-controls{width:100%;max-width:100%}
+  .rv-bingo-save-row,.rv-bingo-export-row,.rv-bingo-player-controls{gap:6px}
+  .rv-bingo-picker-modal,.rv-bingo-multi-modal{width:100%;max-width:100%!important}
+
+  /* Bottom navigation: larger touch zones + safe-area support. */
+  .tabs{padding-bottom:max(env(safe-area-inset-bottom),4px)}
+  .tabs button{min-height:58px;padding:7px 2px 6px;font-size:10.5px;line-height:1.05}
+  .tab-icon{font-size:18px;margin-bottom:2px}
+
+  /* Generic overflow protection for long labels/URLs/data. */
+  .card,.pill,.subtle,.movie-body,.new-find-body,.trait-name,.activity-item,.list-item{min-width:0;overflow-wrap:anywhere}
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+@media (max-width: 430px){
+  .app-shell{padding-left:8px;padding-right:8px}
+  .brand{font-size:.88rem}
+  .profile-switch{max-width:48vw}
+  .page-title{font-size:1.5rem}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .movie-header-actions,.preset-actions,.new-find-actions,.trait-actions{grid-template-columns:1fr}
+  .new-find-actions > .primary:first-child{grid-column:auto}
+  .new-find-poster{aspect-ratio:16/9}
+  .new-find-body{padding:11px}
+  .pill{font-size:11px;padding:5px 7px}
+  .tabs button{font-size:9.5px}
+  .tab-icon{font-size:17px}
+}
