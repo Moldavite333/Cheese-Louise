@@ -1,5 +1,7 @@
-// Cheese Louise v1.18 — permanent Cheese Trait deletion
+// Cheese Louise v1.18 — permanent Cheese Trait deletion + Trait Library search
 // Retire remains the normal historical option; Delete is for typos, duplicates, and mistakes.
+
+let traitManagerSearch='';
 
 function traitDeleteSameId(a,b){ return String(a||'')===String(b||''); }
 
@@ -12,6 +14,51 @@ function traitDeleteStoragePath(url){
   catch { return url.slice(i+marker.length).split('?')[0]; }
 }
 
+function traitManagerApplySearch(){
+  const manager=document.querySelector('.trait-art-manager');
+  if(!manager) return;
+  const q=traitManagerSearch.trim().toLowerCase();
+  let visible=0;
+
+  manager.querySelectorAll('.manager-category').forEach(category=>{
+    let categoryVisible=0;
+    category.querySelectorAll('.trait-art-manager-row').forEach(row=>{
+      const hay=(row.textContent||'').toLowerCase();
+      const show=!q || hay.includes(q);
+      row.style.display=show?'':'none';
+      if(show){ visible++; categoryVisible++; }
+    });
+    category.style.display=categoryVisible?'':'none';
+  });
+
+  const count=manager.querySelector('.trait-manager-search-count');
+  if(count){
+    const total=(state.traits||[]).length;
+    count.textContent=q?`${visible} of ${total} traits`:`${total} traits`;
+  }
+
+  let empty=manager.querySelector('.trait-manager-search-empty');
+  if(q && visible===0){
+    if(!empty){
+      empty=document.createElement('div');
+      empty.className='empty trait-manager-search-empty';
+      empty.textContent='No Cheese Traits match that search.';
+      const search=manager.querySelector('.trait-manager-search-wrap');
+      search?.insertAdjacentElement('afterend',empty);
+    }
+    empty.style.display='';
+  }else if(empty){
+    empty.style.display='none';
+  }
+}
+
+function traitManagerClearSearch(){
+  traitManagerSearch='';
+  const input=document.querySelector('.trait-manager-search-input');
+  if(input){ input.value=''; input.focus(); }
+  traitManagerApplySearch();
+}
+
 function traitDeleteEnhanceUi(){
   const manager=document.querySelector('.trait-art-manager');
   if(manager){
@@ -19,6 +66,19 @@ function traitDeleteEnhanceUi(){
     if(note && !note.dataset.deleteExplained){
       note.dataset.deleteExplained='1';
       note.textContent='Retire keeps a trait for old movies. Delete permanently removes mistakes, typos, and duplicates.';
+    }
+
+    const topActions=manager.querySelector(':scope > .trait-manager-actions');
+    if(topActions && !manager.querySelector('.trait-manager-search-wrap')){
+      const wrap=document.createElement('div');
+      wrap.className='trait-manager-search-wrap';
+      wrap.innerHTML=`<div class="trait-manager-search-box"><span class="trait-manager-search-icon">⌕</span><input class="search trait-manager-search-input" type="search" autocomplete="off" placeholder="Search Cheese Traits…" aria-label="Search Cheese Traits"><button type="button" class="secondary trait-manager-search-clear" aria-label="Clear Cheese Trait search">Clear</button></div><span class="subtle trait-manager-search-count"></span>`;
+      topActions.insertAdjacentElement('afterend',wrap);
+      const input=wrap.querySelector('.trait-manager-search-input');
+      input.value=traitManagerSearch;
+      input.addEventListener('input',()=>{ traitManagerSearch=input.value; traitManagerApplySearch(); });
+      input.addEventListener('keydown',event=>{ if(event.key==='Escape'){ event.preventDefault(); traitManagerClearSearch(); } });
+      wrap.querySelector('.trait-manager-search-clear').addEventListener('click',traitManagerClearSearch);
     }
   }
 
@@ -40,6 +100,8 @@ function traitDeleteEnhanceUi(){
     del.addEventListener('click',()=>deleteCheeseTrait(id));
     actions.appendChild(del);
   });
+
+  traitManagerApplySearch();
 }
 
 async function traitDeleteCleanSavedCards(traitId){
@@ -151,8 +213,17 @@ const traitDeleteStyle=document.createElement('style');
 traitDeleteStyle.textContent=`
 .trait-delete-button{border-color:#87404a!important;color:#ffb2bd!important;background:#291b20!important}
 .trait-delete-button:hover{background:#4a232b!important;border-color:#e85c78!important;color:#fff!important}
+.trait-manager-search-wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 16px;position:sticky;top:-1px;z-index:4;background:var(--panel,#181a21);padding:8px 0}
+.trait-manager-search-box{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.trait-manager-search-input{flex:1;min-width:0}
+.trait-manager-search-icon{font-size:1.25rem;color:var(--muted,#a8abb4);line-height:1}
+.trait-manager-search-clear{min-height:42px;white-space:nowrap}
+.trait-manager-search-count{white-space:nowrap}
+.trait-manager-search-empty{margin:0 0 14px}
+@media(max-width:620px){.trait-manager-search-wrap{align-items:stretch;flex-direction:column;gap:6px}.trait-manager-search-box{width:100%}.trait-manager-search-count{padding-left:30px}}
 `;
 document.head.appendChild(traitDeleteStyle);
 
 window.deleteCheeseTrait=deleteCheeseTrait;
+window.traitManagerClearSearch=traitManagerClearSearch;
 setTimeout(traitDeleteEnhanceUi,0);
