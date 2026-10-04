@@ -14,6 +14,25 @@ type Ranked={movie:Movie;score:number;why:string[];rawHoliday:string|null;rawSea
 function iso(d:Date){return d.toISOString().slice(0,10)}
 function plusDays(d:Date,n:number){const x=new Date(d);x.setUTCDate(x.getUTCDate()+n);return x}
 
+const GENERIC_WHY=new Set(['romance','TV movie','Christmas','holiday','Halloween','Thanksgiving',"Valentine's",'Fall / harvest','Winter','Spring','Summer'])
+const TRUSTED_CHEESE_MAKERS=[
+  /hallmark|crown media/i,
+  /lifetime|a&e television/i,
+  /marvista/i,
+  /reel one/i,
+  /great american|gac family|great american family/i,
+  /up faith|uptv/i,
+  /nicely entertainment/i,
+  /incendo/i,
+  /front street pictures/i,
+  /johnson production group/i,
+  /brain power studio/i,
+  /champlain media/i,
+  /cmw .*productions|cmw horizon/i,
+  /muse entertainment/i,
+  /larry levinson/i
+]
+
 function signals(m:Movie){
   const text=((m.title||'')+' '+(m.overview||'')).toLowerCase()
   const g=new Set(m.genre_ids||[])
@@ -22,22 +41,22 @@ function signals(m:Movie){
   const add=(label:string,pts:number,patterns:string[])=>{if(patterns.some(p=>text.includes(p))){score+=pts;why.push(label)}}
 
   if(g.has(10749)){score+=10;why.push('romance')}
-  if(g.has(10770)){score+=8;why.push('TV movie')}
+  if(g.has(10770)){score+=10;why.push('TV movie')}
   if(g.has(35))score+=2
   if(g.has(10751))score+=2
 
-  add('Christmas',7,['christmas','mistletoe','santa','yuletide','christmas tree'])
-  add('holiday',4,['holiday','festive'])
-  add('Halloween',7,['halloween','haunted','spooky','trick or treat','costume party'])
-  add('Thanksgiving',7,['thanksgiving','friendsgiving','turkey dinner'])
-  add("Valentine's",6,['valentine','february 14'])
-  add('Fall / harvest',7,['autumn','fall festival','harvest','october','pumpkin patch','apple orchard','apple picking','cider','hayride','corn maze'])
-  add('Winter',4,['winter','snow','ski lodge','ski resort','blizzard'])
-  add('Spring',4,['spring','springtime','garden festival','flower festival'])
-  add('Summer',4,['summer','beach','seaside','lake house','summer camp','boardwalk','island vacation'])
+  add('Christmas',5,['christmas','mistletoe','santa','yuletide','christmas tree'])
+  add('holiday',3,['holiday','festive'])
+  add('Halloween',6,['halloween','haunted','spooky','trick or treat','costume party'])
+  add('Thanksgiving',6,['thanksgiving','friendsgiving','turkey dinner'])
+  add("Valentine's",5,['valentine','february 14'])
+  add('Fall / harvest',6,['autumn','fall festival','harvest','october','pumpkin patch','apple orchard','apple picking','cider','hayride','corn maze'])
+  add('Winter',3,['winter','snow','ski lodge','ski resort','blizzard'])
+  add('Spring',3,['spring','springtime','garden festival','flower festival'])
+  add('Summer',3,['summer','beach','seaside','lake house','summer camp','boardwalk','island vacation'])
 
-  add('wedding',8,['wedding','bride','groom','engagement'])
-  add('royalty',8,['prince','princess','royal','kingdom','duke','duchess'])
+  add('wedding',7,['wedding','bride','groom','engagement'])
+  add('royalty',7,['prince','princess','royal','kingdom','duke','duchess'])
   add('small town',9,['small town','small-town'])
   add('hometown return',8,['hometown','returns home','return home','back home','comes home'])
   add('bakery',8,['bakery','baker','pastry shop'])
@@ -45,7 +64,7 @@ function signals(m:Movie){
   add('inn / lodge',6,[' inn ','lodge','bed and breakfast','b&b'])
   add('vineyard / winery',7,['vineyard','winery','winemaker'])
   add('ranch / farm',6,['ranch',' family farm','farmhouse'])
-  add('dead spouse',8,['widow','widower','late husband','late wife'])
+  add('dead spouse',7,['widow','widower','late husband','late wife'])
   add('single parent',6,['single mom','single mother','single dad','single father'])
   add('old flame',7,['old flame','first love','childhood sweetheart','former sweetheart','reconnects with'])
   add('family business',7,['family business','family shop','family store','family bakery','family inn'])
@@ -55,13 +74,17 @@ function signals(m:Movie){
   add('fake relationship',7,['fake dating','pretend to date','pretend couple','fake relationship'])
   add('save-the-something plot',5,['save the ','saving the ','keep the ','struggling'])
   add('inheritance',6,['inherits','inheritance','inherited'])
+  add('competition',5,['competition','contest','regatta','bake-off','cook-off','pageant'])
+  add('career-vs-love',6,['promotion','career opportunity','job offer','big city job','dream job'])
 
-  if(g.has(27))score-=12
-  if(g.has(80))score-=9
-  if(g.has(53))score-=7
-  if(g.has(10752))score-=12
+  if(g.has(27))score-=20
+  if(g.has(80))score-=14
+  if(g.has(53))score-=12
+  if(g.has(10752))score-=20
+  if(g.has(28))score-=10
+  if(g.has(99))score-=20
   if(!m.overview)score-=2
-  return {score:Math.max(0,score),why:[...new Set(why)].slice(0,12)}
+  return {score:Math.max(0,score),why:[...new Set(why)].slice(0,14)}
 }
 
 function holidayText(title:string,overview:string,keywords:string[]){
@@ -111,6 +134,41 @@ function providerLabel(names:string[]){
   return names[0]||'Streaming / TV'
 }
 
+function cheeseLouiseProfile(args:{
+  title:string; overview:string; keywords:string[]; genres:string[];
+  productionCompanies:string[]; providers:string[]; why:string[];
+  holiday:string|null; season:string|null
+}){
+  const genreText=args.genres.join(' ').toLowerCase()
+  const combined=(args.title+' '+args.overview+' '+args.keywords.join(' ')).toLowerCase()
+  const hasRomance=/\bromance\b/.test(genreText) || /\bromance\b|falls? (?:in )?love|falling in love|love interest|sweetheart|matchmaker|dating|engaged|fianc[eé]|wedding/.test(combined)
+  const isTvMovie=/tv movie/.test(genreText)
+  const trustedText=[...args.productionCompanies,...args.providers].join(' ')
+  const trusted=TRUSTED_CHEESE_MAKERS.some(rx=>rx.test(trustedText))
+  const hardGenre=/horror|crime|thriller|war|documentary|action/.test(genreText)
+  const tropeHits=[...new Set(args.why.filter(x=>!GENERIC_WHY.has(x)))]
+  const seasonal=Boolean(args.holiday||args.season)
+
+  let eligible=false
+  let fit=''
+  if(hardGenre && !hasRomance){
+    eligible=false
+  }else if(isTvMovie && hasRomance){
+    eligible=true;fit='TV romance'
+  }else if(trusted && hasRomance){
+    eligible=true;fit='trusted Romantiverse studio'
+  }else if(trusted && (isTvMovie||tropeHits.length>=1)){
+    eligible=true;fit='trusted made-for-TV cheese maker'
+  }else if(hasRomance && seasonal && tropeHits.length>=1){
+    eligible=true;fit='seasonal Romantiverse romance'
+  }else if(hasRomance && tropeHits.length>=3){
+    eligible=true;fit='strong Romantiverse trope profile'
+  }
+
+  const bonus=(isTvMovie?10:0)+(trusted?12:0)+Math.min(18,tropeHits.length*3)+(seasonal?3:0)
+  return {eligible,fit,bonus,tropeHits,hasRomance,isTvMovie,trusted}
+}
+
 async function tmdb(path:string,token:string){
   const r=await fetch(TMDB+path,{headers:{Authorization:'Bearer '+token,accept:'application/json'}})
   if(!r.ok)throw new Error('TMDB '+r.status+': '+(await r.text()).slice(0,240))
@@ -156,9 +214,9 @@ Deno.serve(async(req:Request)=>{
     const token=Deno.env.get('TMDB_READ_ACCESS_TOKEN')
     if(!token)throw new Error('TMDB_READ_ACCESS_TOKEN is not configured')
     const input=await req.json().catch(()=>({}))
-    const daysBack=Math.max(365,Math.min(5475,Number(input.days_back??3650)))
+    const daysBack=Math.max(365,Math.min(5475,Number(input.days_back??5475)))
     const daysForward=Math.max(30,Math.min(730,Number(input.days_forward??730)))
-    const maxResults=Math.max(24,Math.min(120,Number(input.max_results??96)))
+    const maxResults=Math.max(24,Math.min(120,Number(input.max_results??120)))
     const today=new Date(), start=iso(plusDays(today,-daysBack)), end=iso(plusDays(today,daysForward))
 
     const minYear=new Date(start+'T00:00:00Z').getUTCFullYear()
@@ -171,17 +229,24 @@ Deno.serve(async(req:Request)=>{
         jobs.push('/discover/movie?'+q.toString())
       }
     }
+
     for(let year=minYear;year<=maxYear;year++){
       const from=year===minYear?start:`${year}-01-01`
       const to=year===maxYear?end:`${year}-12-31`
-      const pages=Math.abs(year-currentYear)<=2?3:2
+      const pages=Math.abs(year-currentYear)<=2?4:3
       addDiscover('10749',from,to,pages)
       addDiscover('10770',from,to,pages)
     }
 
     const pages=await mapLimit(jobs,8,path=>tmdb(path,token))
     const byId=new Map<number,Movie>()
-    for(const page of pages){for(const m of(page?.results||[])){if(!m?.id||m.adult)continue;const old=byId.get(m.id);if(!old||Number(m.popularity||0)>Number(old.popularity||0))byId.set(m.id,m)}}
+    for(const page of pages){
+      for(const m of(page?.results||[])){
+        if(!m?.id||m.adult)continue
+        const old=byId.get(m.id)
+        if(!old||Number(m.popularity||0)>Number(old.popularity||0))byId.set(m.id,m)
+      }
+    }
 
     const ranked:Ranked[]=[...byId.values()].map(movie=>{
       const sig=signals(movie)
@@ -190,14 +255,14 @@ Deno.serve(async(req:Request)=>{
       const rawHoliday=holidayText(title,overview,[])
       const rawSeason=seasonText(title,overview,[],rawHoliday)
       return {movie,...sig,rawHoliday,rawSeason,bucket:themeBucket(rawHoliday,rawSeason)}
-    }).filter(x=>x.score>=6)
+    }).filter(x=>x.score>=8)
 
     const bucketOrder=['Fall / Harvest','Halloween','Thanksgiving','General Romance','Christmas','Winter / Non-Christmas','Spring','Summer',"Valentine's"]
     const sortedRanked=[...ranked].sort(sortRanked)
-    const preEnrichLimit=Math.min(sortedRanked.length,Math.max(maxResults+28,88))
+    const preEnrichLimit=Math.min(sortedRanked.length,Math.max(maxResults*3,260))
     const preselected=balancedTake(sortedRanked,preEnrichLimit,bucketOrder)
 
-    const enriched=await mapLimit(preselected,7,async(entry)=>{
+    const enriched=await mapLimit(preselected,8,async(entry)=>{
       let detail:any={}
       let providerData:any={}
       try{
@@ -221,14 +286,16 @@ Deno.serve(async(req:Request)=>{
 
       const keywords=(detail?.keywords?.keywords||[]).map((k:any)=>k?.name).filter(Boolean).slice(0,30)
       const genres=(detail?.genres||[]).map((g:any)=>g?.name).filter(Boolean)
-      const productionCompanies=(detail?.production_companies||[]).map((c:any)=>c?.name).filter(Boolean).slice(0,12)
+      const productionCompanies=(detail?.production_companies||[]).map((c:any)=>c?.name).filter(Boolean).slice(0,16)
       const castCharacters=(detail?.credits?.cast||[]).map((c:any)=>c?.character).filter(Boolean).slice(0,16)
       const title=detail?.title||entry.movie.title||entry.movie.original_title||'Untitled'
       const overview=detail?.overview||entry.movie.overview||''
+      const detailedGenreIds=(detail?.genres||[]).map((g:any)=>Number(g?.id)).filter(Boolean)
+      const sig=signals({...entry.movie,title,overview,genre_ids:detailedGenreIds.length?detailedGenreIds:entry.movie.genre_ids})
       const h=holidayText(title,overview,keywords)
       const s=seasonText(title,overview,keywords,h)
-      const sig=signals({...entry.movie,title,overview,genre_ids:entry.movie.genre_ids})
       const bucket=themeBucket(h,s)
+      const profile=cheeseLouiseProfile({title,overview,keywords,genres,productionCompanies,providers:names,why:sig.why,holiday:h,season:s})
 
       return {
         tmdb_id:entry.movie.id,
@@ -251,16 +318,19 @@ Deno.serve(async(req:Request)=>{
         holiday:h,
         season:s,
         bucket,
-        match_score:Math.min(100,sig.score),
-        why:[...new Set([...entry.why,...sig.why])].slice(0,12),
+        cheese_louise_eligible:profile.eligible,
+        cheese_louise_fit:profile.fit,
+        match_score:Math.min(100,sig.score+profile.bonus),
+        why:[...new Set([profile.fit?`Cheese Louise: ${profile.fit}`:'',...entry.why,...sig.why])].filter(Boolean).slice(0,14),
         popularity:Number(detail?.popularity??entry.movie.popularity??0),
         vote_average:Number(detail?.vote_average??entry.movie.vote_average??0),
         vote_count:Number(detail?.vote_count??entry.movie.vote_count??0)
       }
     })
 
-    const finalSorted=enriched.sort((a,b)=>b.match_score-a.match_score||(b.premiere_date||'').localeCompare(a.premiere_date||'')||b.popularity-a.popularity)
-    const balanced=balancedTake(finalSorted,maxResults,bucketOrder)
+    const cheeseOnly=enriched.filter((x:any)=>x.cheese_louise_eligible)
+    cheeseOnly.sort((a:any,b:any)=>b.match_score-a.match_score||(b.premiere_date||'').localeCompare(a.premiere_date||'')||b.popularity-a.popularity)
+    const balanced=balancedTake(cheeseOnly,maxResults,bucketOrder)
     const coverage=balanced.reduce((acc:any,item:any)=>{const k=item.bucket||'General Romance';acc[k]=(acc[k]||0)+1;return acc},{})
 
     return new Response(JSON.stringify({
@@ -268,9 +338,12 @@ Deno.serve(async(req:Request)=>{
       window:{start,end},
       scanned_candidates:byId.size,
       enriched_candidates:enriched.length,
+      cheese_louise_candidates:cheeseOnly.length,
+      rejected_non_romantiverse:Math.max(0,enriched.length-cheeseOnly.length),
       count:balanced.length,
       coverage,
       results:balanced,
+      mode:'cheese-louise-only',
       attribution:{movie_data:'TMDB',streaming_availability:'JustWatch via TMDB',enrichment:['TMDB keywords','TMDB tagline','TMDB genres','TMDB production companies','TMDB cast character names']}
     }),{headers:{...cors,'Content-Type':'application/json','Cache-Control':'private, max-age=900'}})
   }catch(e){
