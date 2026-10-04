@@ -1,4 +1,4 @@
-# Cheese Louise HQ v1.13
+# Cheese Louise HQ v1.32
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
@@ -28,6 +28,13 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 
 ### Cheese Rating / Cheese Traits
 
+- **Adaptive Cheese Master v1.32** builds a preliminary Cheese Rating before a movie is saved
+- Discovery enrichment now uses TMDB synopsis, tagline, keywords, genres, production companies, character names, provider/network, holiday, and season clues
+- Concept inference recognizes implicit setups such as hometown return + corporate career, inheritance + family business, widow + child, or family business + closure threat even when the exact Cheese Trait name never appears
+- Confidence tiers and evidence explain why each trait was suggested
+- Every Cheese Trait can store recognition aliases, story cues, context, and false-positive exclusions; the Trait Library has a **Teach** action for editing these
+- Manual additions/removals and accepted/rejected Cheese Master suggestions are saved as feedback, so future inference can learn which words and story patterns tend to mean a trait in the Cheese Louise workspace
+- Preliminary scoring confidence-weights evidence and reduces same-category double counting while keeping confirmed Cheese Traits authoritative
 - Editable master Cheese Trait library
 - Toggle traits on/off per movie
 - Each selected trait contributes its point value to the movie's Cheese Rating
