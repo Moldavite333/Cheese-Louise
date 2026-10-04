@@ -106,6 +106,34 @@
   .rv-bingo-save-row,.rv-bingo-export-row,.rv-bingo-player-controls{gap:6px}
   .rv-bingo-picker-modal,.rv-bingo-multi-modal{width:100%;max-width:100%!important}
 
+  /* Bingo words are the game. Never truncate a Cheese Trait label on phones. */
+  .rv-bingo-square{padding:2px 2px;gap:1px}
+  .rv-bingo-square-category{display:none!important}
+  .rv-bingo-square-text,
+  .trait-art-bingo-square.is-illustrated .rv-bingo-square-text{
+    display:block!important;
+    -webkit-line-clamp:unset!important;
+    -webkit-box-orient:initial!important;
+    overflow:visible!important;
+    max-height:none!important;
+    font-size:clamp(.39rem,2.05vw,.63rem)!important;
+    line-height:.96!important;
+    letter-spacing:-.01em;
+    overflow-wrap:anywhere;
+    hyphens:auto;
+  }
+  .rv-bingo-trait-art,
+  .trait-art-bingo-square.is-text-first .rv-bingo-trait-art,
+  .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art,
+  .rv-bingo-playing .trait-art-bingo-square.is-text-first .rv-bingo-trait-art,
+  .rv-bingo-playing .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+    width:25%!important;
+    height:25%!important;
+    max-width:28px!important;
+    max-height:28px!important;
+    flex:0 0 auto;
+  }
+
   /* Bottom navigation: larger touch zones + safe-area support. */
   .tabs{padding-bottom:max(env(safe-area-inset-bottom),4px)}
   .tabs button{min-height:58px;padding:7px 2px 6px;font-size:10.5px;line-height:1.05}
@@ -129,4 +157,20 @@
   .pill{font-size:11px;padding:5px 7px}
   .tabs button{font-size:9.5px}
   .tab-icon{font-size:17px}
+
+  .rv-bingo-square-text,
+  .trait-art-bingo-square.is-illustrated .rv-bingo-square-text{
+    font-size:clamp(.36rem,1.92vw,.55rem)!important;
+    line-height:.94!important;
+  }
+  .rv-bingo-trait-art,
+  .trait-art-bingo-square.is-text-first .rv-bingo-trait-art,
+  .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art,
+  .rv-bingo-playing .trait-art-bingo-square.is-text-first .rv-bingo-trait-art,
+  .rv-bingo-playing .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+    width:22%!important;
+    height:22%!important;
+    max-width:22px!important;
+    max-height:22px!important;
+  }
 }
