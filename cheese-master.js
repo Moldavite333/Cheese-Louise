@@ -491,7 +491,7 @@ suggestTraits=async function(movieId){
     return '• '+m.trait.name+' (+'+m.trait.points+') — '+cmTier(m.confidence)+' '+Math.round(m.confidence*100)+'%: '+((m.evidence||[])[0]||m.reason);
   });
   if(suggestions.length>18) lines.push('• +'+(suggestions.length-18)+' more possible traits');
-  if(!confirm('Cheese Master found '+suggestions.length+' possible traits.\\n\\n'+lines.join('\\n')+'\\n\\nEstimated Cheese Rating: '+analysis.score+'/100\\n\\nAdd all of these? You can remove anything it got wrong; removals teach it too.')) return;
+  if(!confirm('Cheese Master found '+suggestions.length+' possible traits.\n\n'+lines.join('\n')+'\n\nEstimated Cheese Rating: '+analysis.score+'/100\n\nAdd all of these? You can remove anything it got wrong; removals teach it too.')) return;
 
   const rows=suggestions.map(function(m){
     return {
@@ -589,7 +589,7 @@ function cmEnhanceTraitManager(){
     if(row.querySelector('.cm-teach-button')) return;
     const edit=[...row.querySelectorAll('button')].find(function(b){ return /editTrait/.test(b.getAttribute('onclick')||''); });
     if(!edit) return;
-    const match=(edit.getAttribute('onclick')||'').match(/editTrait\\((['"])([^'"]+)\\1\\)/);
+    const match=(edit.getAttribute('onclick')||'').match(/editTrait\((['"])([^'"]+)\1\)/);
     if(!match) return;
     const id=match[2];
     const btn=document.createElement('button');
@@ -611,7 +611,7 @@ render=function(){
 
 const cmOriginalTopbar=topbar;
 topbar=function(){
-  return cmOriginalTopbar().replace(/>v1\\.\\d+</,'>'+CHEESE_MASTER_VERSION+'<');
+  return cmOriginalTopbar().replace(/>v1\.\d+</,'>'+CHEESE_MASTER_VERSION+'<');
 };
 
 const cmStyle=document.createElement('style');
