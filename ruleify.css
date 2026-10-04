@@ -1,0 +1,16 @@
+/* Cheese Louise v1.20 — Ruleify™ */
+.ruleify-hero{padding-bottom:4px}
+.ruleify-input-card{margin-top:16px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))}
+.ruleify-input{width:100%;margin-top:8px;min-height:128px;resize:vertical;font-size:1rem;line-height:1.5}
+.ruleify-input-actions,.ruleify-actions,.ruleify-results-head,.ruleify-result-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ruleify-input-actions{margin-top:12px;justify-content:flex-start}
+.ruleify-big-button{font-size:1rem;padding:11px 18px}
+.ruleify-examples{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.ruleify-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.ruleify-result{display:flex;flex-direction:column;min-height:260px}
+.ruleify-law{font-family:Georgia,'Times New Roman',serif;font-size:1.16rem;line-height:1.5;margin:18px 0;flex:1}
+.ruleify-confidence{font-size:.78rem;opacity:.72;white-space:nowrap}
+.ruleify-overlap{font-size:.84rem;line-height:1.4;padding:10px 12px;border-radius:10px;background:rgba(255,184,77,.08);border:1px solid rgba(255,184,77,.18);margin-bottom:12px}
+.ruleify-actions{justify-content:flex-start;margin-top:auto}
+.ruleify-source{margin-top:12px;padding:10px 12px;border-left:3px solid rgba(255,255,255,.16);background:rgba(255,255,255,.025);font-size:.86rem;line-height:1.45;color:var(--muted,#aeb2bd)}
+@media(max-width:900px){.ruleify-results{grid-template-columns:1fr}}
