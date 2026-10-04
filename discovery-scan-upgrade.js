@@ -28,7 +28,10 @@ discoverCheeseMovies = async function(force=false){
     discoveryScanMeta={
       scanned:Number(data?.scanned_candidates||0),
       enriched:Number(data?.enriched_candidates||0),
+      cheese:Number(data?.cheese_louise_candidates||data?.count||state.discoveryResults.length),
+      rejected:Number(data?.rejected_non_romantiverse||0),
       returned:Number(data?.count||state.discoveryResults.length),
+      mode:data?.mode||null,
       window:data?.window||null,
       generated_at:data?.generated_at||null
     };
@@ -50,7 +53,7 @@ discoveryPanel=function(){
   const coverage=coverageEntries.length
     ? `<div class="pills" style="margin:10px 0 14px">${coverageEntries.map(([label,count])=>`<span class="pill">${esc(label)} <strong>${Number(count)}</strong></span>`).join('')}</div>`
     : '';
-  const scanLine=`<div class="subtle" style="margin:8px 0 4px">Deep scan: <strong>${discoveryScanMeta.scanned}</strong> catalog candidates checked · <strong>${discoveryScanMeta.returned}</strong> balanced finds returned · roughly 15 years back + 2 years forward.</div>`;
+  const scanLine=`<div class="subtle" style="margin:8px 0 4px"><strong>Cheese Louise-only scan:</strong> ${discoveryScanMeta.scanned} catalog candidates checked · ${discoveryScanMeta.cheese} passed the Romantiverse filter · ${discoveryScanMeta.rejected} rejected as ordinary/non-Cheese-Louise movies · ${discoveryScanMeta.returned} balanced finds shown.</div>`;
 
   return html.replace('<div class="new-find-grid">',`${scanLine}${coverage}<div class="new-find-grid">`);
 };
