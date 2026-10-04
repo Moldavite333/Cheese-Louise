@@ -15,9 +15,9 @@ discoverCheeseMovies = async function(force=false){
   try{
     const {data,error}=await db.functions.invoke('discover-cheese-movies',{
       body:{
-        days_back:3650,
+        days_back:5475,
         days_forward:730,
-        max_results:96
+        max_results:120
       }
     });
     if(error) throw error;
@@ -50,7 +50,7 @@ discoveryPanel=function(){
   const coverage=coverageEntries.length
     ? `<div class="pills" style="margin:10px 0 14px">${coverageEntries.map(([label,count])=>`<span class="pill">${esc(label)} <strong>${Number(count)}</strong></span>`).join('')}</div>`
     : '';
-  const scanLine=`<div class="subtle" style="margin:8px 0 4px">Deep scan: <strong>${discoveryScanMeta.scanned}</strong> catalog candidates checked · <strong>${discoveryScanMeta.returned}</strong> balanced finds returned · roughly 10 years back + 2 years forward.</div>`;
+  const scanLine=`<div class="subtle" style="margin:8px 0 4px">Deep scan: <strong>${discoveryScanMeta.scanned}</strong> catalog candidates checked · <strong>${discoveryScanMeta.returned}</strong> balanced finds returned · roughly 15 years back + 2 years forward.</div>`;
 
   return html.replace('<div class="new-find-grid">',`${scanLine}${coverage}<div class="new-find-grid">`);
 };
