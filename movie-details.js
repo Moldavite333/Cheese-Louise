@@ -158,6 +158,8 @@ function clDiscoveryMovieDetailModal(){
     <section class="cl-movie-detail-section">
       <div class="cl-movie-detail-section-head"><div><div class="kicker">Romantiverse estimate</div><h3>Likely Cheese Traits</h3></div><span class="pill">${traits.length} likely</span></div>
       ${traits.length?`<div class="pills cl-movie-detail-traits">${traits.map(t=>`<span class="pill trait-pill">${esc(t.name)} <b>+${Number(t.points||0)}</b></span>`).join('')}</div>`:'<div class="subtle">No Cheese Traits are confidently inferred yet.</div>'}
+      ${typeof rvMatchDetailsHtml==='function' && est?.matches?.length?`<details class="new-find-why" style="margin-top:12px"><summary>Show Cheese Master evidence</summary>${rvMatchDetailsHtml(est)}</details>`:''}
+      ${(c.keywords||[]).length?`<details class="new-find-why" style="margin-top:10px"><summary>Extra TMDB clues used</summary><div class="pills">${(c.keywords||[]).slice(0,12).map(k=>`<span class="pill">${esc(k)}</span>`).join('')}</div></details>`:''}
     </section>
 
     ${why.length?`<section class="cl-movie-detail-section"><div class="kicker">Why it surfaced</div><div class="pills cl-movie-detail-tags">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></section>`:''}
