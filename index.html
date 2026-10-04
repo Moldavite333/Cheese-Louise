@@ -26,9 +26,6 @@
 <body>
   <div id="app"></div>
   <script>
-    // Capture Supabase's one-time recovery marker before supabase-js/app.js can
-    // consume and clear the URL hash. This matters when reset emails open in a
-    // different mobile browser/webview than the one that requested the reset.
     window.__CL_RECOVERY_BOOT = window.location.hash.includes('type=recovery');
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,6 +52,7 @@
   <script src="trait-delete.js?v=31"></script>
   <script src="romantiverse-search.js?v=34"></script>
   <script src="ruleify.js?v=35"></script>
+  <script src="romantiverse-nav-fix.js?v=38"></script>
   <script src="auth-enhancements.js?v=16"></script>
   <script src="signup-confirmation-fix.js?v=17"></script>
 </body>
