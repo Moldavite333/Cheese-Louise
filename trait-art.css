@@ -1,0 +1,241 @@
+/* Cheese Louise v1.17 — Romantiverse Trait Art */
+
+.trait-art-image{
+  display:block;
+  object-fit:cover;
+  background:#f4ead1;
+  border:1px solid rgba(23,63,54,.25);
+}
+
+/* Movie trait picker */
+.trait-art-toggle{
+  display:grid!important;
+  grid-template-columns:42px 24px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  text-align:left;
+}
+.trait-art-picker-thumb{
+  width:40px;
+  height:40px;
+  border-radius:9px;
+  flex:0 0 auto;
+}
+.trait-art-toggle .trait-name{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+.trait-art-toggle .trait-name small{
+  display:block;
+  color:var(--muted,#a8abb4);
+  font-size:.7rem;
+  font-weight:600;
+}
+
+/* Trait library */
+.trait-art-manager{max-width:920px}
+.trait-art-manager-row{
+  display:grid!important;
+  grid-template-columns:62px minmax(0,1fr) auto minmax(180px,auto);
+  align-items:center;
+  gap:10px;
+}
+.trait-art-manager-thumb{
+  width:58px;
+  height:58px;
+  border-radius:12px;
+  box-shadow:0 3px 9px rgba(0,0,0,.16);
+}
+.trait-art-manager-main{min-width:0}
+.trait-art-manager-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.trait-art-manager-actions button{min-height:38px}
+
+/* Bingo display preferences */
+.trait-art-bingo-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  background:var(--panel,#181a21);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:11px;
+}
+.trait-art-segment{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+.trait-art-segment button{min-height:38px}
+
+/* Bingo board art: images support the words rather than replacing them. */
+.trait-art-bingo-square{
+  transition:background .15s ease,box-shadow .15s ease,transform .08s ease;
+}
+.trait-art-bingo-square:active{transform:scale(.985)}
+.rv-bingo-trait-art{
+  width:34%;
+  height:34%;
+  max-width:52px;
+  max-height:52px;
+  min-height:0;
+  object-fit:cover;
+  border-radius:8px;
+  flex:0 1 auto;
+  box-shadow:0 1px 4px rgba(0,0,0,.12);
+}
+.trait-art-bingo-square.is-text-first .rv-bingo-trait-art{
+  width:29%;
+  height:29%;
+  max-width:42px;
+  max-height:42px;
+}
+.trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+  width:52%;
+  height:52%;
+  max-width:74px;
+  max-height:74px;
+}
+.trait-art-bingo-square.is-illustrated .rv-bingo-square-text{
+  -webkit-line-clamp:3;
+  font-size:clamp(.48rem,2.05vw,.84rem);
+}
+.rv-bingo-free-art{
+  width:48%;
+  height:48%;
+  max-width:64px;
+  max-height:64px;
+  border:0;
+  box-shadow:none;
+}
+.rv-bingo-square.is-marked .rv-bingo-trait-art{
+  opacity:.2;
+  filter:grayscale(.6) contrast(.8);
+}
+.rv-bingo-square.is-winning .rv-bingo-trait-art{filter:saturate(1.15)}
+.rv-bingo-playing .trait-art-bingo-square.is-text-first .rv-bingo-trait-art{
+  width:27%;
+  height:27%;
+}
+.rv-bingo-playing .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+  width:48%;
+  height:48%;
+}
+
+/* Visual Cheese Trait picker */
+.trait-art-bingo-option{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  align-items:center!important;
+  gap:10px!important;
+}
+.trait-art-bingo-picker-thumb{
+  width:50px;
+  height:50px;
+  border-radius:10px;
+}
+.trait-art-option-copy{
+  display:grid!important;
+  gap:3px;
+  min-width:0;
+}
+.trait-art-option-copy strong{overflow-wrap:anywhere}
+.trait-art-option-copy small{color:#a8abb4}
+.trait-art-bingo-option.is-used .trait-art-bingo-picker-thumb{
+  filter:grayscale(1);
+  opacity:.55;
+}
+
+/* Saved card visual miniatures */
+.trait-art-saved-card{
+  display:grid;
+  gap:11px;
+}
+.trait-art-mini-board{
+  width:100%;
+  max-width:220px;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:2px;
+  padding:4px;
+  background:#173f36;
+  border-radius:9px;
+  overflow:hidden;
+}
+.trait-art-mini-cell{
+  aspect-ratio:1;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:#fffaf0;
+}
+.trait-art-mini-cell.free{
+  background:#d4a52e;
+  color:#173f36;
+  font-size:.9rem;
+}
+.trait-art-mini-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border:0;
+}
+
+@media (max-width:720px){
+  .trait-art-manager-row{
+    grid-template-columns:54px minmax(0,1fr) auto;
+  }
+  .trait-art-manager-thumb{width:50px;height:50px}
+  .trait-art-manager-actions{
+    grid-column:1/-1;
+    justify-content:flex-start;
+  }
+  .trait-art-bingo-options{grid-template-columns:1fr}
+}
+
+@media (max-width:620px){
+  .rv-bingo-trait-art{
+    width:30%;
+    height:30%;
+    border-radius:5px;
+  }
+  .trait-art-bingo-square.is-text-first .rv-bingo-trait-art{
+    width:24%;
+    height:24%;
+  }
+  .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+    width:43%;
+    height:43%;
+  }
+  .trait-art-bingo-square.is-illustrated .rv-bingo-square-text{
+    font-size:clamp(.43rem,2.3vw,.7rem);
+  }
+  .rv-bingo-playing .trait-art-bingo-square.is-text-first .rv-bingo-trait-art{
+    width:22%;
+    height:22%;
+  }
+  .rv-bingo-playing .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{
+    width:40%;
+    height:40%;
+  }
+  .trait-art-bingo-picker-thumb{width:46px;height:46px}
+  .trait-art-bingo-option{grid-template-columns:48px minmax(0,1fr) auto}
+}
+
+@media (max-width:390px){
+  .trait-art-bingo-square.is-text-first .rv-bingo-trait-art{width:21%;height:21%}
+  .trait-art-bingo-square.is-illustrated .rv-bingo-trait-art{width:38%;height:38%}
+  .trait-art-bingo-square.is-illustrated .rv-bingo-square-text{font-size:.44rem}
+  .trait-art-picker-thumb{width:35px;height:35px}
+  .trait-art-toggle{grid-template-columns:37px 20px minmax(0,1fr) auto}
+}
+
+@media print{
+  .trait-art-bingo-options{display:none!important}
+}
