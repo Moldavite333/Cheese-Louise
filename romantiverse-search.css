@@ -1,0 +1,16 @@
+/* Cheese Louise v1.19 — Romantiverse concept search */
+.rom-search-host{margin:14px 0 20px}
+.rom-search-idle,.rom-search-panel{border-color:rgba(244,200,75,.24)}
+.rom-search-idle strong{display:block;font-size:1rem;margin:4px 0 5px}
+.rom-search-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.rom-search-expansion{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 12px;padding:10px 12px;background:rgba(244,200,75,.06);border:1px solid rgba(244,200,75,.12);border-radius:14px}
+.rom-search-why{margin:10px 0;display:grid;gap:7px}
+.rom-search-why>strong{font-size:.8rem;color:#f4c84b;text-transform:uppercase;letter-spacing:.05em}
+.rom-search-reason{background:#243129;border-color:#35513f;color:#d8f5df}
+.rom-search-attribution{margin-top:10px}
+.rom-search-panel>.new-find-grid{margin-top:10px}
+@media(max-width:520px){
+  .rom-search-head{align-items:stretch}
+  .rom-search-head .secondary{padding:8px 9px;font-size:.8rem;white-space:nowrap}
+  .rom-search-expansion{align-items:flex-start}
+}
