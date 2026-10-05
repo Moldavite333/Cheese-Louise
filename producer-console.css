@@ -1,0 +1,48 @@
+/* Cheese Louise — Producer Desk */
+.tabs{grid-template-columns:repeat(6,1fr)}
+.tabs button{min-width:0;padding-left:2px;padding-right:2px}
+.producer-hero{padding-top:22px}
+.producer-eyebrow{font-size:11px;font-weight:900;letter-spacing:1.8px;color:var(--accent2);margin-bottom:5px}
+.producer-hero-grid{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end}
+.producer-lede{max-width:760px;color:#c8ccd7;line-height:1.55;margin-top:8px}
+.producer-101-button{white-space:nowrap}
+.producer-hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}
+.producer-hero-stats>div{background:linear-gradient(135deg,#20232c,#181a21);border:1px solid var(--line);border-radius:16px;padding:13px}
+.producer-hero-stats span{display:block;font-size:25px;font-weight:900;color:var(--accent)}
+.producer-hero-stats small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.producer-section-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:12px}
+.producer-section-head h2{margin:4px 0 0}
+.producer-status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.producer-status-card{display:flex;text-align:left;gap:12px;padding:14px;color:var(--text);width:100%}
+.producer-status-card:hover{border-color:#454b5b}
+.producer-status-icon{font-size:26px;line-height:1}
+.producer-status-copy{min-width:0;flex:1}
+.producer-status-title{font-size:15px;font-weight:850;margin-bottom:4px}
+.producer-mini-track{height:5px;border-radius:99px;background:#2b2f3a;margin-top:10px;overflow:hidden}
+.producer-mini-track>div{height:100%;background:var(--accent);border-radius:99px}
+.producer-status-count{font-size:11px;color:var(--muted);margin-top:6px}
+.producer-pillar-detail{background:linear-gradient(135deg,#1e222b,#171920)}
+.producer-queue{background:linear-gradient(135deg,#20232c,#181a21)}
+.producer-week-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.producer-day-card{padding:14px}
+.producer-day-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.producer-day{font-size:20px;font-weight:900;margin-top:3px}
+.producer-day-title{font-size:13px;font-weight:800;color:#d9dce4;text-align:right}
+.producer-day-body{line-height:1.5;margin-top:10px}
+.producer-linked-tasks{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.producer-task-chip{border:1px solid var(--line);background:var(--panel-2);color:#d9dce4;border-radius:999px;padding:6px 9px;font-size:11px;line-height:1.2}
+.producer-task-chip.done{background:#203f2d;border-color:#316144;color:#bce7c9}
+.producer-task-chip:hover{border-color:var(--accent)}
+.producer-playbook-list{display:flex;flex-direction:column;gap:9px}
+.producer-playbook-card{overflow:hidden}
+.producer-playbook-head{width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:transparent;border:0;color:var(--text);padding:14px;text-align:left}
+.producer-playbook-icon{width:38px;height:38px;border-radius:12px;background:var(--panel-2);display:grid;place-items:center;font-size:19px}
+.producer-playbook-title{font-weight:900;font-size:16px;margin-bottom:3px}
+.producer-chevron{font-size:24px;color:var(--accent);padding:0 4px}
+.producer-playbook-body{padding:0 16px 16px;border-top:1px solid rgba(255,255,255,.05)}
+.producer-playbook-body ul{margin:14px 0 0;padding-left:20px;color:#d9dce4}
+.producer-playbook-body li{margin:8px 0;line-height:1.45}
+.producer-signal-chain{border-color:#484f60;background:linear-gradient(135deg,#222633,#181a21)}
+.producer-checklist-link{display:flex;justify-content:space-between;gap:14px;align-items:center;border-color:#484f60}
+@media(max-width:900px){.producer-status-grid{grid-template-columns:repeat(2,1fr)}.producer-week-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.tabs button{font-size:10px;padding-top:8px;padding-bottom:10px}.tab-icon{font-size:18px}.producer-hero-grid{grid-template-columns:1fr}.producer-101-button{width:100%}.producer-hero-stats{grid-template-columns:repeat(2,1fr)}.producer-status-grid{grid-template-columns:1fr}.producer-section-head{flex-direction:column}.producer-section-head>button{width:100%}.producer-checklist-link{align-items:stretch;flex-direction:column}.producer-checklist-link>button{width:100%}}
