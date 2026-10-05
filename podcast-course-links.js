@@ -12,7 +12,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'foundation-intro-outro':['deep-dive-designing-a-repeatable-cold-open-and-opening-five-minutes','Cold open + opening five minutes'],
   'foundation-boundaries':['show-concept-audience-promise-and-format','Editorial boundaries'],
   'foundation-naming':['metadata-artwork-chapters-and-transcripts','Episode packaging + metadata'],
-
   'recording-gear':['microphones-and-polar-patterns','Microphones + polar patterns'],
   'recording-room':['rooms-and-acoustics','Rooms + acoustics'],
   'recording-levels':['gain-staging-and-monitoring','Gain staging + monitoring'],
@@ -21,7 +20,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'recording-prerecord':['deep-dive-reliability-cables-media-power-maintenance-and-preflight','Recording preflight'],
   'recording-file-system':['file-management-and-version-control','Files + version control'],
   'recording-test':['local-multitrack-recording','Local multitrack recording'],
-
   'pilot-full':['one-episode-from-movie-selection-to-analytics-review','One episode end to end'],
   'pilot-edit':['editorial-philosophy','Editorial philosophy'],
   'pilot-listen':['deep-dive-the-final-qc-listen-how-to-hear-the-episode-like-a-listener','Final QC listen'],
@@ -30,7 +28,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'pilot-shownotes':['metadata-artwork-chapters-and-transcripts','Show notes + metadata'],
   'pilot-qc':['quality-control','Quality control'],
   'pilot-buffer':['deep-dive-scheduling-buffers-batching-and-the-production-queue','Buffers + production queue'],
-
   'distribution-host':['hosting-rss-and-distribution-architecture','Hosting + RSS'],
   'distribution-description':['metadata-artwork-chapters-and-transcripts','Descriptions + metadata'],
   'distribution-art':['metadata-artwork-chapters-and-transcripts','Artwork + metadata'],
@@ -39,7 +36,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'distribution-links':['deep-dive-the-podcast-website-and-email-list-as-audience-infrastructure','Website + canonical links'],
   'distribution-test':['deep-dive-platform-strategy-without-letting-platforms-rewrite-the-show','Platform verification'],
   'distribution-analytics':['analytics-that-matter','Analytics baseline'],
-
   'assets-handles':['clips-social-email-website-and-community','Social + community'],
   'assets-social-kit':['clips-social-email-website-and-community','Social packaging'],
   'assets-video-template':['clips-social-email-website-and-community','Clip system'],
@@ -47,7 +43,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'assets-photo-bank':['podcast-marketing','Marketing assets'],
   'assets-press-kit':['podcast-marketing','Press + promotion'],
   'assets-contact':['deep-dive-the-podcast-website-and-email-list-as-audience-infrastructure','Website + contact infrastructure'],
-
   'prelaunch-content-bank':['podcast-marketing','Pre-launch marketing'],
   'prelaunch-countdown':['launch-strategy','Launch strategy'],
   'prelaunch-warm-list':['deep-dive-marketing-as-a-system-discovery-sampling-conversion-and-return','Discovery + conversion'],
@@ -55,7 +50,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'prelaunch-cta':['deep-dive-marketing-as-a-system-discovery-sampling-conversion-and-return','CTA + conversion'],
   'prelaunch-polls':['clips-social-email-website-and-community','Audience participation'],
   'prelaunch-link-test':['deep-dive-the-podcast-website-and-email-list-as-audience-infrastructure','Website + link infrastructure'],
-
   'launch-publish':['launch-strategy','Launch strategy'],
   'launch-listings':['apple-spotify-and-youtube','Directory listings'],
   'launch-announce':['podcast-marketing','Launch promotion'],
@@ -64,7 +58,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'launch-engage':['clips-social-email-website-and-community','Audience engagement'],
   'launch-fix':['failure-analysis-and-troubleshooting','Launch troubleshooting'],
   'launch-review':['deep-dive-the-episode-postmortem-turning-one-release-into-the-next-better-release','Launch debrief + postmortem'],
-
   'system-deadlines':['the-weekly-production-pipeline','Weekly production pipeline'],
   'system-episode-checklist':['sops-roles-calendars-and-meetings','SOPs + checklists'],
   'system-movie-pipeline':['deep-dive-scheduling-buffers-batching-and-the-production-queue','Production queue'],
@@ -72,7 +65,6 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'system-clip-workflow':['clips-social-email-website-and-community','Clip workflow'],
   'system-backup':['file-management-and-version-control','Archive + backup'],
   'system-feedback':['analytics-that-matter','Feedback + analytics'],
-
   'growth-metrics':['analytics-that-matter','Analytics that matter'],
   'growth-winners':['deep-dive-analytics-as-an-experiment-system-not-a-scoreboard','Find repeatable winners'],
   'growth-clips':['clips-social-email-website-and-community','Short-form clips'],
@@ -82,14 +74,12 @@ const PODCAST_AUDIO_COURSE_LINKS={
   'growth-community':['clips-social-email-website-and-community','Community participation'],
   'growth-email':['deep-dive-the-podcast-website-and-email-list-as-audience-infrastructure','Owned audience + email'],
   'growth-local':['podcast-marketing','Audience partnerships'],
-
   'revenue-patreon':['monetization','Membership + monetization'],
   'revenue-member-calendar':['bonus-lesson-budgeting-time-and-money-per-episode','Member workload + capacity'],
   'revenue-watchalong':['bingo-cocktail-lounge-patreon-website-and-community-flywheel','Watch-alongs + community flywheel'],
   'revenue-sponsor-fit':['bonus-lesson-sponsor-operations','Sponsor operations'],
   'revenue-merch':['monetization','Merch + monetization'],
   'revenue-live':['bingo-cocktail-lounge-patreon-website-and-community-flywheel','Live/community extensions'],
-
   'quarterly-retro':['deep-dive-postmortems-failure-drills-and-continuous-improvement','Production retrospective'],
   'quarterly-format':['cheese-louise-episode-architecture','Episode architecture review'],
   'quarterly-brand':['podcast-marketing','Brand + packaging review'],
@@ -115,7 +105,9 @@ pcTaskRow=function(task,compact=false){
   const html=audioCourseOriginalTaskRow(task,compact);
   const link=podcastAudioCourseButton(task.key,compact);
   if(!link) return html;
-  return html.replace('</article>',`${link}</article>`);
+  const marker='</div>\n    <button class="secondary pc-plan-btn"';
+  if(!html.includes(marker)) return html;
+  return html.replace(marker,`${link}</div>\n    <button class="secondary pc-plan-btn"`);
 };
 
 const audioCourseOriginalTaskModal=pcTaskModal;
