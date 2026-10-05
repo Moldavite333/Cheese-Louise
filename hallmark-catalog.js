@@ -1,5 +1,5 @@
 // Cheese Louise — Hallmark-first Movie Radar catalog.
-// Official Hallmark pages power discovery; Hallmark artwork is hydrated separately.
+// Official Hallmark pages power discovery; artwork is only attached after identity verification.
 
 (() => {
   state.hallmarkCatalog = state.hallmarkCatalog || [];
@@ -21,17 +21,35 @@
     if(hallmarkArtLoading || (!force && hallmarkArtLoaded) || !(state.hallmarkCatalog||[]).length) return;
     hallmarkArtLoading=true;
     try{
-      const movies=(state.hallmarkCatalog||[]).map(c=>({catalog_id:c.catalog_id,title:c.title,official_source_url:c.official_source_url}));
+      const movies=(state.hallmarkCatalog||[]).map(c=>({
+        catalog_id:c.catalog_id,
+        title:c.title,
+        year:Number(c.year)||null,
+        stars:Array.isArray(c.stars)?c.stars:[],
+        official_source_url:c.official_source_url
+      }));
       const {data,error}=await db.functions.invoke('hallmark-art',{body:{movies}});
       if(error) throw error;
       const rows=Array.isArray(data?.results)?data.results:[];
       const byId=new Map(rows.map(row=>[String(row.catalog_id),row]));
       state.hallmarkCatalog=(state.hallmarkCatalog||[]).map(c=>{
         const art=byId.get(String(c.catalog_id));
-        return art?{...c,poster_url:art.poster_url||c.poster_url||null,detail_url:art.detail_url||c.detail_url||c.official_source_url}:{...c};
+        if(!art) return {...c};
+        return {
+          ...c,
+          poster_url:art.identity_verified ? (art.poster_url||null) : null,
+          actor_images:Array.isArray(art.actor_images)?art.actor_images:[],
+          detail_url:art.detail_url||c.detail_url||c.official_source_url,
+          hallmark_plus_url:art.hallmark_plus_url||null,
+          director:art.director||null,
+          identity_verified:!!art.identity_verified,
+          identity_confidence:Number(art.identity_confidence||0),
+          art_confidence:Number(art.art_confidence||0),
+          art_source:art.art_source||null
+        };
       });
       hallmarkArtLoaded=true;
-    }catch(err){ console.warn('Hallmark artwork lookup failed',err); }
+    }catch(err){ console.warn('Hallmark identity/art lookup failed',err); }
     finally{ hallmarkArtLoading=false; render(); }
   }
 
@@ -61,7 +79,7 @@
   function hallmarkCandidateMatches(c){
     const q = hmNorm(searchText);
     if(q){
-      const hay = [c.title,c.summary,c.collection,c.network,c.season,c.holiday,...(c.stars||[])].filter(Boolean).join(' ').toLowerCase();
+      const hay = [c.title,c.summary,c.collection,c.network,c.season,c.holiday,c.director,...(c.stars||[])].filter(Boolean).join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     if(hallmarkYear !== 'all' && Number(c.year)!==Number(hallmarkYear)) return false;
@@ -72,12 +90,25 @@
     return true;
   }
 
+  function actorFallback(c){
+    const actors=Array.isArray(c.actor_images)?c.actor_images.filter(x=>x?.image_url):[];
+    if(!actors.length) return '';
+    return `<div class="hm-cast-art">${actors.slice(0,2).map(a=>`<div class="hm-cast-face"><img src="${esc(a.image_url)}" alt="${esc(a.name)}" loading="lazy"><span>${esc(a.name)}</span></div>`).join('')}</div>`;
+  }
+
   function hallmarkCard(c){
     const exists = hmExistingKeys().has(hmCatalogKey(c));
     const meta = [c.premiere_date ? fmtDate(c.premiere_date) : c.year, c.collection, c.holiday, c.season].filter(Boolean);
     const source=c.detail_url||c.official_source_url;
+    const verified=c.identity_verified===true;
+    const identityBadge=verified
+      ? `<span class="pill hm-verified" title="Matched by title, year and cast on Hallmark">✓ Verified</span>`
+      : (hallmarkArtLoaded?`<span class="pill hm-review" title="No high-confidence identity match yet">Needs art check</span>`:'');
+    const visual=verified&&c.poster_url
+      ? `<a class="hm-art" href="${esc(source)}" target="_blank" rel="noopener"><img src="${esc(c.poster_url)}" alt="${esc(c.title)} verified Hallmark artwork" loading="lazy"></a>`
+      : actorFallback(c);
     return `<article class="card hm-catalog-card">
-      ${c.poster_url?`<a class="hm-art" href="${esc(source)}" target="_blank" rel="noopener"><img src="${esc(c.poster_url)}" alt="${esc(c.title)} artwork" loading="lazy"></a>`:''}
+      ${visual}
       <div class="hm-card-content">
         <div class="hm-card-top">
           <div>
@@ -85,13 +116,15 @@
             <h3>${esc(c.title)}</h3>
             <div class="subtle">${esc(meta.join(' · '))}</div>
           </div>
-          <span class="pill hm-source-pill">Hallmark</span>
+          <div class="hm-badge-stack"><span class="pill hm-source-pill">Hallmark</span>${identityBadge}</div>
         </div>
         ${(c.stars||[]).length?`<div class="hm-stars"><strong>Starring:</strong> ${esc(c.stars.join(' · '))}</div>`:''}
+        ${c.director?`<div class="hm-director"><strong>Director:</strong> ${esc(c.director)}</div>`:''}
         <p>${esc(c.summary || 'Hallmark lists this title, but the synopsis was not available in this catalog block.')}</p>
         <div class="hm-card-actions">
           <button class="${exists?'secondary':'primary'}" ${exists?'disabled':''} onclick="addOfficialHallmarkMovie('${esc(c.catalog_id)}')">${exists?'✓ In Radar':'＋ Add to Radar'}</button>
           <a class="button-link" href="${esc(source)}" target="_blank" rel="noopener">Hallmark source ↗</a>
+          ${c.hallmark_plus_url?`<a class="button-link" href="${esc(c.hallmark_plus_url)}" target="_blank" rel="noopener">Hallmark+ ↗</a>`:''}
         </div>
       </div>
     </article>`;
@@ -102,11 +135,12 @@
     const all = (state.hallmarkCatalog || []).filter(c=>!existing.has(hmCatalogKey(c)) && hallmarkCandidateMatches(c));
     const years = [...new Set((state.hallmarkCatalog||[]).map(c=>Number(c.year)).filter(Boolean))].sort((a,b)=>b-a);
     const coverage = hallmarkMeta?.coverage || {};
+    const verifiedCount=all.filter(c=>c.identity_verified===true).length;
 
     const header = `<div class="hm-catalog-head">
       <div>
         <div class="page-title small-title">Hallmark Catalog</div>
-        <div class="subtle">Official Hallmark pages power New Finds. Movie artwork is pulled from Hallmark's own title pages.</div>
+        <div class="subtle">Official Hallmark pages power New Finds. Artwork is only shown after the title is cross-checked against year and cast.</div>
       </div>
       <button class="secondary" onclick="loadHallmarkCatalog(true)">↻ Refresh Hallmark</button>
     </div>`;
@@ -118,7 +152,7 @@
     return `<section class="section hm-catalog-section">
       <div class="card card-pad hm-catalog-toolbar">
         ${header}
-        <div class="hm-source-note"><strong>Source of truth:</strong> Hallmark Channel official collection and premiere pages.${hallmarkArtLoading?' · Loading artwork…':''}</div>
+        <div class="hm-source-note"><strong>Identity check:</strong> Hallmark title + year + lead cast.${hallmarkArtLoading?' · Verifying artwork and cast…':` · ${verifiedCount}/${all.length} visible titles verified`}</div>
         <div class="toolbar hm-year-toolbar">
           <button class="filter ${hallmarkYear==='all'?'active-filter':''}" onclick="setHallmarkYear('all')">All years</button>
           ${years.map(y=>`<button class="filter ${Number(hallmarkYear)===y?'active-filter':''}" onclick="setHallmarkYear('${y}')">${y} <span class="subtle">${Number(coverage[y]||0)}</span></button>`).join('')}
@@ -136,12 +170,21 @@
 
     const stars=Array.isArray(c.stars)?c.stars:[];
     const officialUrl=c.detail_url||c.official_source_url||null;
+    const fingerprint=[c.title,Number(c.year)||'',stars.slice(0,3).join('|'),c.director||''].join('::');
     const sourceMetadata={
       source_type:'hallmark_official',
       official_hallmark_url:officialUrl,
       hallmark_url:officialUrl,
       official_url:officialUrl,
+      hallmark_plus_url:c.hallmark_plus_url||null,
       poster_url:c.poster_url||null,
+      actor_images:Array.isArray(c.actor_images)?c.actor_images:[],
+      director:c.director||null,
+      identity_verified:!!c.identity_verified,
+      identity_confidence:Number(c.identity_confidence||0),
+      art_confidence:Number(c.art_confidence||0),
+      art_source:c.art_source||null,
+      identity_fingerprint:fingerprint,
       collection:c.collection||null,
       stars,
       cast:stars,
@@ -150,7 +193,7 @@
       holiday:c.holiday||null,
       network:'Hallmark Channel',
       catalog_id:c.catalog_id,
-      data_sources:['Hallmark Channel official catalog','Hallmark Channel title page artwork']
+      data_sources:['Hallmark Channel official catalog','Hallmark Channel title page','Hallmark+ title metadata'].filter((v,i,a)=>i===0||v!=='Hallmark+ title metadata'||c.hallmark_plus_url)
     };
     const payload={
       workspace_id:workspace.id,
@@ -161,7 +204,7 @@
       summary:c.summary||null,
       tags:['Hallmark official catalog',c.collection].filter(Boolean),
       source_url:officialUrl,
-      poster_url:c.poster_url||null,
+      poster_url:c.identity_verified?c.poster_url||null:null,
       holiday:c.holiday||null,
       season:c.season||null,
       source_metadata:sourceMetadata,
@@ -170,7 +213,7 @@
     if(/^\d{4}-\d{2}-\d{2}$/.test(c.premiere_date||'')) payload.premiere_date=c.premiere_date;
     const {data,error}=await db.from('movies').insert(payload).select().single();
     if(error) return alert(error.message);
-    await logActivity(`added ${c.title} from the official Hallmark catalog.`,'movie',data.id);
+    await logActivity(`added ${c.title} from the official Hallmark catalog${c.identity_verified?' with verified identity':''}.`,'movie',data.id);
     await loadAll();
     selectedMovie=data.id;
     render();
@@ -233,8 +276,8 @@
     const originalTopbar = topbar;
     topbar = function(){
       return originalTopbar()
-        .replace('Search movies, studios, notes, ideas…','Search titles, stars, studios, synopses…')
-        .replace('Search movies, notes, ideas…','Search titles, stars, studios, synopses…');
+        .replace('Search movies, studios, notes, ideas…','Search titles, stars, directors, studios…')
+        .replace('Search movies, notes, ideas…','Search titles, stars, directors, studios…');
     };
   }
 
@@ -251,17 +294,26 @@
     .hm-card-content{padding:16px;display:grid;gap:11px}
     .hm-art{display:block;aspect-ratio:16/9;background:#111;overflow:hidden;border-bottom:1px solid var(--line,#2a2d35)}
     .hm-art img{width:100%;height:100%;display:block;object-fit:cover}
+    .hm-cast-art{display:grid;grid-template-columns:1fr 1fr;min-height:170px;border-bottom:1px solid var(--line,#2a2d35);background:#111}
+    .hm-cast-face{position:relative;min-width:0;overflow:hidden}
+    .hm-cast-face img{width:100%;height:100%;min-height:170px;display:block;object-fit:cover;object-position:center 20%}
+    .hm-cast-face span{position:absolute;left:8px;right:8px;bottom:8px;padding:5px 7px;border-radius:8px;background:rgba(0,0,0,.72);font-size:.82rem;font-weight:700;text-align:center}
     .hm-card-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .hm-badge-stack{display:flex;gap:6px;align-items:flex-end;flex-direction:column}
+    .hm-verified{border-color:rgba(74,201,120,.45);color:#8ee5ad}
+    .hm-review{border-color:rgba(255,193,7,.35);color:#ffd461}
     .hm-catalog-card h3{margin:4px 0 3px;font-size:1.15rem}
     .hm-catalog-card p{margin:0;line-height:1.5}
-    .hm-stars{font-size:.94rem;line-height:1.45}
+    .hm-stars,.hm-director{font-size:.94rem;line-height:1.45}
     .hm-source-pill{white-space:nowrap}
     .hm-card-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:auto}
     @media(max-width:700px){
       .hm-catalog-head{display:grid}
       .hm-catalog-grid{grid-template-columns:1fr}
       .hm-card-actions .primary,.hm-card-actions .secondary{min-height:44px}
-      .hm-art{aspect-ratio:16/8.5}
+      .hm-art{aspect-ratio:16/9}
+      .hm-cast-art{min-height:190px}
+      .hm-cast-face img{min-height:190px}
     }
   `;
   document.head.appendChild(style);
