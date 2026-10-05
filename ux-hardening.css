@@ -1,0 +1,100 @@
+/* Cheese Louise HQ — usability hardening pass.
+   Goal: nothing important should disappear because the pointer drifted a few pixels. */
+
+:where(button, .button-link, summary, input, select, textarea) {
+  touch-action: manipulation;
+}
+
+:where(button, .button-link, .filter, .trait-toggle, .trait-chip, summary) {
+  min-height: 42px;
+}
+
+.close {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+}
+
+.modal,
+.cl-movie-detail-modal,
+.trait-manager,
+.trait-picker {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.cl-movie-detail-modal,
+.trait-manager {
+  scrollbar-width: auto;
+}
+
+.cl-detail-editor > summary,
+details > summary {
+  padding: 9px 8px;
+  border-radius: 8px;
+  user-select: none;
+}
+
+.cl-detail-editor > summary:hover,
+details > summary:hover {
+  background: rgba(255,255,255,.045);
+}
+
+.trait-tools,
+.trait-actions,
+.comment-box,
+.movie-status-row,
+.vote-row,
+.actions {
+  gap: 10px;
+}
+
+.trait-toggle {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+input.search,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  min-height: 44px;
+}
+
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgba(244, 200, 75, .9);
+  outline-offset: 2px;
+}
+
+@media (pointer:fine) {
+  .modal,
+  .cl-movie-detail-modal,
+  .trait-manager,
+  .trait-picker {
+    scrollbar-width: auto;
+  }
+
+  .modal::-webkit-scrollbar,
+  .cl-movie-detail-modal::-webkit-scrollbar,
+  .trait-manager::-webkit-scrollbar,
+  .trait-picker::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width:700px) {
+  :where(button, .button-link, .filter, .trait-toggle, .trait-chip, summary) {
+    min-height: 46px;
+  }
+
+  .close {
+    min-width: 48px;
+    min-height: 48px;
+    flex-basis: 48px;
+  }
+}
