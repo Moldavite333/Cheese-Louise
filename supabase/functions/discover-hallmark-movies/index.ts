@@ -33,7 +33,16 @@ function decode(s:string){
   return s.replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&rsquo;|&lsquo;/gi,"'").replace(/&ldquo;|&rdquo;/gi,'"').replace(/&ndash;|&mdash;/gi,'-').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
 }
 function strip(html:string){
-  return decode(html.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<[^>]+>/g,' ')).replace(/[ \t]+/g,' ').replace(/\s*\n\s*/g,'\n').trim()
+  const blocks=html
+    .replace(/<br\s*\/?\s*>/gi,'\n')
+    .replace(/<\/(?:p|div|section|article|li|h[1-6])>/gi,'\n')
+    .replace(/<(?:p|div|section|article|li|h[1-6])\b[^>]*>/gi,'\n')
+  return decode(blocks.replace(/<[^>]+>/g,' '))
+    .replace(/[ \t]+/g,' ')
+    .replace(/\n[ \t]+/g,'\n')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n{2,}/g,'\n')
+    .trim()
 }
 function cleanLine(s:string){return s.replace(/\s+/g,' ').trim()}
 function hashId(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return 'hallmark-'+(h>>>0).toString(36)}
@@ -66,14 +75,14 @@ function inferSeason(source:Source,holiday:string|null){
   return null
 }
 function starsFrom(text:string){
-  const m=text.match(/\bStarring\s+([^\n]+?)(?=\n|\s+(?:Premieres?|Streaming|Check out|Watch|Stream|View|Meet)\b|$)/i)
+  const m=text.match(/\b(?:Starring|Stars)\s+([^\n]+?)(?=\n|\s+(?:Premieres?|Streaming|Check out|Watch|Stream|View|Meet)\b|$)/i)
   if(!m)return []
   return m[1].replace(/\.$/,'').split(/,|\band\b/i).map(cleanLine).filter(Boolean).slice(0,8)
 }
 function synopsisFrom(text:string){
   const lines=text.split('\n').map(cleanLine).filter(Boolean)
-  let start=lines.findIndex(x=>/^Starring\b/i.test(x))
-  if(start<0)start=lines.findIndex(x=>/\bStarring\b/i.test(x))
+  let start=lines.findIndex(x=>/^(?:Starring|Stars)\b/i.test(x))
+  if(start<0)start=lines.findIndex(x=>/\b(?:Starring|Stars)\b/i.test(x))
   const candidates=(start>=0?lines.slice(start+1):lines).filter(line=>
     line.length>45 &&
     !/^(Premieres?|Streaming|Check out|Watch|Stream|View|Meet|Image:|Find out more|Catch |You can |Don't miss|See |Read on)/i.test(line) &&
