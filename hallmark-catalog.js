@@ -42,8 +42,8 @@
       if(!hay.includes(q)) return false;
     }
     if(hallmarkYear !== 'all' && Number(c.year)!==Number(hallmarkYear)) return false;
-    if(movieFilters?.fromYear && Number(c.year) < Number(movieFilters.fromYear)) return false;
-    if(movieFilters?.toYear && Number(c.year) > Number(movieFilters.toYear)) return false;
+    if(movieFilters?.yearMin && Number(c.year) < Number(movieFilters.yearMin)) return false;
+    if(movieFilters?.yearMax && Number(c.year) > Number(movieFilters.yearMax)) return false;
     if(movieFilters?.holiday && hmNorm(c.holiday)!==hmNorm(movieFilters.holiday)) return false;
     if(movieFilters?.season && hmNorm(c.season)!==hmNorm(movieFilters.season)) return false;
     return true;
@@ -107,11 +107,15 @@
     if(!c||!workspace) return;
     if(hmExistingKeys().has(hmCatalogKey(c))) return alert('That Hallmark title is already in your Radar.');
 
+    const stars=Array.isArray(c.stars)?c.stars:[];
     const sourceMetadata={
       source_type:'hallmark_official',
       official_hallmark_url:c.official_source_url||null,
+      hallmark_url:c.official_source_url||null,
+      official_url:c.official_source_url||null,
       collection:c.collection||null,
-      stars:Array.isArray(c.stars)?c.stars:[],
+      stars,
+      cast:stars,
       year:Number(c.year)||null,
       season:c.season||null,
       holiday:c.holiday||null,
@@ -167,7 +171,9 @@
   if(typeof topbar === 'function'){
     const originalTopbar = topbar;
     topbar = function(){
-      return originalTopbar().replace('Search movies, studios, notes, ideas…','Search titles, stars, studios, synopses…');
+      return originalTopbar()
+        .replace('Search movies, studios, notes, ideas…','Search titles, stars, studios, synopses…')
+        .replace('Search movies, notes, ideas…','Search titles, stars, studios, synopses…');
     };
   }
 
