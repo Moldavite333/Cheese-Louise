@@ -21,30 +21,34 @@ const SOURCES:Source[]=[
   {url:'https://www.hallmarkchannel.com/passport-to-love/passport-to-love-2025-movies',collection:'Passport to Love',year:2025,season:'Summer'},
   {url:'https://www.hallmarkchannel.com/summer-nights/summer-nights-2025-movies',collection:'Summer Nights',year:2025,season:'Summer'},
   {url:'https://www.hallmarkchannel.com/fall-into-love/fall-into-love-2025-movies',collection:'Fall Into Love',year:2025,season:'Fall'},
-  {url:'https://www.hallmarkchannel.com/spring-into-love',collection:'Spring Into Love',year:2026,season:'Spring'},
+  {url:'https://www.hallmarkchannel.com/spring-into-love/spring-into-love-2026-movies',collection:'Spring Into Love',year:2026,season:'Spring'},
+  {url:'https://www.hallmarkchannel.com/fall-into-love/fall-into-love-2026-schedule/',collection:'Fall Into Love',year:2026,season:'Fall'},
   {url:'https://www.hallmarkchannel.com/fall-harvest/',collection:'Fall Into Love',year:2026,season:'Fall'},
-  {url:'https://www.hallmarkchannel.com/christmas/countdown-to-christmas-2026-preview/',collection:'Countdown to Christmas',year:2026,season:'Winter',holiday:'Christmas'},
+  {url:'https://www.hallmarkchannel.com/christmas',collection:'Countdown to Christmas',year:2026,season:'Winter',holiday:'Christmas'},
   {url:'https://www.hallmarkchannel.com/hallmark-plus/new-this-month',collection:'Hallmark+ New This Month',year:2026}
 ]
 
-const SKIP_TITLES=/^(movie guide|video|classic moments|meet the stars|fall into love|spring into love|summer nights|loveuary|winter escape|passport to love|countdown to christmas|new year new movies|streaming on hallmark\+|more from the movie|related movies|bonus premiere)$/i
+const SKIP=/^(movie guide|video|classic moments|meet the stars|start streaming|fall into love|spring into love|summer nights|loveuary|winter escape|passport to love|countdown to christmas|new year new movies|streaming on hallmark\+|more from the movie|related movies|bonus premiere|image:|align-right|what are the latest|this october|the most wonderful time|check out our complete list)/i
+const CTA=/^(check out|watch|stream|view|meet|find out|read on|catch |you can |don't miss|see |preview|first look|image:|start streaming|streaming next day)/i
+const MARKER=/^(premieres?|streaming)\b/i
 
 function decode(s:string){
   return s.replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&rsquo;|&lsquo;/gi,"'").replace(/&ldquo;|&rdquo;/gi,'"').replace(/&ndash;|&mdash;/gi,'-').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
 }
-function strip(html:string){
-  const blocks=html
+function linesFromHtml(html:string){
+  const cleaned=html
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
     .replace(/<br\s*\/?\s*>/gi,'\n')
-    .replace(/<\/(?:p|div|section|article|li|h[1-6])>/gi,'\n')
-    .replace(/<(?:p|div|section|article|li|h[1-6])\b[^>]*>/gi,'\n')
-  return decode(blocks.replace(/<[^>]+>/g,' '))
-    .replace(/[ \t]+/g,' ')
-    .replace(/\n[ \t]+/g,'\n')
-    .replace(/[ \t]+\n/g,'\n')
-    .replace(/\n{2,}/g,'\n')
-    .trim()
+    .replace(/<\/(?:p|div|section|article|li|h[1-6]|a|button)>/gi,'\n')
+    .replace(/<(?:p|div|section|article|li|h[1-6]|a|button)\b[^>]*>/gi,'\n')
+    .replace(/<[^>]+>/g,' ')
+  return decode(cleaned)
+    .split(/\n+/)
+    .map(s=>s.replace(/\s+/g,' ').trim())
+    .filter(Boolean)
 }
-function cleanLine(s:string){return s.replace(/\s+/g,' ').trim()}
+function clean(s:string){return s.replace(/\s+/g,' ').trim()}
 function hashId(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return 'hallmark-'+(h>>>0).toString(36)}
 
 const months:{[key:string]:number}={jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12}
@@ -60,8 +64,8 @@ function parseDate(text:string,year:number){
 function inferHoliday(title:string,summary:string|null,source:Source){
   if(source.holiday)return source.holiday
   const t=(title+' '+(summary||'')).toLowerCase()
-  if(/christmas|mistletoe|santa|holiday touchdown|yuletide/.test(t))return 'Christmas'
-  if(/halloween|haunted|spirit of halloween|ghost/.test(t))return 'Halloween'
+  if(/christmas|mistletoe|santa|yuletide|holiday touchdown/.test(t))return 'Christmas'
+  if(/halloween|haunted|spooky|ghost/.test(t))return 'Halloween'
   if(/thanksgiving|friendsgiving/.test(t))return 'Thanksgiving'
   if(/valentine/.test(t))return "Valentine's Day"
   if(/easter/.test(t))return 'Easter'
@@ -74,46 +78,51 @@ function inferSeason(source:Source,holiday:string|null){
   if(holiday==='Easter')return 'Spring'
   return null
 }
-function starsFrom(text:string){
-  const m=text.match(/\b(?:Starring|Stars)\s+([^\n]+?)(?=\n|\s+(?:Premieres?|Streaming|Check out|Watch|Stream|View|Meet)\b|$)/i)
-  if(!m)return []
-  return m[1].replace(/\.$/,'').split(/,|\band\b/i).map(cleanLine).filter(Boolean).slice(0,8)
+function isPlausibleTitle(line:string){
+  const s=clean(line)
+  if(!s||s.length<2||s.length>100||SKIP.test(s)||MARKER.test(s)||/^starring\b|^stars\b/i.test(s)||CTA.test(s))return false
+  if(/[.!?]$/.test(s)&&s.split(' ').length>7)return false
+  return true
 }
-function synopsisFrom(text:string){
-  const lines=text.split('\n').map(cleanLine).filter(Boolean)
-  let start=lines.findIndex(x=>/^(?:Starring|Stars)\b/i.test(x))
-  if(start<0)start=lines.findIndex(x=>/\b(?:Starring|Stars)\b/i.test(x))
-  const candidates=(start>=0?lines.slice(start+1):lines).filter(line=>
-    line.length>45 &&
-    !/^(Premieres?|Streaming|Check out|Watch|Stream|View|Meet|Image:|Find out more|Catch |You can |Don't miss|See |Read on)/i.test(line) &&
-    !/hallmark\+/i.test(line)
-  )
-  return candidates[0]?.slice(0,1200)||null
+function findTitle(lines:string[],markerIndex:number){
+  for(let i=markerIndex-1;i>=Math.max(0,markerIndex-7);i--){
+    if(isPlausibleTitle(lines[i]))return lines[i]
+  }
+  return ''
+}
+function extractStars(block:string){
+  const m=block.match(/\b(?:Starring|Stars)\s+(.+?)(?=(?:\.|\n|$))/i)
+  if(!m)return []
+  return m[1].replace(/\.$/,'').split(/,|\band\b/i).map(clean).filter(Boolean).slice(0,8)
+}
+function extractSummary(bodyLines:string[]){
+  for(const raw of bodyLines){
+    let s=clean(raw)
+    if(!s||CTA.test(s)||MARKER.test(s)||/^starring\b|^stars\b/i.test(s)||SKIP.test(s))continue
+    s=s.replace(/\s+(?:Starring|Stars)\s+.+$/i,'').trim()
+    if(s.length>=45)return s.slice(0,1200)
+  }
+  return null
 }
 
 function parsePage(html:string,source:Source){
-  const cleaned=html.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'')
-  const headingRx=/<h([2-4])[^>]*>([\s\S]*?)<\/h\1>/gi
-  const matches=[...cleaned.matchAll(headingRx)]
+  const lines=linesFromHtml(html)
+  const markers=lines.map((line,i)=>MARKER.test(line)?i:-1).filter(i=>i>=0)
   const out:CatalogMovie[]=[]
-  for(let i=0;i<matches.length;i++){
-    const title=cleanLine(strip(matches[i][2]))
-    if(!title||title.length<2||title.length>120||SKIP_TITLES.test(title))continue
-    const start=(matches[i].index||0)+matches[i][0].length
-    const end=i+1<matches.length?(matches[i+1].index||cleaned.length):cleaned.length
-    const block=strip(cleaned.slice(start,end))
-    if(!/(premieres?|streaming)\b/i.test(block))continue
-    if(!/\b(starring|stars)\b/i.test(block))continue
-    const summary=synopsisFrom(block)
-    const premiere_date=parseDate(block,source.year)
-    const stars=starsFrom(block)
+  for(let n=0;n<markers.length;n++){
+    const i=markers[n]
+    const title=findTitle(lines,i)
+    if(!title)continue
+    const next=markers[n+1]??lines.length
+    const end=Math.max(i+1,next-1)
+    const body=lines.slice(i+1,end)
+    const bodyText=body.join('\n')
+    const stars=extractStars(bodyText)
+    const summary=extractSummary(body)
+    const premiere_date=parseDate(lines[i],source.year)
     const holiday=inferHoliday(title,summary,source)
     const season=inferSeason(source,holiday)
-    out.push({
-      catalog_id:hashId(`${source.year}|${source.collection}|${title.toLowerCase()}`),
-      title,summary,stars,premiere_date,year:source.year,collection:source.collection,network:'Hallmark Channel',season,holiday,
-      official_source_url:source.url,source_type:'hallmark_official'
-    })
+    out.push({catalog_id:hashId(`${source.year}|${source.collection}|${title.toLowerCase()}`),title,summary,stars,premiere_date,year:source.year,collection:source.collection,network:'Hallmark Channel',season,holiday,official_source_url:source.url,source_type:'hallmark_official'})
   }
   return out
 }
@@ -146,14 +155,7 @@ Deno.serve(async(req:Request)=>{
     }
     const results=[...map.values()].sort((a,b)=>(b.premiere_date||`${b.year}`).localeCompare(a.premiere_date||`${a.year}`)||a.title.localeCompare(b.title))
     const coverage=results.reduce((acc:any,m)=>{acc[m.year]=(acc[m.year]||0)+1;return acc},{})
-    return new Response(JSON.stringify({
-      generated_at:new Date().toISOString(),
-      source_of_truth:'Hallmark Channel official pages',
-      count:results.length,
-      coverage,
-      pages:batches.map(b=>({url:b.source.url,collection:b.source.collection,year:b.source.year,ok:b.ok,status:b.status,count:b.movies.length})),
-      results
-    }),{headers:{...cors,'Content-Type':'application/json','Cache-Control':'private, max-age=900'}})
+    return new Response(JSON.stringify({generated_at:new Date().toISOString(),source_of_truth:'Hallmark Channel official pages',count:results.length,coverage,pages:batches.map(b=>({url:b.source.url,collection:b.source.collection,year:b.source.year,ok:b.ok,status:b.status,count:b.movies.length})),results}),{headers:{...cors,'Content-Type':'application/json','Cache-Control':'private, max-age=900'}})
   }catch(e){
     return new Response(JSON.stringify({error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...cors,'Content-Type':'application/json'}})
   }
