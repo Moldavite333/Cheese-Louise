@@ -1,0 +1,7 @@
+.pc-audio-resource{display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(135deg,rgba(244,200,75,.10),rgba(232,92,120,.08));border-color:rgba(244,200,75,.32)}
+.pc-audio-master{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
+.pc-audio-link{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:6px 9px;border:1px solid rgba(244,200,75,.34);border-radius:10px;color:var(--accent);background:rgba(244,200,75,.06);font-size:11px;font-weight:800;text-decoration:none;white-space:normal;text-align:left}
+.pc-audio-link:hover{background:rgba(244,200,75,.13);border-color:rgba(244,200,75,.58)}
+.pc-audio-link.compact{padding:5px 8px;margin-top:6px}
+.pc-audio-modal-link{display:inline-flex;margin-top:14px;text-decoration:none;align-items:center;justify-content:center;color:var(--accent);border-color:rgba(244,200,75,.34)}
+@media(max-width:760px){.pc-audio-resource{align-items:stretch;flex-direction:column}.pc-audio-master{width:100%}.pc-audio-modal-link{width:100%;text-align:center}}

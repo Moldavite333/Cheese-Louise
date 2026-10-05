@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101116">
+<title>Podcast Production Audio Course · Cheese Louise</title>
+<style>
+:root{--bg:#101116;--panel:#181a21;--panel2:#20232c;--line:#2b2f3a;--text:#f7f8fb;--muted:#a4a9b7;--accent:#f4c84b;--pink:#e85c78;--good:#6fce8a}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55}.shell{max-width:940px;margin:auto;padding:20px 16px 80px}.top{position:sticky;top:0;z-index:5;background:rgba(16,17,22,.96);backdrop-filter:blur(10px);padding:12px 0;border-bottom:1px solid var(--line)}a{color:var(--accent)}.back{display:inline-flex;text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:9px 12px;border-radius:12px}.hero{padding:34px 0 24px}.kicker{font-size:12px;color:var(--accent);font-weight:900;letter-spacing:1.1px;text-transform:uppercase}.hero h1{font-size:clamp(34px,7vw,58px);line-height:1;margin:8px 0 12px}.lede{font-size:18px;color:#d7dae2;max-width:760px}.note{margin-top:18px;padding:14px 16px;border:1px solid rgba(244,200,75,.28);background:rgba(244,200,75,.06);border-radius:14px;color:#dfe1e7}.module{margin-top:34px}.module h2{font-size:27px;margin:0 0 12px}.lesson{scroll-margin-top:82px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:10px 0;box-shadow:0 8px 24px rgba(0,0,0,.16)}.lesson:target{border-color:var(--accent);box-shadow:0 0 0 2px rgba(244,200,75,.14),0 10px 30px rgba(0,0,0,.26)}.lesson h3{margin:2px 0 6px;font-size:19px}.lesson p{margin:0;color:var(--muted)}.lesson-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:8px 10px;border-radius:10px;font-weight:800;cursor:pointer}.btn.listen{border-color:rgba(244,200,75,.35);color:var(--accent)}.toc{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.toc a{text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px}.footer{margin-top:40px;color:var(--muted);font-size:13px}.stop{position:fixed;right:16px;bottom:16px;border:0;border-radius:999px;background:var(--pink);color:white;padding:11px 15px;font-weight:900;box-shadow:0 8px 25px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="back" href="./">← Cheese Louise HQ</a></div>
+  <header class="hero">
+    <div class="kicker">Cheese Louise Producer Training</div>
+    <h1>Podcast Production Audio Course</h1>
+    <div class="lede">The chapter index for the long-form professional production course built from the Cheese Louise production handbook. Podcast 101 links land here at the lesson that explains the work you are about to do.</div>
+    <div class="note"><strong>How to use this:</strong> Podcast 101 remains the checklist. This course explains the reasoning and technique behind the checklist. The small play buttons below read the lesson summary aloud for a fast refresher; the full audio-course manuscript is the long-form training source.</div>
+    <nav class="toc" id="toc"></nav>
+  </header>
+  <main id="course"></main>
+  <div class="footer">Idea → prep → capture → edit → mix → master → QC → publish → promote → measure → improve.</div>
+</div>
+<button class="stop" onclick="speechSynthesis.cancel()">■ Stop audio</button>
+<script>
+const modules=[
+ {title:'Module One — Build the Show Before You Build the Studio',lessons:[
+  ['what-a-podcast-actually-is','What a Podcast Actually Is','Understand the host, media file, RSS feed, listening platforms, and analytics chain before touching the gear.'],
+  ['show-concept-audience-promise-and-format','Show Concept, Audience Promise, and Format','Define exactly who the show is for, what it promises every episode, the repeatable structure, runtime, cadence, and editorial boundaries.'],
+  ['the-producers-job','The Producer’s Job','The producer protects the listener experience from idea through publishing: decisions, prep, capture, edit, QC, packaging, deadlines, and follow-through.'],
+  ['pre-production-and-episode-planning','Pre-production and Episode Planning','Turn an idea into a runnable episode before record day with a clear angle, rundown, assets, research questions, segment timing, and contingencies.'],
+  ['research-guests-and-rundowns','Research, Guests, and Rundowns','Research only what creates better questions and conversation, prep guests without scripting them, and build a flexible rundown.'],
+  ['bonus-lesson-hosting-for-the-ear','Hosting for the Ear','Use clarity, signposting, concise setup, active listening, and listener context so a conversation remains understandable without visual cues.'],
+  ['bonus-lesson-co-host-chemistry','Co-Host Chemistry','Protect natural reactions and disagreement while using handoffs, eye contact, pacing, and roles to keep two hosts from stepping on each other.'],
+  ['bonus-lesson-interviewing-for-stories','Interviewing for Stories','Ask for moments, decisions, consequences, scenes, and specifics rather than settling for generic opinion answers.']
+ ]},
+ {title:'Module Two — Capture Clean Audio',lessons:[
+  ['rooms-and-acoustics','Rooms and Acoustics','Reduce reflections and noise before choosing expensive processing. The room becomes part of every microphone recording whether you want it to or not.'],
+  ['deep-dive-building-a-good-sounding-room-without-building-a-studio','Building a Good-Sounding Room Without Building a Studio','Use soft irregular surfaces, sensible mic position, short reflection paths, quiet HVAC, and repeatable furniture placement to control the room.'],
+  ['microphones-and-polar-patterns','Microphones and Polar Patterns','Choose a microphone for the room and use case, then understand what its pickup pattern accepts and rejects.'],
+  ['deep-dive-microphone-technique-distance-angle-plosives-and-movement','Microphone Technique','Distance, angle, plosive control, proximity effect, and consistent body position matter more than chasing a more expensive mic.'],
+  ['signal-flow-and-interfaces','Signal Flow and Interfaces','Follow the voice from microphone to preamp, converter, recorder or DAW, processing, master, and delivery file so troubleshooting becomes logical.'],
+  ['deep-dive-usb-xlr-interfaces-preamps-and-what-the-gear-actually-does','USB, XLR, Interfaces, and Preamps','Know what each component actually contributes, where gain is created, and why an XLR system is useful when a show grows.'],
+  ['gain-staging-and-monitoring','Gain Staging and Monitoring','Record healthy levels with headroom instead of chasing zero. For spoken word, peaks around negative twelve to negative six dBFS are a useful working range.'],
+  ['deep-dive-digital-audio-sample-rate-bit-depth-headroom-and-file-types','Sample Rate, Bit Depth, Headroom, and File Types','Understand why 24-bit recording gives useful headroom, why 48 kHz is a strong production standard, and why WAV masters differ from compressed delivery files.'],
+  ['deep-dive-the-gear-upgrade-hierarchy','The Gear Upgrade Hierarchy','Improve room, technique, reliability, monitoring, and workflow before buying gear that solves the wrong problem.'],
+  ['local-multitrack-recording','Local Multitrack Recording','Record each voice to an isolated track whenever possible so overlap, levels, EQ, compression, repair, and editing remain controllable.'],
+  ['bonus-lesson-headphone-monitoring-and-cue-mixes','Headphone Monitoring and Cue Mixes','Monitor what is actually being recorded, not what you assume is being recorded, while keeping headphone levels comfortable and useful.'],
+  ['deep-dive-building-a-daw-session-template-and-controlling-latency','DAW Session Template and Latency','Prebuild tracks, routing, markers, music buses, export settings, and monitoring so record day starts from a known configuration.'],
+  ['remote-recording','Remote Recording','Prefer local isolated capture for remote participants and treat the internet call as communication, not necessarily the master recording.'],
+  ['deep-dive-remote-recording-failure-modes-echo-drift-dropouts-and-uploads','Remote Recording Failure Modes','Prepare for echo, clock drift, browser problems, network dropouts, incomplete uploads, bad headphones, and guests who close the laptop too soon.'],
+  ['redundancy-and-disaster-prevention','Redundancy and Disaster Prevention','A second recording path is cheaper than recreating an irreplaceable conversation. Decide the backup before recording starts.'],
+  ['bonus-lesson-field-recording-and-wild-tracks','Field Recording and Wild Tracks','Capture room tone, ambience, pickups, and clean effects intentionally when recording outside the normal studio.'],
+  ['deep-dive-reliability-cables-media-power-maintenance-and-preflight','Reliability, Maintenance, and Preflight','Check cables, storage, batteries, power, software, free disk space, device routing, backups, and the actual recorded signal before the real conversation.']
+ ]},
+ {title:'Module Three — Edit, Mix, and Master',lessons:[
+  ['editorial-philosophy','Editorial Philosophy','Edit for the listener’s attention and comprehension, not to make humans sound artificially perfect. Structure first, pacing second, cleanup third.'],
+  ['deep-dive-editing-conversation-for-pace-comedy-and-personality','Editing Conversation for Pace, Comedy, and Personality','Remove repetition and dead air without murdering reactions, timing, laughter, tension, and the personality that made the conversation worth recording.'],
+  ['dialogue-cleanup','Dialogue Cleanup','Solve distracting hum, rumble, mouth noise, clicks, harshness, level jumps, and obvious problems without overprocessing the life out of the voice.'],
+  ['deep-dive-room-tone-crossfades-breath-and-crosstalk-repair','Room Tone, Crossfades, Breath, and Crosstalk Repair','Use tiny fades, room tone, clip gain, and careful edits so cuts disappear instead of sounding like the room teleported.'],
+  ['eq','EQ','Use equalization to solve identifiable tonal problems rather than applying a preset because a YouTube thumbnail told you to.'],
+  ['compression-and-dynamics','Compression and Dynamics','Control excessive level variation while keeping speech natural. Automation and clip gain often solve problems before more compression is needed.'],
+  ['de-essing-noise-reduction-gates-and-expansion','De-essing, Noise Reduction, Gates, and Expansion','Use corrective processors conservatively; artifacts from aggressive cleanup can be more distracting than the original problem.'],
+  ['mixing','Mixing','Balance voices, music, effects, transitions, and ambience around intelligibility and consistency. Make the listener stop thinking about the mix.'],
+  ['deep-dive-mix-routing-buses-sends-automation-and-mono-compatibility','Mix Routing, Buses, Sends, and Automation','Use sensible routing and automation to make repeatable changes while checking that the episode remains intelligible in mono and on small speakers.'],
+  ['mastering-and-loudness','Mastering and Loudness','Create a consistent final program level with headroom. A practical podcast target is around minus sixteen LKFS with true peaks no higher than minus one dBFS.'],
+  ['deep-dive-loudness-normalization-limiting-codecs-and-delivery-masters','Loudness Normalization, Limiting, Codecs, and Delivery Masters','Keep a lossless master, understand what platforms may normalize, and create compressed delivery copies only after the program is finished.'],
+  ['music-sfx-and-sonic-branding','Music, SFX, and Sonic Branding','Use beds, stings, transitions, and recurring sonic elements to orient the listener—not to wallpaper every second with noise.'],
+  ['quality-control','Quality Control','QC the finished master for technical errors, editorial mistakes, wrong names, missing music, bad transitions, clipping, metadata, and export problems.'],
+  ['deep-dive-the-final-qc-listen-how-to-hear-the-episode-like-a-listener','The Final QC Listen','Do at least one uninterrupted listener-style pass and test a real-world playback device before the public becomes your quality-assurance department.']
+ ]},
+ {title:'Module Four — Run the Production Machine',lessons:[
+  ['file-management-and-version-control','File Management and Version Control','Use one predictable episode folder, clear filenames, immutable raw recordings, backed-up project files, and labeled masters instead of final-final-real-this-one files.'],
+  ['the-weekly-production-pipeline','The Weekly Production Pipeline','Move every episode through defined stages with explicit deadlines so recording, editing, QC, publishing, and promotion do not become one giant Sunday-night emergency.'],
+  ['deep-dive-scheduling-buffers-batching-and-the-production-queue','Scheduling, Buffers, Batching, and the Production Queue','Keep future movies, guests, research, and finished episodes ahead of the release date so one bad week does not break the show.'],
+  ['hosting-rss-and-distribution-architecture','Hosting, RSS, and Distribution Architecture','The host serves the media, RSS carries the show and episode metadata, and listening apps read the feed. Keep control of the canonical feed and owner accounts.'],
+  ['deep-dive-feed-ownership-migrations-redirects-and-why-accounts-matter','Feed Ownership, Migrations, Redirects, and Accounts','Document account ownership and preserve redirects when moving hosts so subscribers do not quietly disappear during infrastructure changes.'],
+  ['metadata-artwork-chapters-and-transcripts','Metadata, Artwork, Chapters, and Transcripts','Titles, descriptions, artwork, chapters, transcripts, links, flags, and release dates are part of production—not clerical junk after the episode is done.'],
+  ['deep-dive-transcripts-chapters-accessibility-and-searchable-archives','Transcripts, Chapters, Accessibility, and Searchable Archives','Make episodes easier to navigate, search, quote, reference, and access while creating durable material for your website and future research.'],
+  ['apple-spotify-and-youtube','Apple, Spotify, and YouTube','Treat each platform as a distribution and discovery surface while keeping the underlying show identity and production workflow platform-independent.'],
+  ['deep-dive-platform-strategy-without-letting-platforms-rewrite-the-show','Platform Strategy','Verify the live public result on every important platform and adapt packaging where useful without redesigning the entire show for every algorithm.']
+ ]},
+ {title:'Module Five — Launch and Grow the Right Audience',lessons:[
+  ['launch-strategy','Launch Strategy','Launch with enough finished inventory, clear positioning, a trailer, consistent packaging, working links, and a release plan that you can sustain after the excitement wears off.'],
+  ['deep-dive-trailers-launch-inventory-and-the-first-listener-experience','Trailers, Launch Inventory, and the First Listener Experience','Give a new listener a fast path from curiosity to understanding the premise, sampling the hosts, and knowing what to do next.'],
+  ['podcast-marketing','Podcast Marketing','Market the specific value of an episode and the recurring promise of the show rather than endlessly announcing that a new file exists.'],
+  ['deep-dive-marketing-as-a-system-discovery-sampling-conversion-and-return','Marketing as a System','Think discovery, sampling, conversion, return, and advocacy. Each stage needs a different job from clips, guests, titles, pages, and calls to action.'],
+  ['clips-social-email-website-and-community','Clips, Social, Email, Website, and Community','Use clips for discovery, social for interaction, email and the website for owned audience relationships, and recurring participation to turn listeners into a community.'],
+  ['deep-dive-the-podcast-website-and-email-list-as-audience-infrastructure','Website and Email as Audience Infrastructure','Own a simple home base, searchable archive, contact route, listening links, recipes, Bingo, rules, and an email channel that does not depend on a platform feed.'],
+  ['analytics-that-matter','Analytics That Matter','Track plays or downloads, followers, retention or completion where available, top episodes, discovery sources, and conversion trends without worshipping meaningless vanity numbers.'],
+  ['deep-dive-analytics-as-an-experiment-system-not-a-scoreboard','Analytics as an Experiment System','Use metrics to compare controlled changes and find repeatable patterns rather than treating every number as a grade on your worth as a creator.'],
+  ['monetization','Monetization','Match revenue to the audience relationship through memberships, sponsorships, affiliates, live experiences, or merchandise without making the show miserable to produce.'],
+  ['bonus-lesson-budgeting-time-and-money-per-episode','Budgeting Time and Money Per Episode','Know the real production cost in hours, services, equipment, editing, guest work, promotion, and member commitments before adding more promises.'],
+  ['deep-dive-podcast-advertising-cpm-flat-fees-baked-in-ads-and-dynamic-insertion','Podcast Advertising Models','Understand CPM, flat fees, host reads, baked-in spots, dynamic insertion, make-goods, measurement, and what a sponsor is actually buying.'],
+  ['legal-copyright-and-advertising-disclosure','Legal, Copyright, and Advertising Disclosure','Treat music rights, clips, trademarks, guest releases, sponsorship disclosure, and recordkeeping as production concerns rather than things to discover after receiving an unpleasant email.'],
+  ['bonus-lesson-sponsor-operations','Sponsor Operations','Define sponsor fit, approvals, scripts or talking points, delivery dates, tracking, invoicing, reporting, and boundaries before money starts changing the workflow.']
+ ]},
+ {title:'Module Six — Video and Production Company Thinking',lessons:[
+  ['video-production-without-wrecking-the-audio-show','Video Production Without Wrecking the Audio Show','Add cameras and lighting only when the visual version earns its extra workload. Audio remains the core product for an audio-first show.'],
+  ['sops-roles-calendars-and-meetings','SOPs, Roles, Calendars, and Meetings','Turn recurring work into short written procedures and assign ownership so decisions do not need to be reinvented every episode.'],
+  ['deep-dive-delegation-handoffs-and-a-production-board-humans-will-use','Delegation, Handoffs, and the Production Board','Track what is waiting, who owns it, what comes next, and what is blocked. A production system should reduce memory load, not become another hobby.'],
+  ['failure-analysis-and-troubleshooting','Failure Analysis and Troubleshooting','Diagnose the earliest failed link in the production chain instead of randomly changing gear, software, format, and marketing at the same time.'],
+  ['bonus-lesson-ai-and-automation-without-losing-the-show','AI and Automation Without Losing the Show','Automate repetitive preparation and organization while keeping editorial judgment, taste, humor, and listener trust human-owned.'],
+  ['deep-dive-postmortems-failure-drills-and-continuous-improvement','Postmortems, Failure Drills, and Continuous Improvement','After important episodes or failures, document what happened, why, what changed, who owns the fix, and how the new process will be tested.']
+ ]},
+ {title:'Module Seven — The Cheese Louise Operating System',lessons:[
+  ['cheese-louise-episode-architecture','Cheese Louise Episode Architecture','Use a repeatable structure for welcome, Romantiverse setup, cocktail, games, guest material, movie discussion, Bingo, Rules, and outro while leaving room for spontaneous chemistry.'],
+  ['deep-dive-designing-a-repeatable-cold-open-and-opening-five-minutes','Cold Open and Opening Five Minutes','Earn attention quickly, establish the movie and the joke, orient new listeners to the Romantiverse, and move into the episode without a ten-minute administrative preamble.'],
+  ['the-weekly-cheese-louise-production-calendar','The Weekly Cheese Louise Production Calendar','Thursday prep, Friday watch, Saturday rundown, Sunday record, Monday edit, Tuesday QC, Wednesday release. The exact days can change; the handoffs should not.'],
+  ['deep-dive-batch-preparation-without-making-the-show-feel-prepackaged','Batch Preparation Without Making the Show Feel Prepackaged','Batch research, artwork, recurring assets, and future planning while preserving fresh reactions and conversational spontaneity in the actual episode.'],
+  ['the-first-90-days','The First 90 Days','Prioritize reliable publishing, a usable workflow, a small content buffer, listener feedback, and controlled improvement before piling on monetization and bonus obligations.'],
+  ['deep-dive-creating-a-show-bible-and-romantiverse-knowledge-base','The Show Bible and Romantiverse Knowledge Base','Keep recurring rules, traits, segments, terminology, guests, movies, jokes, cocktail history, Bingo material, and production standards in a searchable living reference.'],
+  ['one-episode-from-movie-selection-to-analytics-review','One Episode From Movie Selection to Analytics Review','Walk one episode through selection, research, viewing, rundown, recording, edit, mix, QC, packaging, release, promotion, analytics, and the next decision.'],
+  ['deep-dive-the-episode-postmortem-turning-one-release-into-the-next-better-release','The Episode Postmortem','Capture what worked, what dragged, what broke, what listeners noticed, and exactly one or two changes to carry into the next production cycle.'],
+  ['bingo-cocktail-lounge-patreon-website-and-community-flywheel','Bingo, Cocktail Lounge, Patreon, Website, and Community Flywheel','Make extensions feed the core show: watching creates Bingo and cocktail material, the episode creates community discussion, and community participation feeds future episodes.'],
+  ['deep-dive-season-planning-sustainability-and-knowing-what-not-to-build','Season Planning, Sustainability, and Knowing What Not to Build','Protect the fun and the release cadence by limiting side projects, batching seasonal work, reviewing capacity, and killing features that cost more energy than they return.'],
+  ['capstone-producing-one-great-episode-under-real-world-conditions','Capstone: Produce One Great Episode','Apply the full production chain under realistic time, gear, energy, guest, and schedule constraints instead of waiting for a mythical perfect studio week.']
+ ]}
+];
+const course=document.getElementById('course');const toc=document.getElementById('toc');
+modules.forEach((m,mi)=>{const mid=`module-${mi+1}`;toc.insertAdjacentHTML('beforeend',`<a href="#${mid}">${mi+1}. ${m.title.replace(/^Module .*? — /,'')}</a>`);const section=document.createElement('section');section.className='module';section.id=mid;section.innerHTML=`<div class="kicker">Module ${mi+1}</div><h2>${m.title}</h2>`;m.lessons.forEach(([id,title,summary])=>{section.insertAdjacentHTML('beforeend',`<article class="lesson" id="${id}" data-title="${title}" data-summary="${summary.replace(/"/g,'&quot;')}"><div class="kicker">Audio-course lesson</div><h3>${title}</h3><p>${summary}</p><div class="lesson-actions"><button class="btn listen" onclick="listenLesson('${id}')">▶ Play summary</button><button class="btn" onclick="copyLink('${id}')">Copy lesson link</button></div></article>`)});course.appendChild(section)});
+function listenLesson(id){speechSynthesis.cancel();const el=document.getElementById(id);if(!el)return;const u=new SpeechSynthesisUtterance(`${el.dataset.title}. ${el.dataset.summary}`);u.rate=.96;u.pitch=1;speechSynthesis.speak(u)}
+async function copyLink(id){const url=`${location.origin}${location.pathname}#${id}`;try{await navigator.clipboard.writeText(url);const b=document.querySelector(`#${id} .lesson-actions .btn:nth-child(2)`);const old=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=old,1200)}catch(e){location.hash=id}}
+if(location.hash){setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({block:'start'}),80)}
+</script>
+</body>
+</html>
