@@ -250,11 +250,29 @@ window.applyFilterPreset=(id)=>{
 };
 
 // Search now refreshes both halves of Movie Radar, not just saved movies.
+function sharedRadarFocusSearch(){
+  const input=document.getElementById('globalSearch');
+  if(!input) return;
+  try{ input.focus({preventScroll:true}); }catch(_err){ input.focus(); }
+  const end=input.value.length;
+  if(typeof input.setSelectionRange==='function') input.setSelectionRange(end,end);
+}
+
+window.openMovieSearchInput=()=>{
+  if(currentTab==='movies') return;
+  currentTab='movies';
+  render();
+  window.requestAnimationFrame(sharedRadarFocusSearch);
+};
+
+// Search now enters Movie Radar before typing, then updates results without
+// rebuilding the whole page. This keeps mobile focus/keyboard stable.
 window.setSearch=(value)=>{
   searchText=value;
   if(currentTab!=='movies' && value.trim()){
     currentTab='movies';
     render();
+    window.requestAnimationFrame(sharedRadarFocusSearch);
     return;
   }
   sharedRadarQueueResultsRefresh();
@@ -263,7 +281,10 @@ window.setSearch=(value)=>{
 // Make the build change visible without touching the larger audit file.
 const sharedRadarOriginalTopbar = topbar;
 topbar = function(){
-  return sharedRadarOriginalTopbar().replace('>v1.6<','>v1.8<').replace('>v1.7<','>v1.8<');
+  return sharedRadarOriginalTopbar()
+    .replace('<input class="search" placeholder=', '<input id="globalSearch" class="search" onfocus="openMovieSearchInput()" placeholder=')
+    .replace('>v1.6<','>v1.8<')
+    .replace('>v1.7<','>v1.8<');
 };
 
 window.sharedRadarCandidateCount = sharedRadarCandidateCount;
