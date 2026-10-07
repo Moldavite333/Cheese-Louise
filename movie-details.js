@@ -27,7 +27,14 @@ function clMovieDetailPoster(item){
 }
 
 function clOpenDiscoveryMovieDetails(tmdbId){
-  clDiscoveryMovieDetailId=Number(tmdbId);
+  const id=Number(tmdbId);
+  // Romantiverse Search keeps external matches in its own state array.
+  // Promote the clicked candidate before opening so the existing detail,
+  // vote, and add-to-Radar flows can all resolve the same movie.
+  if(typeof ensureRomantiverseCandidateInDiscovery==='function'){
+    ensureRomantiverseCandidateInDiscovery(id);
+  }
+  clDiscoveryMovieDetailId=id;
   selectedMovie=null;
   render();
 }
