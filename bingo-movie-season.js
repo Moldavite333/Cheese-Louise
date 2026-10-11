@@ -82,13 +82,19 @@ function rvBingoMovieSeasonGenerate(){
   const used=new Set();
 
   // Half the card can come directly from Cheese Traits already attached to the movie.
-  const movieTraits=rvBingoShuffle(rvBingoMovieSeasonTraits(movie),rng);
+  const seasonKey=rvBingoThemeNorm(season);
+  const movieTraits=rvBingoShuffle(
+    rvBingoMovieSeasonTraits(movie).filter(t=>{
+      const meta=rvBingoTraitThemeMeta(t);
+      return meta.universal || meta.seasons.includes(seasonKey);
+    }),
+    rng
+  );
   const movieTarget=Math.min(12,movieTraits.length);
   const pickedMovie=rvBingoMovieSeasonPick(movieTraits,movieTarget,rng,used,usage);
 
   // Fill from the selected season. Prefer explicitly seasonal traits before universal traits.
   const seasonalPool=rvBingoThemeOriginalEligibleTraits(draft).filter(t=>rvBingoTraitMatchesTheme(t));
-  const seasonKey=rvBingoThemeNorm(season);
   const seasonalSpecific=seasonalPool.filter(t=>{
     const meta=rvBingoTraitThemeMeta(t);
     return !used.has(String(t.id)) && meta.seasons.includes(seasonKey);
@@ -105,8 +111,7 @@ function rvBingoMovieSeasonGenerate(){
 
   const fallbackPool=[
     ...universal,
-    ...seasonalSpecific.filter(t=>!used.has(String(t.id))),
-    ...rvBingoThemeOriginalEligibleTraits(draft).filter(t=>!used.has(String(t.id)))
+    ...seasonalSpecific.filter(t=>!used.has(String(t.id)))
   ];
   const pickedFallback=rvBingoMovieSeasonPick(fallbackPool,stillNeeded,rng,used,usage);
 
