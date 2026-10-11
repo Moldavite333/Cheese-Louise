@@ -175,3 +175,41 @@ rvBingoEditorControls=function(){
 window.rvBingoMovieSeasonSetMovie=rvBingoMovieSeasonSetMovie;
 window.rvBingoMovieSeasonSetSeason=rvBingoMovieSeasonSetSeason;
 window.rvBingoMovieSeasonGenerate=rvBingoMovieSeasonGenerate;
+
+
+// Movie detail integration: one-click Bingo creation from a saved movie.
+function rvBingoCreateForMovie(movieId){
+  const movie=(state.movies||[]).find(m=>String(m.id)===String(movieId));
+  if(!movie) return alert('That movie is no longer available in Movie Radar.');
+
+  rvBingoMovieSeason.movieId=movie.id;
+  rvBingoMovieSeason.season=rvBingoInferMovieSeason(movie);
+  selectedMovie=null;
+  rvBingoPicker=null;
+  rvBingoMultiOpen=false;
+  romantiverseHubView='bingo';
+  currentTab='ideas';
+  rvBingoMovieSeasonGenerate();
+  window.scrollTo(0,0);
+}
+
+if(typeof clSavedMovieDetailModal==='function'){
+  const rvBingoOriginalSavedMovieDetailModal=clSavedMovieDetailModal;
+  clSavedMovieDetailModal=function(){
+    const movie=(state.movies||[]).find(m=>m.id===selectedMovie);
+    let html=rvBingoOriginalSavedMovieDetailModal();
+    if(!movie||!html) return html;
+
+    const button=`<button class="primary" onclick="rvBingoCreateForMovie('${String(movie.id).replace(/'/g,"\\'")}')">🎯 Create Bingo Card</button>`;
+    const scheduleButton=`<button class="secondary" onclick="scheduleMovie('${String(movie.id).replace(/'/g,"\\'")}')">📅 Schedule</button>`;
+
+    if(html.includes(scheduleButton)){
+      html=html.replace(scheduleButton, scheduleButton + button);
+    }else{
+      html=html.replace('<div class="cl-movie-detail-actions">','<div class="cl-movie-detail-actions">'+button);
+    }
+    return html;
+  };
+}
+
+window.rvBingoCreateForMovie=rvBingoCreateForMovie;
