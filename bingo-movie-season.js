@@ -37,6 +37,14 @@ function rvBingoMovieSeasonTraits(movie){
 function rvBingoMovieSeasonPick(pool,count,rng,used,usage){
   const available=pool.filter(t=>!used.has(String(t.id)));
   if(!available.length||count<=0) return [];
+
+  const nicheCategoryCap=2;
+  const nichePatterns=[
+    /royal|prince|princess|castle|commoner/i,
+    /amnesia/i,
+    /magic|supernatural|fantasy/i
+  ];
+
   const groups=new Map();
   available.forEach(t=>{
     const cat=t.category||'Wildcard';
@@ -46,20 +54,46 @@ function rvBingoMovieSeasonPick(pool,count,rng,used,usage){
   for(const [cat,list] of groups){
     groups.set(cat,rvBingoShuffle(list,rng).sort((a,b)=>(usage.get(String(a.id))||0)-(usage.get(String(b.id))||0)));
   }
+
   const picks=[];
   const catCounts=new Map();
+  const nicheCounts=new Map();
+
+  function nicheKey(trait){
+    const text=`${trait?.name||''} ${trait?.category||''}`;
+    const idx=nichePatterns.findIndex(re=>re.test(text));
+    return idx>=0 ? idx : null;
+  }
+
   while(picks.length<count){
-    const choices=[...groups.entries()].filter(([,list])=>list.some(t=>!used.has(String(t.id))));
+    const choices=[...groups.entries()].map(([cat,list])=>[
+      cat,
+      list.filter(t=>{
+        if(used.has(String(t.id))) return false;
+        const nk=nicheKey(t);
+        return nk===null || (nicheCounts.get(nk)||0)<nicheCategoryCap;
+      })
+    ]).filter(([,list])=>list.length);
+
     if(!choices.length) break;
+
     const min=Math.min(...choices.map(([cat])=>catCounts.get(cat)||0));
     const cats=choices.filter(([cat])=>(catCounts.get(cat)||0)===min);
     const [cat,list]=cats[Math.floor(rng()*cats.length)];
-    const candidate=list.find(t=>!used.has(String(t.id)));
+
+    const minUsage=Math.min(...list.map(t=>usage.get(String(t.id))||0));
+    const underused=list.filter(t=>(usage.get(String(t.id))||0)===minUsage);
+    const candidate=underused[Math.floor(rng()*underused.length)];
     if(!candidate) break;
+
     picks.push(candidate);
     used.add(String(candidate.id));
     catCounts.set(cat,(catCounts.get(cat)||0)+1);
+
+    const nk=nicheKey(candidate);
+    if(nk!==null) nicheCounts.set(nk,(nicheCounts.get(nk)||0)+1);
   }
+
   return picks;
 }
 
