@@ -252,3 +252,57 @@ if(typeof clSavedMovieDetailModal==='function'){
 }
 
 window.rvBingoCreateForMovie=rvBingoCreateForMovie;
+
+
+// Publish the currently reviewed Bingo card to the public Romantiverse website.
+let rvBingoPublishing=false;
+
+async function rvBingoPublishToWebsite(){
+  if(!workspace) return alert('Open the Cheese Louise workspace first.');
+  if(!rvBingoDraft || !rvBingoCardIsFull()) return alert('Generate and review a full Bingo card first.');
+
+  const movie=rvBingoMovieSeasonMovie();
+  const season=rvBingoMovieSeason.season || (movie ? rvBingoInferMovieSeason(movie) : rvBingoThemeFilter?.season || '');
+  const pool=(rvBingoDraft.squares||[])
+    .map((id,index)=> index===RV_BINGO_FREE_INDEX || !id ? null : ({id:String(id),label:rvBingoTraitName(id)}))
+    .filter(Boolean);
+
+  if(pool.length!==24) return alert('The public card needs 24 playable squares.');
+
+  rvBingoPublishing=true;
+  render();
+  try{
+    const payload={
+      workspace_id:workspace.id,
+      movie_id:movie?.id || null,
+      movie_title:movie?.title || rvBingoDraft.name || 'Romantiverse Bingo',
+      season:season || null,
+      holiday:movie?.holiday || null,
+      description:movie?.summary || `A Cheese Louise Romantiverse Bingo card for ${movie?.title || rvBingoDraft.name || 'this week'}.`,
+      pool,
+      published_by:me()
+    };
+    const {error}=await db.from('published_bingo_cards').insert(payload);
+    if(error) throw error;
+    alert(`Published to the website: ${payload.movie_title}`);
+  }catch(error){
+    console.error('Could not publish Bingo card',error);
+    alert(error?.message || 'Could not publish the Bingo card.');
+  }finally{
+    rvBingoPublishing=false;
+    render();
+  }
+}
+
+const rvBingoPublishOriginalEditor=rvBingoEditorControls;
+rvBingoEditorControls=function(){
+  const html=rvBingoPublishOriginalEditor();
+  if(!html || !rvBingoDraft || rvBingoPlayMode) return html;
+  const button=`<button class="primary" onclick="rvBingoPublishToWebsite()" ${rvBingoPublishing?'disabled':''}>🌐 ${rvBingoPublishing?'Publishing…':'Publish to Website'}</button>`;
+  if(html.includes('<div class="rv-bingo-export-row">')){
+    return html.replace('<div class="rv-bingo-export-row">',`<div class="rv-bingo-export-row">${button}`);
+  }
+  return html + button;
+};
+
+window.rvBingoPublishToWebsite=rvBingoPublishToWebsite;
