@@ -29,12 +29,12 @@ discoveryEstimate = function(c){
   return estimate;
 };
 
-// Add a personal Yes view for saved Radar movies. "Mutual" still means both
-// members voted Yes; this mode follows whichever member is currently signed in.
+// Add an Any Yes view for saved Radar movies. "Mutual" still means both
+// members voted Yes; this mode shows a movie when either member voted Yes.
 const sharedRadarOriginalMovieMatch = movieMatchesCheeseFilters;
 movieMatchesCheeseFilters = function(m){
   if(!sharedRadarOriginalMovieMatch(m)) return false;
-  if(movieFilters.mode==='yes' && m.votes?.[me()]!=='yes') return false;
+  if(movieFilters.mode==='yes' && !Object.values(m.votes||{}).some(v=>v==='yes')) return false;
   return true;
 };
 
@@ -70,7 +70,7 @@ function sharedRadarToolbarHtml(){
   return `<div class="toolbar" id="radarModeToolbar">
     <button class="filter ${movieFilters.mode==='all'?'active-filter':''}" onclick="filterPreset('all')">All</button>
     <button class="filter ${movieFilters.mode==='mutual'?'active-filter':''}" onclick="filterPreset('mutual')">🔥 Mutual</button>
-    <button class="filter ${movieFilters.mode==='yes'?'active-filter':''}" onclick="filterPreset('yes')">❤️ Yes Picks</button>
+    <button class="filter ${movieFilters.mode==='yes'?'active-filter':''}" onclick="filterPreset('yes')">❤️ Yes</button>
     <button class="filter ${movieFilters.mode==='saved'?'active-filter':''}" onclick="filterPreset('saved')">🔖 Saved</button>
     <button class="filter ${movieFilters.mode==='unreviewed'?'active-filter':''}" onclick="filterPreset('unreviewed')">🆕 Unreviewed</button>
     <button class="filter ${movieFilters.mode==='needs_review'?'active-filter':''}" onclick="filterPreset('needs_review')">👀 Needs Review</button>
