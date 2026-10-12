@@ -1,4 +1,4 @@
-// Cheese Louise v1.9 — shared Movie Radar filters + fast interaction path.
+// Cheese Louise v1.10 — shared Movie Radar filters + live Cheese Tray leaderboard.
 // Loaded after v16-radar-filters.js so it inherits provider/release filter logic.
 
 // ---------------------------------------------------------------------------
@@ -66,6 +66,38 @@ function sharedRadarCandidateCount(){
   ).length;
 }
 
+function sharedRadarCheeseTrayHtml(){
+  const ranked=(state.movies||[]).slice().sort((a,b)=>{
+    const scoreDiff=Number(b.score??b.cheese_score??0)-Number(a.score??a.cheese_score??0);
+    if(scoreDiff) return scoreDiff;
+    return String(a.title||'').localeCompare(String(b.title||''));
+  });
+
+  if(!ranked.length){
+    return '<section class="section"><div class="card card-pad"><div class="kicker">🧀 Cheese Tray</div><div class="subtle" style="margin-top:6px">No saved movies have hit the tray yet.</div></div></section>';
+  }
+
+  const leader=ranked[0];
+  const leaderScore=Number(leader.score??leader.cheese_score??0);
+  const rows=ranked.map((m,index)=>{
+    const score=Number(m.score??m.cheese_score??0);
+    const traits=m.selectedTraitIds?.length||0;
+    return '<button type="button" onclick="openMovie(\''+m.id+'\')" style="width:100%;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;text-align:left;background:transparent;color:inherit">'
+      +'<strong style="font-size:1.05rem">#'+(index+1)+'</strong>'
+      +'<span style="min-width:0"><strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(m.title)+'</strong><span class="subtle">'+traits+' confirmed Cheese Trait'+(traits===1?'':'s')+'</span></span>'
+      +'<span class="cheese-score">🧀 '+score+'</span>'
+      +'</button>';
+  }).join('');
+
+  return '<section class="section"><details class="card card-pad" open>'
+    +'<summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center">'
+    +'<span><span class="kicker">🧀 Cheese Tray</span><span class="subtle" style="display:block;margin-top:4px">Live ranking · highest Cheese Rating to lowest</span></span>'
+    +'<span style="text-align:right;white-space:nowrap"><span class="subtle" style="display:block">Current leader</span><strong>'+esc(leader.title)+' · 🧀 '+leaderScore+'</strong></span>'
+    +'</summary>'
+    +'<div style="display:grid;gap:6px;margin-top:14px">'+rows+'</div>'
+    +'</details></section>';
+}
+
 function sharedRadarToolbarHtml(){
   return `<div class="toolbar" id="radarModeToolbar">
     <button class="filter ${movieFilters.mode==='all'?'active-filter':''}" onclick="filterPreset('all')">All</button>
@@ -94,6 +126,8 @@ movies = function(){
     </div>
     <div class="subtle" style="margin-top:10px">Radar filters apply to <strong>both New Finds and movies already added to the Radar</strong>.</div>
   </section>
+
+  ${sharedRadarCheeseTrayHtml()}
 
   <section class="section">
     ${sharedRadarToolbarHtml()}
