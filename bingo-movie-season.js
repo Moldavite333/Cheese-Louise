@@ -264,7 +264,15 @@ async function rvBingoPublishToWebsite(){
   const movie=rvBingoMovieSeasonMovie();
   const season=rvBingoMovieSeason.season || (movie ? rvBingoInferMovieSeason(movie) : rvBingoThemeFilter?.season || '');
   const pool=(rvBingoDraft.squares||[])
-    .map((id,index)=> index===RV_BINGO_FREE_INDEX || !id ? null : ({id:String(id),label:rvBingoTraitName(id)}))
+    .map((id,index)=>{
+      if(index===RV_BINGO_FREE_INDEX || !id) return null;
+      const trait=rvBingoTraitById(id);
+      return {
+        id:String(id),
+        label:rvBingoTraitName(id),
+        image_url:trait?.thumbnail_url||trait?.image_url||null
+      };
+    })
     .filter(Boolean);
 
   if(pool.length!==24) return alert('The public card needs 24 playable squares.');
