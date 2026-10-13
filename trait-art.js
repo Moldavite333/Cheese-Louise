@@ -4,7 +4,7 @@
 const TRAIT_ART_STYLE_VERSION='romantiverse-v1';
 const TRAIT_ART_COLORS={cream:'#f4ead1',paper:'#fffaf0',green:'#173f36',red:'#c43e46',pink:'#e96b78',gold:'#d4a52e',ink:'#1d2924'};
 let traitArtBackfillStarted=false;
-let traitArtBoardMode=localStorage.getItem('clBingoBoardArtMode')||'text';
+let traitArtBoardMode=localStorage.getItem('clBingoBoardArtMode')||'illustrated';
 let traitArtExportMode=localStorage.getItem('clBingoExportArtMode')||'illustrated';
 
 function traitArtHash(text){
@@ -303,3 +303,208 @@ window.addTrait=addTrait;window.editTrait=editTrait;
 window.traitArtRegenerate=traitArtRegenerate;window.traitArtRemove=traitArtRemove;window.traitArtUpload=traitArtUpload;window.traitArtBackfillNow=traitArtBackfillNow;
 window.traitArtSetBingoMode=traitArtSetBingoMode;window.traitArtSetExportMode=traitArtSetExportMode;
 window.rvBingoExportPng=traitArtBingoExportPng;window.rvBingoShareCard=traitArtBingoShareCard;window.rvBingoPrintView=traitArtBingoPrintView;
+
+
+// --- v2 automatic Bingo art + title fitting --------------------------------
+const TRAIT_ART_STYLE_V2='romantiverse-v2';
+const traitArtV1Motif=traitArtMotif;
+const traitArtV1Icon=traitArtIcon;
+const traitArtV2Ensuring=new Set();
+
+traitArtMotif=function(name,category){
+  const s=`${name||''} ${category||''}`.toLowerCase();
+
+  // Exact concepts from the live Cheese Trait library get first-class art.
+  if(/family fued|family feud|estranged family/.test(s)) return 'familyfeud';
+  if(/diner|family restaurant/.test(s)) return 'diner';
+  if(/dead parent|dead grandparent|sick parent|sick grandparent|family tragedy/.test(s)) return 'memorial';
+  if(/widowed single parent|single-parent romance/.test(s)) return 'singleparent';
+  if(/jealous rival/.test(s)) return 'jealous';
+  if(/third-act breakup/.test(s)) return 'breakup';
+  if(/child plays matchmaker/.test(s)) return 'childmatch';
+  if(/town knows before they do/.test(s)) return 'gossip';
+  if(/inheritance with conditions|inherited family business/.test(s)) return 'inheritance';
+  if(/destination wedding/.test(s)) return 'wedding';
+  if(/seaside town/.test(s)) return 'seaside';
+  if(/quaint mountain town/.test(s)) return 'mountain';
+  if(/small-town newspaper/.test(s)) return 'newspaper';
+  if(/flower shop/.test(s)) return 'flowershop';
+  if(/apple cider|hot chocolate/.test(s)) return 'warmdrink';
+  if(/boss sends them home/.test(s)) return 'bosshome';
+  if(/career-or-love ultimatum|promotion vs hometown/.test(s)) return 'careerchoice';
+  if(/ex appears at worst time/.test(s)) return 'ex';
+  if(/accidental roommates/.test(s)) return 'roommates';
+
+  const old=traitArtV1Motif(name,category);
+  if(old!=='cheese') return old;
+
+  // Category fallback ensures an unknown trait still gets relevant art, never generic cheese.
+  if(/career/.test(s)) return 'career';
+  if(/family/.test(s)) return 'parent';
+  if(/royal/.test(s)) return 'royal';
+  if(/romance/.test(s)) return 'friends';
+  if(/location/.test(s)) return 'town';
+  if(/job|business/.test(s)) return 'business';
+  if(/plot/.test(s)) return 'story';
+  return 'story';
+};
+
+traitArtIcon=function(key){
+  const g=TRAIT_ART_COLORS.green,r=TRAIT_ART_COLORS.red,p=TRAIT_ART_COLORS.pink,y=TRAIT_ART_COLORS.gold,c=TRAIT_ART_COLORS.cream;
+  switch(key){
+    case 'familyfeud':
+      return `<g stroke="${g}" stroke-width="4" stroke-linecap="round"><circle cx="35" cy="44" r="13" fill="${p}"/><circle cx="93" cy="44" r="13" fill="${y}"/><path d="M20 90c2-25 28-30 39-10M108 90c-2-25-28-30-39-10" fill="${c}"/><path d="M25 69h23M80 69h23" /></g><path d="M64 24 55 43l11 8-10 18 14 10-8 25" fill="none" stroke="${r}" stroke-width="7"/><path d="M64 64C42 49 46 33 58 34c4 0 6 3 8 7 3-4 5-7 9-7 12-1 15 15-11 30Z" fill="${r}"/>`;
+    case 'diner':
+      return `<path d="M18 91h92" stroke="${g}" stroke-width="5"/><rect x="24" y="42" width="80" height="49" rx="8" fill="${c}" stroke="${g}" stroke-width="5"/><path d="M24 54h80" stroke="${r}" stroke-width="8"/><rect x="38" y="65" width="18" height="26" fill="${y}" stroke="${g}" stroke-width="4"/><rect x="69" y="64" width="22" height="13" fill="${p}" stroke="${g}" stroke-width="4"/><circle cx="80" cy="83" r="5" fill="${r}"/>`;
+    case 'memorial':
+      return `<path d="M64 25c-14 18-18 31-18 42 0 12 8 21 18 21s18-9 18-21c0-11-4-24-18-42Z" fill="${y}" stroke="${g}" stroke-width="4"/><rect x="53" y="88" width="22" height="18" rx="3" fill="${r}" stroke="${g}" stroke-width="4"/><path d="M30 107h68" stroke="${g}" stroke-width="5"/>`;
+    case 'singleparent':
+      return `<circle cx="48" cy="45" r="17" fill="${p}" stroke="${g}" stroke-width="4"/><circle cx="79" cy="60" r="11" fill="${y}" stroke="${g}" stroke-width="4"/><path d="M25 102c4-25 35-30 48-10 6-15 28-14 34 10" fill="${c}" stroke="${g}" stroke-width="5"/>${traitArtHeart(71,80,.28,r)}`;
+    case 'jealous':
+      return `${traitArtHeart(53,64,.48,r)}<circle cx="92" cy="53" r="18" fill="${y}" stroke="${g}" stroke-width="4"/><path d="M84 51h5m8 0h5M86 62q7-6 14 0" stroke="${g}" stroke-width="4" fill="none"/><path d="M72 30 61 18" stroke="${p}" stroke-width="5"/>`;
+    case 'breakup':
+      return `<path d="M64 104C24 76 30 35 53 35c8 0 12 5 17 12 5-7 9-12 17-12 23 0 28 40-23 69Z" fill="${r}"/><path d="M68 45 55 61l13 9-15 20" fill="none" stroke="${c}" stroke-width="7"/>`;
+    case 'childmatch':
+      return `<circle cx="64" cy="56" r="25" fill="${y}" stroke="${g}" stroke-width="5"/><path d="M39 100c5-20 45-20 50 0" fill="${c}" stroke="${g}" stroke-width="5"/>${traitArtHeart(35,38,.25,r)}${traitArtHeart(94,38,.25,p)}`;
+    case 'gossip':
+      return `<circle cx="44" cy="58" r="19" fill="${p}" stroke="${g}" stroke-width="4"/><circle cx="84" cy="58" r="19" fill="${y}" stroke="${g}" stroke-width="4"/><path d="M57 57h14" stroke="${r}" stroke-width="5" stroke-dasharray="3 5"/><path d="M28 99c5-20 29-20 34 0M66 99c5-20 29-20 34 0" fill="${c}" stroke="${g}" stroke-width="4"/>`;
+    case 'inheritance':
+      return `<rect x="28" y="29" width="72" height="78" rx="5" fill="${c}" stroke="${g}" stroke-width="5"/><path d="M40 48h48M40 61h39M40 74h46" stroke="${g}" stroke-width="4"/><circle cx="82" cy="91" r="12" fill="${r}"/><path d="m77 91 4 4 8-10" stroke="${c}" stroke-width="3" fill="none"/>`;
+    case 'wedding':
+      return `<circle cx="52" cy="64" r="25" fill="none" stroke="${y}" stroke-width="9"/><circle cx="77" cy="64" r="25" fill="none" stroke="${r}" stroke-width="9"/><path d="M64 25 70 37 83 39 74 48 76 61 64 55 52 61 54 48 45 39 58 37Z" fill="${p}"/>`;
+    case 'seaside':
+      return `<path d="M15 83q18-15 36 0t36 0 26 0" fill="none" stroke="${g}" stroke-width="6"/><circle cx="91" cy="36" r="16" fill="${y}"/><path d="M27 78 53 43l22 35Z" fill="${c}" stroke="${g}" stroke-width="4"/>`;
+    case 'mountain':
+      return `<path d="M15 98 48 46l15 22 18-31 32 61Z" fill="${c}" stroke="${g}" stroke-width="5"/><path d="m48 46 8 12-13 1m38-22 10 18-15-3" fill="${y}" stroke="${g}" stroke-width="3"/>`;
+    case 'newspaper':
+      return `<rect x="20" y="30" width="88" height="70" rx="4" fill="${c}" stroke="${g}" stroke-width="5"/><path d="M30 43h45M30 53h68M30 66h28M30 76h28M67 66h31v24H67Z" stroke="${g}" stroke-width="4" fill="none"/>`;
+    case 'flowershop':
+      return `<path d="M22 91h84V54H22Z" fill="${c}" stroke="${g}" stroke-width="5"/><path d="M18 54 30 31h68l12 23" fill="${r}" stroke="${g}" stroke-width="5"/><g fill="${p}" stroke="${g}" stroke-width="2"><circle cx="52" cy="72" r="9"/><circle cx="67" cy="68" r="8"/><circle cx="79" cy="76" r="9"/></g>`;
+    case 'warmdrink':
+      return `<path d="M29 52h62v35c0 14-10 21-24 21H53c-14 0-24-7-24-21V52Z" fill="${r}" stroke="${g}" stroke-width="5"/><path d="M91 60h9c15 0 15 22 0 22h-9" fill="none" stroke="${g}" stroke-width="5"/><path d="M48 40c-7-10 7-13 0-24M67 40c-7-10 7-13 0-24" fill="none" stroke="${g}" stroke-width="4"/>`;
+    case 'bosshome':
+      return `<rect x="23" y="35" width="60" height="45" rx="5" fill="${g}"/><path d="M35 35V25h36v10" stroke="${g}" stroke-width="6"/><path d="M73 100 103 70M87 69h17v18" fill="none" stroke="${r}" stroke-width="7"/><path d="M63 101H31V78" fill="none" stroke="${y}" stroke-width="7"/>`;
+    case 'careerchoice':
+      return `<rect x="18" y="54" width="45" height="37" rx="5" fill="${g}"/>${traitArtHeart(88,69,.55,r)}<path d="M64 28v72" stroke="${y}" stroke-width="5" stroke-dasharray="5 5"/>`;
+    case 'roommates':
+      return `<rect x="18" y="55" width="92" height="40" rx="6" fill="${r}" stroke="${g}" stroke-width="5"/><rect x="25" y="43" width="34" height="19" rx="8" fill="${c}" stroke="${g}" stroke-width="4"/><rect x="69" y="43" width="34" height="19" rx="8" fill="${c}" stroke="${g}" stroke-width="4"/><path d="M64 55v40" stroke="${g}" stroke-width="4"/>`;
+    case 'story':
+      return `<path d="M24 38h80v61H24Z" fill="${g}"/><path d="M24 38h80l-8-17H16Z" fill="${c}" stroke="${g}" stroke-width="5"/><path d="M31 23l10 15m15-15 10 15m15-15 10 15" stroke="${r}" stroke-width="5"/>${traitArtHeart(64,69,.30,r)}`;
+    default:
+      return traitArtV1Icon(key);
+  }
+};
+
+function traitArtFieldsV2(name,category,seed=''){
+  const s=seed||traitArtSeed(name,category,Date.now());
+  const url=traitArtDataUri(name,category,s);
+  return {
+    image_url:url,
+    thumbnail_url:url,
+    image_prompt:traitArtPrompt(name,category),
+    image_status:'ready',
+    image_style_version:TRAIT_ART_STYLE_V2,
+    image_source:'generated',
+    image_seed:s,
+    image_updated_at:new Date().toISOString()
+  };
+}
+traitArtFields=traitArtFieldsV2;
+
+async function traitArtEnsureTraitImage(trait){
+  if(!trait?.id || traitArtV2Ensuring.has(String(trait.id))) return;
+  const currentStyle=String(trait.image_style_version||'');
+  const missing=!trait.image_url;
+  const staleGenerated=trait.image_source!=='custom' && currentStyle!==TRAIT_ART_STYLE_V2;
+  if(!missing && !staleGenerated) return;
+
+  traitArtV2Ensuring.add(String(trait.id));
+  try{
+    const fields=traitArtFieldsV2(trait.name,trait.category,trait.image_seed||traitArtSeed(trait.name,trait.category,'v2'));
+    Object.assign(trait,fields);
+    const {error}=await db.from('cheese_traits').update(fields).eq('id',trait.id);
+    if(error) console.warn('Could not save trait art',trait.name,error.message);
+  }finally{
+    traitArtV2Ensuring.delete(String(trait.id));
+  }
+}
+
+async function traitArtEnsureBoardImages(){
+  if(!rvBingoDraft) return;
+  const ids=[...new Set((rvBingoDraft.squares||[]).filter(Boolean).map(String))];
+  const traits=ids.map(id=>rvBingoTraitById(id)).filter(Boolean);
+  await Promise.all(traits.map(t=>traitArtEnsureTraitImage(t)));
+}
+
+function traitArtFitOneBingoTitle(el){
+  const square=el?.closest?.('.rv-bingo-square');
+  if(!el||!square) return;
+  let size=16;
+  const min=7;
+  el.style.whiteSpace='normal';
+  el.style.overflow='visible';
+  el.style.textOverflow='clip';
+  el.style.overflowWrap='anywhere';
+  el.style.wordBreak='normal';
+  el.style.lineHeight='1.02';
+  el.style.fontSize=size+'px';
+
+  while(size>min){
+    const squareBox=square.getBoundingClientRect();
+    const labelBox=el.getBoundingClientRect();
+    const overflowY=labelBox.bottom > squareBox.bottom-4 || square.scrollHeight>square.clientHeight+1;
+    const overflowX=el.scrollWidth>el.clientWidth+1;
+    if(!overflowY&&!overflowX) break;
+    size-=0.5;
+    el.style.fontSize=size+'px';
+  }
+}
+
+function traitArtFitAllBingoTitles(){
+  document.querySelectorAll('.rv-bingo-square-text').forEach(traitArtFitOneBingoTitle);
+}
+
+let traitArtFitRaf=0;
+function traitArtScheduleBoardMaintenance(){
+  cancelAnimationFrame(traitArtFitRaf);
+  traitArtFitRaf=requestAnimationFrame(()=>{
+    traitArtFitAllBingoTitles();
+    traitArtEnsureBoardImages().then(()=>{
+      traitArtFitAllBingoTitles();
+    });
+  });
+}
+
+const traitArtV2OriginalSquareHtml=rvBingoSquareHtml;
+rvBingoSquareHtml=function(index){
+  const html=traitArtV2OriginalSquareHtml(index);
+  queueMicrotask(traitArtScheduleBoardMaintenance);
+  return html;
+};
+
+const traitArtV2Observer=new MutationObserver(()=>{
+  if(document.querySelector('.rv-bingo-board')) traitArtScheduleBoardMaintenance();
+});
+traitArtV2Observer.observe(document.body,{childList:true,subtree:true});
+
+window.addEventListener('resize',traitArtScheduleBoardMaintenance);
+window.addEventListener('orientationchange',traitArtScheduleBoardMaintenance);
+
+const traitArtV2OriginalAddTrait=addTrait;
+addTrait=async function(){
+  const before=new Set((state.traits||[]).map(t=>String(t.id)));
+  await traitArtV2OriginalAddTrait();
+  const created=(state.traits||[]).find(t=>!before.has(String(t.id)));
+  if(created) await traitArtEnsureTraitImage(created);
+};
+
+setTimeout(async()=>{
+  if(!workspace)return;
+  const traits=(state.traits||[]).filter(t=>t.is_active!==false);
+  for(const t of traits) await traitArtEnsureTraitImage(t);
+  if(document.querySelector('.rv-bingo-board')) traitArtScheduleBoardMaintenance();
+},250);
+
+window.traitArtEnsureTraitImage=traitArtEnsureTraitImage;
+window.traitArtEnsureBoardImages=traitArtEnsureBoardImages;
+window.traitArtFitAllBingoTitles=traitArtFitAllBingoTitles;
