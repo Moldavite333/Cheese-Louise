@@ -1,4 +1,4 @@
-// Cheese Louise v1.10 — shared Movie Radar filters + live Cheese Tray leaderboard.
+// Cheese Louise v1.11 — shared Movie Radar filters + dedicated Cheese Tray tab.
 // Loaded after v16-radar-filters.js so it inherits provider/release filter logic.
 
 // ---------------------------------------------------------------------------
@@ -126,8 +126,6 @@ movies = function(){
     </div>
     <div class="subtle" style="margin-top:10px">Radar filters apply to <strong>both New Finds and movies already added to the Radar</strong>.</div>
   </section>
-
-  ${sharedRadarCheeseTrayHtml()}
 
   <section class="section">
     ${sharedRadarToolbarHtml()}
@@ -293,6 +291,36 @@ window.applyFilterPreset=(id)=>{
   sharedRadarUpdateFilterButton();
   sharedRadarQueueResultsRefresh();
 };
+
+function sharedRadarCheeseTrayPage(){
+  const total=(state.movies||[]).length;
+  return `<section class="section">
+    <div class="page-title">🧀 Cheese Tray</div>
+    <div class="subtle">The running Romantiverse cheese leaderboard. Scores update automatically as confirmed Cheese Traits change.</div>
+    <div class="pills" style="margin-top:10px"><span class="pill">${total} ranked movie${total===1?'':'s'}</span></div>
+  </section>
+  ${sharedRadarCheeseTrayHtml()}`;
+}
+
+// Give Cheese Tray its own top-level navigation tab.
+const sharedRadarOriginalTabs = tabs;
+tabs = function(){
+  const html=sharedRadarOriginalTabs();
+  if(html.includes("go('cheesetray')")) return html;
+  const button=`<button class="${currentTab==='cheesetray'?'active':''}" onclick="go('cheesetray')"><span class="tab-icon">🧀</span>Cheese Tray</button>`;
+  return html.replace('</nav>',button+'</nav>');
+};
+
+// Render the leaderboard as its own page while preserving every later tab wrapper.
+const sharedRadarOriginalRender = render;
+render = function(){
+  if(currentTab!=='cheesetray') return sharedRadarOriginalRender();
+  if(!session) return authScreen();
+  if(!workspace) return onboardingScreen();
+  shell(`<div class="app-shell">${topbar()}${sharedRadarCheeseTrayPage()}</div>${tabs()}${modal()}`);
+};
+
+window.sharedRadarCheeseTrayPage = sharedRadarCheeseTrayPage;
 
 // Search now refreshes both halves of Movie Radar, not just saved movies.
 function sharedRadarFocusSearch(){
