@@ -30,5 +30,7 @@
    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(e){alert(e.message)}
  };
+ function addExportButton(){if(document.getElementById('cheese-bingo-export-button'))return;const btn=document.createElement('button');btn.id='cheese-bingo-export-button';btn.textContent='Export to Romantiverse Bingo';btn.type='button';btn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9999;padding:10px 14px;border-radius:12px;background:#ff9b35;color:#161616;font-weight:700';btn.onclick=window.downloadBingoCheesePackage;document.body.appendChild(btn)}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addExportButton,{once:true});else addExportButton();
  window.cheeseBingoExportPreview=()=>{const p=makePackage();return {movies:p.movies.length,traits:p.traits.length,containsSynopsis:false}};
 })();
