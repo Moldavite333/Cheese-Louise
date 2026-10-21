@@ -271,7 +271,7 @@ function schedule(){
 
 function ideas(){
   const cols=[['ideas','Ideas'],['testing','Testing'],['working','Working'],['retired','Retired']];
-  return `<section class="section"><div class="page-title">Show Lab</div><div class="subtle">Things to try, what works, and what should never darken the doorway again.</div></section><section class="section"><div class="idea-columns">${cols.map(([k,label])=>`<div class="idea-col"><h3>${label}</h3>${state.ideas.filter(i=>i.status===k).map(i=>`<div class="idea-card"><strong>${esc(i.title)}</strong><div class="subtle">${esc(i.category||'Idea')}</div>${i.notes?`<div style="margin-top:6px">${esc(i.notes)}</div>`:''}<div style="margin-top:8px"><button class="secondary" onclick="advanceIdea('${i.id}')">Move →</button></div></div>`).join('')||'<div class="subtle" style="margin-top:8px">Nothing here.</div>'}</div>`).join('')}</div></section>`;
+  return `<section class="section"><div class="page-title">Show Lab</div><div class="subtle">Things to try, what works, and what should never darken the doorway again.</div></section><section class="section"><div class="idea-columns">${cols.map(([k,label])=>`<div class="idea-col"><h3>${label}</h3>${state.ideas.filter(i=>i.status===k).map(i=>`<div class="idea-card"><strong>${esc(i.title)}</strong><div class="subtle">${esc(i.category||'Idea')}</div>${i.notes?`<div style="margin-top:6px">${esc(i.notes)}</div>`:''}<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="secondary" onclick="editIdea('${i.id}')">✏️ Edit</button><button class="secondary" onclick="advanceIdea('${i.id}')">Move →</button></div></div>`).join('')||'<div class="subtle" style="margin-top:8px">Nothing here.</div>'}</div>`).join('')}</div></section>`;
 }
 
 function modal(){
@@ -362,6 +362,26 @@ async function quickAdd(){
   currentTab='ideas'; await loadAll(); render();
 }
 
+async function editIdea(id){
+  const idea=state.ideas.find(x=>x.id===id); if(!idea) return;
+  const title=prompt('Idea title:',idea.title||''); if(title===null) return;
+  const cleanTitle=title.trim(); if(!cleanTitle) return alert('Give the idea a title.');
+  const category=prompt('Category:',idea.category||'Idea'); if(category===null) return;
+  const notes=prompt('Notes:',idea.notes||''); if(notes===null) return;
+  const statusRaw=(prompt('Status: ideas, testing, working, or retired',idea.status||'ideas')||idea.status||'ideas').trim().toLowerCase();
+  const status=['ideas','testing','working','retired'].includes(statusRaw)?statusRaw:(idea.status||'ideas');
+
+  const {error}=await db.from('show_ideas').update({
+    title:cleanTitle,
+    category:category.trim()||'Idea',
+    notes:notes.trim()||null,
+    status
+  }).eq('id',id);
+  if(error) return alert(error.message);
+  await logActivity(`edited “${cleanTitle}”.`,'idea',id);
+  await loadAll(); render();
+}
+
 async function advanceIdea(id){
   const order=['ideas','testing','working','retired'];
   const i=state.ideas.find(x=>x.id===id); if(!i) return;
@@ -410,7 +430,7 @@ window.filterPreset=(type)=>{
   const grid=document.getElementById('movieGrid'); if(grid) grid.innerHTML=arr.map(movieCard).join('')||'<div class="empty">Nothing in this view yet.</div>';
 };
 window.signIn=signIn; window.signUp=signUp; window.signOut=signOut; window.createWorkspace=createWorkspace; window.joinWorkspace=joinWorkspace;
-window.vote=vote; window.bookmark=bookmark; window.comment=comment; window.addMovie=addMovie; window.scheduleMovie=scheduleMovie; window.addSchedule=addSchedule; window.addEpisode=addEpisode; window.quickAdd=quickAdd; window.advanceIdea=advanceIdea;
+window.vote=vote; window.bookmark=bookmark; window.comment=comment; window.addMovie=addMovie; window.scheduleMovie=scheduleMovie; window.addSchedule=addSchedule; window.addEpisode=addEpisode; window.quickAdd=quickAdd; window.editIdea=editIdea; window.advanceIdea=advanceIdea;
 
 async function boot(){
   const {data:{session:s}}=await db.auth.getSession();
