@@ -135,6 +135,58 @@
     `).join('');
   }
 
+  function watchOutlineItemId(prefix='item') {
+    if (globalThis.crypto?.randomUUID) return prefix + ':' + crypto.randomUUID();
+    return prefix + ':' + Date.now() + ':' + Math.random().toString(36).slice(2,9);
+  }
+
+  function watchOutlineItems(draft) {
+    return Array.isArray(draft?.outlineItems) ? draft.outlineItems.filter(Boolean) : [];
+  }
+
+  function watchOutlineTrait(item) {
+    if (!item || item.type !== 'trait') return null;
+    return (state.traits || []).find(t => t.id === item.traitId) || null;
+  }
+
+  function watchOutlineHtml(movie, draft) {
+    const items = watchOutlineItems(draft);
+    if (!items.length) {
+      return '<div class="empty watch-empty">Nothing in the rundown yet. Add checked Cheese Traits or drop in a note.</div>';
+    }
+
+    return items.map((item,index) => {
+      const trait = watchOutlineTrait(item);
+      const isTrait = item.type === 'trait' && trait;
+      const label = isTrait ? trait.name : (item.text || 'Untitled note');
+      const meta = isTrait ? `Cheese Trait · +${Number(trait.points || 0)} · ${trait.category || 'Other'}` : 'Note';
+      const edit = isTrait ? '' : '<button type="button" class="secondary watch-outline-mini" onclick="watchAlongEditOutlineNote(\''+esc(item.id)+'\')">Edit</button>';
+      return '<div class="watch-outline-item" draggable="true" data-outline-id="'+esc(item.id)+'"'
+        +' ondragstart="watchAlongOutlineDragStart(event,\''+esc(item.id)+'\')"'
+        +' ondragend="watchAlongOutlineDragEnd(event)"'
+        +' ondragover="watchAlongOutlineDragOver(event)"'
+        +' ondrop="watchAlongOutlineDrop(event,\''+esc(item.id)+'\')">'
+        +'<div class="watch-outline-grip" title="Drag to reorder" aria-hidden="true">☰</div>'
+        +'<div class="watch-outline-number">'+(index+1)+'</div>'
+        +'<div class="watch-outline-copy"><strong>'+esc(label)+'</strong><span>'+esc(meta)+'</span></div>'
+        +'<div class="watch-outline-actions">'
+          +'<button type="button" class="secondary watch-outline-mini" '+(index===0?'disabled':'')+' onclick="watchAlongMoveOutlineItem(\''+esc(item.id)+'\',-1)">↑</button>'
+          +'<button type="button" class="secondary watch-outline-mini" '+(index===items.length-1?'disabled':'')+' onclick="watchAlongMoveOutlineItem(\''+esc(item.id)+'\',1)">↓</button>'
+          +edit
+          +'<button type="button" class="secondary watch-outline-mini" onclick="watchAlongRemoveOutlineItem(\''+esc(item.id)+'\')">×</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }
+
+  function refreshWatchOutline(movie = watchMovie(), draft = getDraft(movie)) {
+    const host = document.getElementById('watchOutlineList');
+    if (host && movie && draft) host.innerHTML = watchOutlineHtml(movie, draft);
+    const count = document.querySelector('[data-watch-outline-count]');
+    const total = watchOutlineItems(draft).length;
+    if (count) count.textContent = `${total} item${total===1?'':'s'}`;
+  }
+
   function watchAlongPage() {
     const movie = watchMovie();
     if (!movie) {
