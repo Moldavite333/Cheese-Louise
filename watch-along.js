@@ -253,6 +253,8 @@
     }
     const count = document.querySelector('[data-watch-trait-count]');
     if (count) count.textContent = `${draft.traitIds.length} checked`;
+    const body = document.getElementById('watchTraitBody');
+    if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -292,24 +294,59 @@
     if (body && movie && draft) body.innerHTML = traitGridHtml(movie, draft);
   };
 
+  function watchAlongOrderedSelectedHtml(movie, draft) {
+    const byId = new Map((state.traits || []).map(t => [t.id, t]));
+    const ordered = (draft?.traitIds || []).map(id => byId.get(id)).filter(Boolean);
+    const confirmed = new Set(movie?.selectedTraitIds || []);
+    if (!ordered.length) return '<div class="empty watch-empty">Nothing checked yet.</div>';
+
+    return '<section class="watch-trait-group">'
+      +'<div class="watch-trait-group-head"><strong>Talk order</strong><span>'+ordered.length+' checked</span></div>'
+      +'<div style="display:grid;gap:8px">'
+      +ordered.map((t,index) => {
+        const upDisabled=index===0?'disabled':'';
+        const downDisabled=index===ordered.length-1?'disabled':'';
+        return '<div class="watch-trait is-selected '+(confirmed.has(t.id)?'was-confirmed':'')+'" style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:center">'
+          +'<strong style="text-align:center">'+(index+1)+'</strong>'
+          +'<button type="button" style="border:0;background:transparent;color:inherit;text-align:left;padding:0;min-width:0" onclick="watchAlongToggleTrait(\''+esc(t.id)+'\',this)">'
+            +'<span class="watch-trait-name">'+esc(t.name)+'</span> '
+            +'<span class="watch-trait-points">+'+Number(t.points||0)+'</span>'
+            +'<span class="subtle" style="display:block">'+esc(t.category||'Other')+'</span>'
+          +'</button>'
+          +'<span style="display:flex;gap:4px">'
+            +'<button type="button" class="secondary" '+upDisabled+' aria-label="Move '+esc(t.name)+' up" onclick="watchAlongMoveTrait(\''+esc(t.id)+'\',-1)">↑</button>'
+            +'<button type="button" class="secondary" '+downDisabled+' aria-label="Move '+esc(t.name)+' down" onclick="watchAlongMoveTrait(\''+esc(t.id)+'\',1)">↓</button>'
+          +'</span>'
+        +'</div>';
+      }).join('')
+      +'</div>'
+      +'<div class="subtle" style="margin-top:10px">This is the order you plan to talk about these traits on mic. It autosaves for this movie.</div>'
+      +'</section>';
+  }
+
   window.watchAlongShowSelected = function() {
     watchTraitQuery = '__selected__';
     const movie = watchMovie();
     const draft = getDraft(movie);
-    const selected = new Set(draft?.traitIds || []);
     const body = document.getElementById('watchTraitBody');
     if (!body || !movie || !draft) return;
-    const originalQuery = watchTraitQuery;
-    watchTraitQuery = '';
-    const active = (state.traits || []).filter(t => selected.has(t.id));
-    const groups = active.reduce((acc,t)=>((acc[t.category||'Other'] ||= []).push(t),acc),{});
-    const confirmed = new Set(movie.selectedTraitIds || []);
-    const html = Object.entries(groups).map(([category, traits]) => `
-      <section class="watch-trait-group"><div class="watch-trait-group-head"><strong>${esc(category)}</strong><span>${traits.length}</span></div><div class="watch-trait-grid">
-        ${traits.map(t => `<button type="button" class="watch-trait is-selected ${confirmed.has(t.id)?'was-confirmed':''}" onclick="watchAlongToggleTrait('${esc(t.id)}',this)"><span class="watch-trait-check">✓</span><span class="watch-trait-name">${esc(t.name)}</span><span class="watch-trait-points">+${Number(t.points||0)}</span></button>`).join('')}
-      </div></section>`).join('') || '<div class="empty watch-empty">Nothing checked yet.</div>';
-    body.innerHTML = html;
-    watchTraitQuery = originalQuery;
+    body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
+  };
+
+  window.watchAlongMoveTrait = function(id, direction) {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const order=[...(draft.traitIds || [])];
+    const from=order.indexOf(id);
+    if(from<0) return;
+    const to=from+Number(direction||0);
+    if(to<0 || to>=order.length) return;
+    [order[from],order[to]]=[order[to],order[from]];
+    draft.traitIds=order;
+    putDraft(draft);
+    const body=document.getElementById('watchTraitBody');
+    if(body && watchTraitQuery==='__selected__') body.innerHTML=watchAlongOrderedSelectedHtml(movie,draft);
   };
 
   window.watchAlongShowAll = function() {
