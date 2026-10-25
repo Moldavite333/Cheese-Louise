@@ -34,6 +34,21 @@
 .watch-textarea{width:100%;min-height:185px;resize:vertical;line-height:1.5;font:inherit;border-radius:12px;padding:12px 13px;background:var(--panel2,#20232c);color:inherit;border:1px solid rgba(255,255,255,.12);outline:none}
 .watch-textarea:focus{border-color:rgba(244,200,75,.72);box-shadow:0 0 0 3px rgba(244,200,75,.12)}
 .watch-outline{min-height:210px}
+.watch-outline-tools{display:grid;gap:8px;margin-top:2px}
+.watch-outline-imports{display:flex;gap:8px;flex-wrap:wrap}
+.watch-outline-note-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.watch-outline-list{display:grid;gap:8px;margin-top:2px}
+.watch-outline-item{display:grid;grid-template-columns:28px 28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:var(--panel2,#20232c);transition:opacity .12s ease,border-color .12s ease,transform .08s ease}
+.watch-outline-item:hover{border-color:rgba(255,255,255,.24)}
+.watch-outline-item.is-dragging{opacity:.5;border-color:rgba(244,200,75,.7)}
+.watch-outline-grip{cursor:grab;color:var(--muted,#aeb2bd);font-size:1.1rem;text-align:center;user-select:none}
+.watch-outline-grip:active{cursor:grabbing}
+.watch-outline-number{font-weight:900;text-align:center;color:var(--muted,#aeb2bd)}
+.watch-outline-copy{display:grid;gap:2px;min-width:0}
+.watch-outline-copy strong{overflow-wrap:anywhere}
+.watch-outline-copy span{font-size:.8rem;color:var(--muted,#aeb2bd)}
+.watch-outline-actions{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.watch-outline-mini{padding:6px 8px;min-width:34px}
 .watch-empty{padding:24px}
 
 @media(max-width:1100px){
@@ -52,6 +67,9 @@
   .watch-trait-tools input{grid-column:1/-1}
 }
 @media(max-width:520px){
+  .watch-outline-note-add{grid-template-columns:1fr}
+  .watch-outline-item{grid-template-columns:22px 24px minmax(0,1fr)}
+  .watch-outline-actions{grid-column:3;justify-content:flex-start}
   .watch-quick-capture{grid-template-columns:1fr}
   .watch-trait-grid{grid-template-columns:1fr}
   .watch-trait{min-height:56px}
