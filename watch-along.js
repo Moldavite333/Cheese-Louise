@@ -255,8 +255,19 @@
           </div>
 
           <div class="card card-pad watch-writing-card watch-outline-card">
-            <div class="watch-panel-head"><div><div class="kicker">Episode Outline</div><h2>Talk about this</h2></div></div>
-            <textarea class="watch-textarea watch-outline" placeholder="• Marina rant\n• Dad feud\n• Jenny's background-guy catch\n• Ending makes no sense" oninput="watchAlongSaveText('outline', this.value)">${esc(draft.outline)}</textarea>
+            <div class="watch-panel-head">
+              <div><div class="kicker">Episode Rundown</div><h2>Talk about this — in this order</h2></div>
+              <span class="pill" data-watch-outline-count>${watchOutlineItems(draft).length} item${watchOutlineItems(draft).length===1?'':'s'}</span>
+            </div>
+            <div class="subtle">Mix Cheese Traits and your own notes, then drag them into the order you want to hit them on mic.</div>
+            <div class="watch-outline-tools">
+              <button class="secondary" type="button" onclick="watchAlongAddCheckedTraitsToOutline()">+ Checked traits</button>
+              <div class="watch-outline-note-add">
+                <input id="watchOutlineNoteInput" class="search" placeholder="Add a talking point…" onkeydown="watchAlongOutlineNoteKey(event)">
+                <button class="primary" type="button" onclick="watchAlongAddOutlineNote()">+ Note</button>
+              </div>
+            </div>
+            <div id="watchOutlineList" class="watch-outline-list">${watchOutlineHtml(movie, draft)}</div>
           </div>
         </div>
       </section>
@@ -319,7 +330,7 @@
   window.watchAlongSaveText = function(field, value) {
     const movie = watchMovie();
     const draft = getDraft(movie);
-    if (!draft || !['notes','rules','outline'].includes(field)) return;
+    if (!draft || !['notes','rules'].includes(field)) return;
     draft[field] = value;
     putDraft(draft);
   };
