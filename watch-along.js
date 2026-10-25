@@ -311,8 +311,12 @@
     const draft = getDraft(movie);
     if (!movie || !draft) return;
     const set = new Set(draft.traitIds || []);
-    if (set.has(id)) set.delete(id); else set.add(id);
+    const wasSelected = set.has(id);
+    if (wasSelected) set.delete(id); else set.add(id);
     draft.traitIds = [...set];
+    if (wasSelected) {
+      draft.outlineItems = watchOutlineItems(draft).filter(item => !(item.type === 'trait' && item.traitId === id));
+    }
     putDraft(draft);
 
     if (button) {
@@ -325,6 +329,7 @@
     if (count) count.textContent = `${draft.traitIds.length} checked`;
     const body = document.getElementById('watchTraitBody');
     if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
+    refreshWatchOutline(movie, draft);
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -417,6 +422,124 @@
     putDraft(draft);
     const body=document.getElementById('watchTraitBody');
     if(body && watchTraitQuery==='__selected__') body.innerHTML=watchAlongOrderedSelectedHtml(movie,draft);
+  };
+
+  window.watchAlongAddCheckedTraitsToOutline = function() {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const items = watchOutlineItems(draft);
+    const existing = new Set(items.filter(i => i.type === 'trait').map(i => i.traitId));
+    for (const traitId of (draft.traitIds || [])) {
+      if (existing.has(traitId)) continue;
+      items.push({id:'trait:'+traitId,type:'trait',traitId});
+      existing.add(traitId);
+    }
+    draft.outlineItems = items;
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
+  };
+
+  window.watchAlongAddOutlineNote = function() {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    const input = document.getElementById('watchOutlineNoteInput');
+    const note = input?.value.trim();
+    if (!movie || !draft || !note) return;
+    draft.outlineItems = [...watchOutlineItems(draft), {id:watchOutlineItemId('note'),type:'note',text:note}];
+    putDraft(draft);
+    if (input) { input.value=''; input.focus(); }
+    refreshWatchOutline(movie, draft);
+  };
+
+  window.watchAlongOutlineNoteKey = function(event) {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    watchAlongAddOutlineNote();
+  };
+
+  window.watchAlongEditOutlineNote = function(id) {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const items = [...watchOutlineItems(draft)];
+    const item = items.find(i => i.id === id);
+    if (!item || item.type !== 'note') return;
+    const next = prompt('Edit talking point:', item.text || '');
+    if (next === null) return;
+    const text = next.trim();
+    if (!text) {
+      draft.outlineItems = items.filter(i => i.id !== id);
+    } else {
+      item.text = text;
+      draft.outlineItems = items;
+    }
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
+  };
+
+  window.watchAlongRemoveOutlineItem = function(id) {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    draft.outlineItems = watchOutlineItems(draft).filter(i => i.id !== id);
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
+  };
+
+  window.watchAlongMoveOutlineItem = function(id, direction) {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const items = [...watchOutlineItems(draft)];
+    const from = items.findIndex(i => i.id === id);
+    if (from < 0) return;
+    const to = from + Number(direction || 0);
+    if (to < 0 || to >= items.length) return;
+    [items[from],items[to]] = [items[to],items[from]];
+    draft.outlineItems = items;
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
+  };
+
+  let watchOutlineDragId = null;
+
+  window.watchAlongOutlineDragStart = function(event, id) {
+    watchOutlineDragId = id;
+    event.currentTarget?.classList.add('is-dragging');
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', id);
+    }
+  };
+
+  window.watchAlongOutlineDragEnd = function(event) {
+    watchOutlineDragId = null;
+    event.currentTarget?.classList.remove('is-dragging');
+  };
+
+  window.watchAlongOutlineDragOver = function(event) {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  };
+
+  window.watchAlongOutlineDrop = function(event, targetId) {
+    event.preventDefault();
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const sourceId = event.dataTransfer?.getData('text/plain') || watchOutlineDragId;
+    watchOutlineDragId = null;
+    if (!sourceId || sourceId === targetId) return;
+    const items = [...watchOutlineItems(draft)];
+    const from = items.findIndex(i => i.id === sourceId);
+    const to = items.findIndex(i => i.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = items.splice(from,1);
+    items.splice(to,0,moved);
+    draft.outlineItems = items;
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
   };
 
   window.watchAlongShowAll = function() {
