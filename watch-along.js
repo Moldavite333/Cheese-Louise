@@ -261,7 +261,10 @@
             </div>
             <div class="subtle">Mix Cheese Traits and your own notes, then drag them into the order you want to hit them on mic.</div>
             <div class="watch-outline-tools">
-              <button class="secondary" type="button" onclick="watchAlongAddCheckedTraitsToOutline()">+ Checked traits</button>
+              <div class="watch-outline-imports">
+                <button class="secondary" type="button" onclick="watchAlongAddCheckedTraitsToOutline()">+ Checked traits</button>
+                <button class="secondary" type="button" onclick="watchAlongAddWatchNotesToOutline()">+ Watch notes</button>
+              </div>
               <div class="watch-outline-note-add">
                 <input id="watchOutlineNoteInput" class="search" placeholder="Add a talking point…" onkeydown="watchAlongOutlineNoteKey(event)">
                 <button class="primary" type="button" onclick="watchAlongAddOutlineNote()">+ Note</button>
@@ -434,6 +437,28 @@
       if (existing.has(traitId)) continue;
       items.push({id:'trait:'+traitId,type:'trait',traitId});
       existing.add(traitId);
+    }
+    draft.outlineItems = items;
+    putDraft(draft);
+    refreshWatchOutline(movie, draft);
+  };
+
+  window.watchAlongAddWatchNotesToOutline = function() {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    const notes = String(draft.notes || '')
+      .split(/\n+/)
+      .map(line => line.replace(/^\s*[•*-]\s*/, '').trim())
+      .filter(Boolean);
+    if (!notes.length) return alert('There are no Watch Notes to add yet.');
+    const items = watchOutlineItems(draft);
+    const existingNotes = new Set(items.filter(i => i.type === 'note').map(i => String(i.text || '').trim().toLowerCase()));
+    for (const note of notes) {
+      const key = note.toLowerCase();
+      if (existingNotes.has(key)) continue;
+      items.push({id:watchOutlineItemId('note'),type:'note',text:note});
+      existingNotes.add(key);
     }
     draft.outlineItems = items;
     putDraft(draft);
