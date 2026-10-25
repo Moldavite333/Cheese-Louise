@@ -39,6 +39,7 @@
       notes: '',
       rules: '',
       outline: '',
+      outlineItems: [],
       updatedAt: new Date().toISOString()
     };
   }
@@ -49,11 +50,17 @@
       const raw = localStorage.getItem(draftKey(movie.id));
       if (!raw) return defaultDraft(movie);
       const parsed = JSON.parse(raw);
+      const traitIds = [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))];
+      let outlineItems = Array.isArray(parsed.outlineItems) ? parsed.outlineItems.filter(Boolean) : [];
+      if (!outlineItems.length && String(parsed.outline || '').trim()) {
+        outlineItems = [{id:'legacy-outline',type:'note',text:String(parsed.outline).trim()}];
+      }
       return {
         ...defaultDraft(movie),
         ...parsed,
         movieId: movie.id,
-        traitIds: [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))]
+        traitIds,
+        outlineItems
       };
     } catch {
       return defaultDraft(movie);
