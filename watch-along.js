@@ -187,6 +187,25 @@
     if (count) count.textContent = `${total} item${total===1?'':'s'}`;
   }
 
+  function watchMovieCredits(movie) {
+    const meta = movie?.source_metadata || {};
+    const names = value => {
+      const entries = Array.isArray(value) ? value : (value ? [value] : []);
+      return [...new Set(entries.map(x => typeof x === 'string' ? x.trim() : String(x?.name || '').trim()).filter(Boolean))].join(', ');
+    };
+    const production = names(movie.production_companies || movie.production_company || meta.production_companies || meta.production_company);
+    const director = names(movie.director || meta.director);
+    const writer = names(movie.writers || movie.writer || meta.writers || meta.writer);
+    const leads = names(movie.stars || movie.cast || meta.stars || meta.cast);
+    return [
+      'MOVIE CREDITS',
+      'Production company: '+(production || 'Not recorded'),
+      'Director: '+(director || 'Not recorded'),
+      'Writer: '+(writer || 'Not recorded'),
+      'Lead actors: '+(leads || 'Not recorded')
+    ];
+  }
+
   function watchRundownText(movie, draft) {
     if (!movie || !draft) return '';
     const byId = new Map((state.traits || []).map(t => [t.id, t]));
@@ -199,6 +218,8 @@
       'CHEESE LOUISE — RECORDING RUNDOWN',
       movie.title || 'Untitled movie',
       [movie.network, movie.season, movie.holiday].filter(Boolean).join(' · '),
+      '',
+      ...watchMovieCredits(movie),
       '',
       'OPENING / CHEESY CONCOCTIONS',
       '• Opening banter and cocktail',
