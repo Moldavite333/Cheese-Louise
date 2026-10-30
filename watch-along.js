@@ -192,7 +192,9 @@
     const byId = new Map((state.traits || []).map(t => [t.id, t]));
     const traits = [...new Set(draft.traitIds || [])].map(id => byId.get(id)).filter(Boolean);
     const notes = String(draft.notes || '').split(/\n+/).map(x => x.replace(/^\s*[•*-]\s*/, '').trim()).filter(Boolean);
-    const score = traits.reduce((sum,t) => sum + Number(t.points || 0), 0);
+    const confirmedIds = [...new Set(movie.selectedTraitIds || [])];
+    const confirmedTraits = confirmedIds.map(id => byId.get(id)).filter(Boolean);
+    const score = confirmedTraits.reduce((sum,t) => sum + Number(t.points || 0), 0);
     return [
       'CHEESE LOUISE — RECORDING RUNDOWN',
       movie.title || 'Untitled movie',
@@ -207,7 +209,7 @@
       ...(notes.length ? ['', 'THINGS WE NOTICED', ...notes.map(n => '• '+n)] : []),
       '',
       'CHEESE GRATING',
-      score+' points from '+traits.length+' checked Watch Along traits',
+      score+' points from '+confirmedTraits.length+' confirmed movie traits',
       '',
       'HORROR-FIED / BINGO',
       '• Mini-game and Bingo results',
