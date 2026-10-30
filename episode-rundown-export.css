@@ -1,0 +1,7 @@
+/* Compact handoff controls below the editable watch-along rundown. */
+.watch-samsung-export{border-top:1px solid rgba(255,255,255,.12);margin-top:18px;padding-top:16px;display:grid;gap:12px}
+.watch-samsung-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:8px 0}
+#watchSamsungPreview{display:grid;gap:10px}
+#watchSamsungPreview[hidden]{display:none}
+#watchSamsungText{width:100%;min-height:220px;box-sizing:border-box;line-height:1.5;resize:vertical}
+#watchSamsungStatus:empty{display:none}
