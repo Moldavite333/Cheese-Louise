@@ -187,6 +187,67 @@
     if (count) count.textContent = `${total} item${total===1?'':'s'}`;
   }
 
+  function watchRundownText(movie, draft) {
+    if (!movie || !draft) return '';
+    const byId = new Map((state.traits || []).map(t => [t.id, t]));
+    const traits = [...new Set(draft.traitIds || [])].map(id => byId.get(id)).filter(Boolean);
+    const notes = String(draft.notes || '').split(/\n+/).map(x => x.replace(/^\s*[•*-]\s*/, '').trim()).filter(Boolean);
+    const confirmedIds = [...new Set(movie.selectedTraitIds || [])];
+    const confirmedTraits = confirmedIds.map(id => byId.get(id)).filter(Boolean);
+    const score = confirmedTraits.reduce((sum,t) => sum + Number(t.points || 0), 0);
+    return [
+      'CHEESE LOUISE — RECORDING RUNDOWN',
+      movie.title || 'Untitled movie',
+      [movie.network, movie.season, movie.holiday].filter(Boolean).join(' · '),
+      '',
+      'OPENING / CHEESY CONCOCTIONS',
+      '• Opening banter and cocktail',
+      '',
+      'MOVIE DISCUSSION',
+      '• Brief premise, not a scene-by-scene recap',
+      ...traits.map((t,i) => (i+1)+'. '+t.name+' (+'+Number(t.points||0)+')'),
+      ...(notes.length ? ['', 'THINGS WE NOTICED', ...notes.map(n => '• '+n)] : []),
+      '',
+      'CHEESE GRATING',
+      score+' points from '+confirmedTraits.length+' confirmed movie traits',
+      '',
+      'HORROR-FIED / BINGO',
+      '• Mini-game and Bingo results',
+      '',
+      'CLOSING',
+      '• Final thoughts and sign-off'
+    ].join('\n').trim();
+  }
+
+  window.watchAlongGenerateRundown = function() {
+    const movie = watchMovie();
+    const preview = document.getElementById('watchRundownPreview');
+    if (preview && movie) preview.textContent = watchRundownText(movie, getDraft(movie));
+  };
+
+  window.watchAlongCopyRundown = async function() {
+    const movie = watchMovie();
+    if (!movie) return;
+    const content = watchRundownText(movie, getDraft(movie));
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(content);
+      else {
+        const field = document.createElement('textarea');
+        field.value = content;
+        field.style.position = 'fixed';
+        document.body.appendChild(field);
+        field.select();
+        if (!document.execCommand('copy')) throw new Error('Copy blocked');
+        field.remove();
+      }
+      alert('Copied. Paste the rundown into Samsung Notes.');
+    } catch {
+      const preview = document.getElementById('watchRundownPreview');
+      if (preview) preview.textContent = content;
+      alert('Automatic copy unavailable. Select and copy the rundown text.');
+    }
+  };
+
   function watchAlongPage() {
     const movie = watchMovie();
     if (!movie) {
@@ -250,27 +311,13 @@
           </div>
 
           <div class="card card-pad watch-writing-card">
-            <div class="watch-panel-head"><div><div class="kicker">Rules Scratch Pad</div><h2>Possible Romantiverse rules</h2></div></div>
-            <textarea class="watch-textarea" placeholder="A town festival can resolve any family feud…" oninput="watchAlongSaveText('rules', this.value)">${esc(draft.rules)}</textarea>
-          </div>
-
-          <div class="card card-pad watch-writing-card watch-outline-card">
-            <div class="watch-panel-head">
-              <div><div class="kicker">Episode Rundown</div><h2>Talk about this — in this order</h2></div>
-              <span class="pill" data-watch-outline-count>${watchOutlineItems(draft).length} item${watchOutlineItems(draft).length===1?'':'s'}</span>
-            </div>
-            <div class="subtle">Mix Cheese Traits and your own notes, then drag them into the order you want to hit them on mic.</div>
+            <div class="watch-panel-head"><div><div class="kicker">Recording prep</div><h2>Episode Rundown</h2></div></div>
+            <div class="subtle">A condensed guide using your existing talk order and Watch Notes.</div>
             <div class="watch-outline-tools">
-              <div class="watch-outline-imports">
-                <button class="secondary" type="button" onclick="watchAlongAddCheckedTraitsToOutline()">+ Checked traits</button>
-                <button class="secondary" type="button" onclick="watchAlongAddWatchNotesToOutline()">+ Watch notes</button>
-              </div>
-              <div class="watch-outline-note-add">
-                <input id="watchOutlineNoteInput" class="search" placeholder="Add a talking point…" onkeydown="watchAlongOutlineNoteKey(event)">
-                <button class="primary" type="button" onclick="watchAlongAddOutlineNote()">+ Note</button>
-              </div>
+              <button class="primary" type="button" onclick="watchAlongGenerateRundown()">Refresh Rundown</button>
+              <button class="secondary" type="button" onclick="watchAlongCopyRundown()">Copy to Samsung Notes</button>
             </div>
-            <div id="watchOutlineList" class="watch-outline-list">${watchOutlineHtml(movie, draft)}</div>
+            <pre id="watchRundownPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5">${esc(watchRundownText(movie,draft))}</pre>
           </div>
         </div>
       </section>
@@ -333,6 +380,7 @@
     const body = document.getElementById('watchTraitBody');
     if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
     refreshWatchOutline(movie, draft);
+    watchAlongGenerateRundown();
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -341,6 +389,7 @@
     if (!draft || !['notes','rules'].includes(field)) return;
     draft[field] = value;
     putDraft(draft);
+    watchAlongGenerateRundown();
   };
 
   window.watchAlongQuickAdd = function() {
@@ -356,6 +405,7 @@
     if (notes) notes.value = draft.notes;
     input.value = '';
     input.focus();
+    watchAlongGenerateRundown();
   };
 
   window.watchAlongQuickKey = function(event) {
@@ -425,6 +475,7 @@
     putDraft(draft);
     const body=document.getElementById('watchTraitBody');
     if(body && watchTraitQuery==='__selected__') body.innerHTML=watchAlongOrderedSelectedHtml(movie,draft);
+    watchAlongGenerateRundown();
   };
 
   window.watchAlongAddCheckedTraitsToOutline = function() {
