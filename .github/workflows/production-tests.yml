@@ -1,0 +1,22 @@
+name: HQ production regression checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check browser script syntax
+        run: |
+          for file in *.js; do node --check "$file"; done
+      - name: Check recording and watch-along workflows with isolated fixture data
+        run: node --test tests/production.test.mjs

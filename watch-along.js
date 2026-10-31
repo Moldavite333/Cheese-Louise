@@ -50,6 +50,7 @@
       const raw = localStorage.getItem(draftKey(movie.id));
       if (!raw) return defaultDraft(movie);
       const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return defaultDraft(movie);
       const traitIds = [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))];
       let outlineItems = Array.isArray(parsed.outlineItems) ? parsed.outlineItems.filter(Boolean) : [];
       if (!outlineItems.length && String(parsed.outline || '').trim()) {
@@ -105,6 +106,7 @@
   }
 
   function traitGridHtml(movie, draft) {
+    if (watchTraitQuery === '__selected__') return watchAlongOrderedSelectedHtml(movie, draft);
     const selected = new Set(draft?.traitIds || []);
     const confirmed = new Set(movie?.selectedTraitIds || []);
     const groups = traitGroups(movie, draft);
@@ -188,7 +190,8 @@
   }
 
   function watchMovieCredits(movie) {
-    const meta = movie?.source_metadata || {};
+    let meta = movie?.source_metadata || {};
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta) || {}; } catch { meta = {}; } }
     const names = value => {
       const entries = Array.isArray(value) ? value : (value ? [value] : []);
       return [...new Set(entries.map(x => typeof x === 'string' ? x.trim() : String(x?.name || '').trim()).filter(Boolean))].join(', ');
@@ -258,8 +261,8 @@
         field.style.position = 'fixed';
         document.body.appendChild(field);
         field.select();
-        if (!document.execCommand('copy')) throw new Error('Copy blocked');
-        field.remove();
+        try { if (!document.execCommand('copy')) throw new Error('Copy blocked'); }
+        finally { field.remove(); }
       }
       alert('Copied. Paste the rundown into Samsung Notes.');
     } catch {
