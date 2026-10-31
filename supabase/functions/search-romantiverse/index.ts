@@ -259,9 +259,13 @@ Deno.serve(async(req:Request)=>{
       discovered.forEach(p=>addMovies(p?.results||[]))
     }
 
+    // Exact-title results must survive the enrichment cap even when broad
+    // keyword discovery produces hundreds of higher-popularity candidates.
+    const exactTitle=(movie:Movie)=>norm(movie.title||'')===norm(query)||
+      norm(movie.original_title||'')===norm(query)
     const prelim=[...candidateMap.values()]
       .map(movie=>({movie,score:baseRomantiverseScore(movie,terms)}))
-      .sort((a,b)=>b.score-a.score)
+      .sort((a,b)=>Number(exactTitle(b.movie))-Number(exactTitle(a.movie))||b.score-a.score)
       .slice(0,56)
 
     const enriched=await mapLimit(prelim,7,async(entry)=>{
@@ -320,7 +324,7 @@ Deno.serve(async(req:Request)=>{
       }
     })
 
-    enriched.sort((a,b)=>b.search_score-a.search_score||b.popularity-a.popularity)
+    enriched.sort((a,b)=>Number(norm(b.title)===norm(query))-Number(norm(a.title)===norm(query))||b.search_score-a.search_score||b.popularity-a.popularity)
     const results=enriched.slice(0,maxResults)
 
     return new Response(JSON.stringify({
