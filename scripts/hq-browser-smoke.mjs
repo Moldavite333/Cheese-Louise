@@ -40,7 +40,8 @@ try{
  }
  await page.evaluate(()=>hqWorkspace.open('movies'));
  const search=page.getByRole('searchbox',{name:'Search Movie Radar',exact:true});
- await search.fill('orchard');assert.equal(await search.inputValue(),'orchard');assert.ok(await search.evaluate(el=>el===document.activeElement));
+ await search.fill('orchard');assert.equal(await search.inputValue(),'orchard');await page.waitForFunction(()=>document.activeElement?.id==='globalSearch');
+ await page.evaluate(()=>render());assert.ok(await search.evaluate(el=>el===document.activeElement),'A full redraw preserves movie search focus');
  await search.fill('');
  await page.locator('#hq-season').selectOption('Fall');
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
