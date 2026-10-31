@@ -18,7 +18,7 @@
   const memory=new Map();
   let storageWarning=false;
   const read=()=>{if(memory.has(key()))return memory.get(key());try{const data=JSON.parse(localStorage.getItem(key())||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}};
-  const write=data=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
+  const write=data=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));memory.delete(key());storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
   const currentMovie=()=>movieList().find(m=>m.id===read().movieId)||movieList()[0]||null;
   const sessionNow=s=>Math.max(0,(s.elapsedMs||0)+(s.runningSince?Date.now()-s.runningSince:0));
   const startOfSegment=s=>s.laps?.reduce((a,l)=>a+(l.durationMs||0),0)||0;
