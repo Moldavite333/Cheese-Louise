@@ -34,9 +34,8 @@
  }
  function nextEpisode(episodes){
   const done=/^(published|released|complete|completed|cancelled|canceled|retired)$/i;
-  const today=new Date();today.setHours(0,0,0,0);
   return (episodes||[]).filter(e=>!done.test(String(e.status||''))).slice().sort((a,b)=>{
-   const date=e=>{const raw=e.release_date;if(!raw)return Infinity;const time=new Date(raw+'T12:00:00').getTime();return Number.isFinite(time)?time:Infinity};
+   const date=e=>{const raw=e.release_date;if(!raw)return Infinity;const time=new Date(String(raw).includes('T')?raw:raw+'T12:00:00').getTime();return Number.isFinite(time)?time:Infinity};
    return date(a)-date(b)||String(a.created_at||'').localeCompare(String(b.created_at||''));
   })[0]||null;
  }
@@ -72,14 +71,14 @@
   requestAnimationFrame(()=>dialog.querySelector('.close,button,input,textarea')?.focus({preventScroll:true}));
  }
  const observer=new MutationObserver(annotateDialogs);observer.observe(document.getElementById('app'),{childList:true,subtree:true});
- document.addEventListener('input',event=>{const dialog=event.target.closest?.('.modal');if(dialog)dialog.dataset.hqDirty='true'},true);
+ document.addEventListener('input',event=>{const dialog=event.target.closest?.('.modal');if(dialog){event.target.dataset.hqDirtyField='true';dialog.dataset.hqDirty='true'}},true);
  document.addEventListener('change',event=>{const dialog=event.target.closest?.('.modal');if(dialog)dialog.dataset.hqDirty='true'},true);
  document.addEventListener('click',event=>{if(!event.target.closest?.('.modal .close,[data-close-modal]'))return;if(dirtyModal()&&!confirm('Close without saving your changes?')){event.preventDefault();event.stopImmediatePropagation()}},true);
  document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&moreOpen){event.preventDefault();event.stopImmediatePropagation();more(false);return}
   const dialog=document.querySelector('.modal-backdrop .modal');
   if(!dialog)return;
-  if(event.key==='Escape'&&dirtyModal()&&!confirm('Close without saving your changes?')){event.preventDefault();event.stopImmediatePropagation();return}
+  if(event.key==='Escape'&&dirtyModal()){if(!confirm('Close without saving your changes?')){event.preventDefault();event.stopImmediatePropagation();return}dialog.dataset.hqDirty='false'}
   if(event.key==='Tab'){
    const controls=[...dialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex="0"]')].filter(el=>el.getClientRects().length);
    if(!controls.length){event.preventDefault();return}
@@ -88,7 +87,19 @@
    else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){event.preventDefault();first.focus()}
   }
  },true);
- window.hqWorkspace={open,more,refresh,shouldDeferRefresh,nextEpisode,loadError};
+ function cleanForm(form){form.querySelectorAll('[data-hq-dirty-field]').forEach(field=>delete field.dataset.hqDirtyField);const modal=form.closest('.modal');if(modal)modal.dataset.hqDirty=String(!!modal.querySelector('[data-hq-dirty-field="true"]'))}
+ const originalMovies=movies;
+ function quickFilters(){
+  const select=(id,label,values,current,handler)=>'<label for="'+id+'">'+label+'<select id="'+id+'" onchange="'+handler+'(this.value)"><option value="">All '+label.toLowerCase()+'s</option><option value="__unknown__" '+(current==='__unknown__'?'selected':'')+'>Not classified</option>'+values.map(value=>'<option value="'+escape(value)+'" '+(value===current?'selected':'')+'>'+escape(value)+'</option>').join('')+'</select></label>';
+  return '<div class="hq-quick-filters" aria-label="Quick movie filters">'+select('hq-season','Season',CL_SEASONS,movieFilters.season,'setSeasonFilter')+select('hq-holiday','Holiday',CL_HOLIDAYS,movieFilters.holiday,'setHolidayFilter')+'<button class="secondary" type="button" onclick="clearMovieFilters()">Reset filters</button><p>Choose a season or holiday to find more candidates. Use Filters for year, studio, votes, and other details.</p></div>';
+ }
+ movies=function(...args){return originalMovies.apply(this,args).replace('<div id="movieFilterHost">',quickFilters()+'<div id="movieFilterHost">')};
+ for(const name of ['setSeasonFilter','setHolidayFilter','applyFilterPreset','clearMovieFilters']){
+  const previous=window[name];
+  window[name]=function(...args){const result=previous.apply(this,args);for(const [id,key] of [['hq-season','season'],['hq-holiday','holiday']]){const control=document.getElementById(id);if(control)control.value=movieFilters[key]||''}if(name==='applyFilterPreset'||name==='clearMovieFilters')scheduleRomantiverseSearch(searchText);return result};
+ }
+ document.addEventListener('click',event=>{const action=event.target.closest?.('button[onclick]')?.getAttribute('onclick')||'';if(!dirtyModal())return;if(action.includes('scheduleEpisode(')){event.preventDefault();event.stopImmediatePropagation();alert('Save your episode edits before scheduling the recording.');return}if(action.includes('openCocktailBarFromEpisode(')&&!confirm('Open the Cocktail Bar without saving episode edits?')){event.preventDefault();event.stopImmediatePropagation()}},true);
+ window.hqWorkspace={open,more,refresh,shouldDeferRefresh,nextEpisode,loadError,cleanForm};
  // Respect the existing auth/recovery startup. Repaint only an already authenticated workspace.
  if(session&&workspace)render();
 })();

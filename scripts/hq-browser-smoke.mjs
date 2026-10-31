@@ -42,13 +42,14 @@ try{
  const search=page.getByRole('searchbox',{name:'Search Movie Radar',exact:true});
  await search.fill('orchard');assert.equal(await search.inputValue(),'orchard');assert.ok(await search.evaluate(el=>el===document.activeElement));
  await search.fill('');
- await page.evaluate(()=>{setSeasonFilter('Fall')});
+ await page.locator('#hq-season').selectOption('Fall');
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
  await page.evaluate(()=>{clearMovieFilters();hqWorkspace.open('home');openMovie('fixture-movie')});
  const dialog=page.getByRole('dialog');await dialog.waitFor();
  const production=dialog.locator('input[name="production"]');await production.fill('Unsaved studio draft');
  const defer=await page.evaluate(()=>hqWorkspace.shouldDeferRefresh());assert.equal(defer,true);assert.equal(await production.inputValue(),'Unsaved studio draft');assert.ok(await page.locator('#hq-refresh').isVisible());
  page.once('dialog',d=>d.dismiss());await page.keyboard.press('Escape');assert.ok(await dialog.isVisible(),'Cancel keeps editor open');
+ let prompts=0;page.on('dialog',async d=>{prompts++;await d.accept()});await page.keyboard.press('Escape');assert.equal(prompts,1,'Accepting Escape prompts once');assert.equal(await page.getByRole('dialog').count(),0);
  await page.screenshot({path:'artifacts/hq-editor-'+width+'.png',fullPage:true});
  assert.deepEqual(errors,[],'No JavaScript errors at '+width);
  await page.close();

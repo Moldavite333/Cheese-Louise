@@ -219,9 +219,9 @@ async function addDiscoveredMovie(id,applyTraits){
   const sourceMetadata={
     ...originalMeta,source_type:isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
     official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
-    production_companies:c.production_companies||c.production_company||[],
-    stars:Array.isArray(c.stars)?c.stars:[],cast:Array.isArray(c.cast)?c.cast:Array.isArray(c.stars)?c.stars:[],director:c.director||null,
-    genres:c.genres||[],keywords:c.keywords||[],external_ids:c.external_ids||{},
+    production_companies:(c.production_companies?.length?c.production_companies:c.production_company)||originalMeta.production_companies||originalMeta.production_company||[],
+    stars:c.stars?.length?c.stars:originalMeta.stars||[],cast:c.cast?.length?c.cast:c.stars?.length?c.stars:originalMeta.cast||[],director:c.director||originalMeta.director||null,
+    genres:c.genres?.length?c.genres:originalMeta.genres||[],keywords:c.keywords?.length?c.keywords:originalMeta.keywords||[],external_ids:c.external_ids||originalMeta.external_ids||{},
     year:Number(c.year)||Number(String(c.premiere_date||'').slice(0,4))||null,season:c.season||null,holiday:c.holiday||null,
     identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
     data_sources:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']

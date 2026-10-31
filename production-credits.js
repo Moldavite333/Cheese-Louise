@@ -32,6 +32,7 @@
    const {data,error}=await query.select('id,source_metadata').single();
    if(error||!data)throw Error(error?.message||'The movie changed while saving. Try again.');
    const movie=(state.movies||[]).find(m=>m.id===id);if(movie)movie.source_metadata=data.source_metadata;
+   window.hqWorkspace?.cleanForm(form);
    status.textContent='Credits saved to the shared movie record. Refresh any existing recording snapshot when needed.';
   }catch(error){status.textContent='Credits not saved: '+error.message}finally{button.disabled=false}
  }
