@@ -1,7 +1,7 @@
-name: HQ production regression checks
+name: HQ red-team regression checks
 on:
   push:
-    branches: [main]
+    branches: [main, design/hq-production-redteam]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   production:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,5 +18,15 @@ jobs:
       - name: Check browser script syntax
         run: |
           for file in *.js; do node --check "$file"; done
-      - name: Check recording and watch-along workflows with isolated fixture data
+      - name: Test production and filtering logic with isolated fixture data
         run: node --test tests/*.test.mjs
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Check the assembled HQ interface using mocked authentication and data
+        run: node scripts/hq-browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hq-interface-screenshots
+          path: artifacts/
+          if-no-files-found: ignore

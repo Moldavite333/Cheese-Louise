@@ -18,10 +18,16 @@ function romantiverseSearchCandidate(id){
 
 function romantiverseSearchMatchesFilters(c){
   if(!c) return false;
-  if(movieFilters?.mode==='saved' || movieFilters?.mode==='mutual') return false;
+  if(['saved','mutual','yes'].includes(movieFilters?.mode)) return false;
   if(movieFilters?.status && movieFilters.status!=='needs_review') return false;
-  if(movieFilters?.holiday && clNorm(c.holiday)!==clNorm(movieFilters.holiday)) return false;
-  if(movieFilters?.season && clNorm(c.season)!==clNorm(movieFilters.season)) return false;
+  if(!clMatchesSeasonHoliday(c)) return false;
+  if(typeof window.clPassesYearFilter==='function'&&!window.clPassesYearFilter(c))return false;
+  if(movieFilters?.studio){
+    const wanted=clNorm(movieFilters.studio),meta=clClassificationMeta(c);
+    const raw=window.clCredits?.get(c)?.production||c.production_companies||meta.production_companies||[];
+    const studios=(Array.isArray(raw)?raw:[raw]).map(x=>clNorm(typeof x==='string'?x:x?.name));
+    if(!studios.includes(wanted))return false;
+  }
   if(typeof v16MatchesNetwork==='function' && !v16MatchesNetwork(c)) return false;
   if(typeof v16MatchesRelease==='function' && !v16MatchesRelease(c)) return false;
 
@@ -68,10 +74,25 @@ function romantiverseSearchCard(c){
   return html;
 }
 
+
+function romantiverseFilterQuery(rawQuery=searchText){
+ const typed=String(rawQuery||'').trim().slice(0,100);
+ if(typed)return typed;
+ if(movieFilters?.holiday&&movieFilters.holiday!=='__unknown__'){
+  const holiday=clCanonicalHoliday(movieFilters.holiday);
+  return ({"Valentine's Day":'valentine',"New Year's":'new year',"St. Patrick's Day":'saint patrick',"Mother's Day":'mothers day',"Father's Day":'fathers day','Fourth of July':'fourth of july'})[holiday]|| (holiday==='Other'?'':holiday.toLowerCase());
+ }
+ if(movieFilters?.season&&movieFilters.season!=='__unknown__'){
+  return ({Winter:'winter',Spring:'spring',Summer:'summer',Fall:'autumn'})[clCanonicalSeason(movieFilters.season)]||'';
+ }
+ return '';
+}
+window.romantiverseFilterQuery=romantiverseFilterQuery;
+
 function romantiverseSearchPanel(){
-  const q=(searchText||'').trim();
+  const q=romantiverseFilterQuery();
   if(q.length<2){
-    return '<div class="rom-search-idle card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search by idea, not just title.</strong><div class="subtle">Try cats, bakery, widow, tree farm, royal, small town, veterinarian… Your normal Radar filters still narrow the results.</div></div>';
+    return '<div class="rom-search-idle card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search by idea, not just title.</strong><div class="subtle">Try cats, bakery, widow, tree farm, royal, small town, veterinarian… Choose a season or holiday to search for more titles, or type a movie title or idea. “Not classified” only filters records already loaded; it does not guess unknown classifications.</div></div>';
   }
 
   const loaded=romantiverseSearchLoadedQuery===q;
@@ -105,9 +126,9 @@ function refreshRomantiverseSearchPanel(){
 }
 
 async function runRomantiverseSearch(rawQuery,force=false){
-  const query=String(rawQuery||'').trim();
+  const query=romantiverseFilterQuery(rawQuery);
+  const seq=++romantiverseSearchSequence;
   if(query.length<2){
-    romantiverseSearchSequence++;
     romantiverseSearchLoading=false;
     romantiverseSearchError='';
     romantiverseSearchLoadedQuery='';
@@ -118,7 +139,7 @@ async function runRomantiverseSearch(rawQuery,force=false){
   }
 
   const cacheKey=query.toLowerCase();
-  if(!force && romantiverseSearchCache.has(cacheKey)){
+  if(!force && romantiverseSearchCache.has(cacheKey)&&Date.now()-romantiverseSearchCache.get(cacheKey).cached_at<600000){
     const cached=romantiverseSearchCache.get(cacheKey);
     state.romantiverseSearchResults=cached.results||[];
     romantiverseSearchExpandedTerms=cached.expanded_terms||[];
@@ -129,14 +150,17 @@ async function runRomantiverseSearch(rawQuery,force=false){
     return;
   }
 
-  const seq=++romantiverseSearchSequence;
   romantiverseSearchLoading=true;
   romantiverseSearchError='';
   romantiverseSearchLoadedQuery=query;
   refreshRomantiverseSearchPanel();
 
+  let deadline;
   try{
-    const {data,error}=await db.functions.invoke('search-romantiverse',{body:{query,max_results:30}});
+    const {data,error}=await Promise.race([
+      db.functions.invoke('search-romantiverse',{body:{query,max_results:36}}),
+      new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('Movie search timed out. Try again.')),20000)})
+    ]);
     if(seq!==romantiverseSearchSequence) return;
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
@@ -145,6 +169,7 @@ async function runRomantiverseSearch(rawQuery,force=false){
       expanded_terms:Array.isArray(data?.expanded_terms)?data.expanded_terms:[],
       cached_at:Date.now()
     };
+    if(romantiverseSearchCache.size>=40)romantiverseSearchCache.delete(romantiverseSearchCache.keys().next().value);
     romantiverseSearchCache.set(cacheKey,payload);
     state.romantiverseSearchResults=payload.results;
     romantiverseSearchExpandedTerms=payload.expanded_terms;
@@ -156,6 +181,7 @@ async function runRomantiverseSearch(rawQuery,force=false){
     romantiverseSearchError=err?.message||String(err);
     romantiverseSearchLoadedQuery=query;
   }finally{
+    clearTimeout(deadline);
     if(seq===romantiverseSearchSequence){
       romantiverseSearchLoading=false;
       refreshRomantiverseSearchPanel();
@@ -165,7 +191,8 @@ async function runRomantiverseSearch(rawQuery,force=false){
 
 function scheduleRomantiverseSearch(value){
   clearTimeout(romantiverseSearchTimer);
-  const q=String(value||'').trim();
+  romantiverseSearchSequence++;
+  const q=romantiverseFilterQuery(value);
   if(q.length<2){
     runRomantiverseSearch('');
     return;
@@ -232,3 +259,9 @@ window.runRomantiverseSearch=runRomantiverseSearch;
 window.addRomantiverseSearchMovie=addRomantiverseSearchMovie;
 window.voteRomantiverseSearchMovie=voteRomantiverseSearchMovie;
 window.hideRomantiverseSearchMovie=hideRomantiverseSearchMovie;
+
+// Selecting a classification now searches beyond the already-loaded catalog.
+for(const name of ['setHolidayFilter','setSeasonFilter']){
+ const previous=window[name];
+ window[name]=function(value){const result=previous?.(value);scheduleRomantiverseSearch(searchText);return result};
+}

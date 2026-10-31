@@ -101,8 +101,7 @@ function discoveryMatchesCurrentView(c){
     const hay=[c.title,c.summary,c.network,c.holiday,c.season,c.director,...(c.providers||[]),...(c.why||[]),...(c.stars||[])].filter(Boolean).join(' ').toLowerCase();
     if(!hay.includes(q)) return false;
   }
-  if(movieFilters?.holiday && clNorm(c.holiday)!==clNorm(movieFilters.holiday)) return false;
-  if(movieFilters?.season && clNorm(c.season)!==clNorm(movieFilters.season)) return false;
+  if(!clMatchesSeasonHoliday(c)) return false;
   if(movieFilters?.mode==='saved' || movieFilters?.mode==='mutual') return false;
   const estimate=discoveryEstimate(c);
   if(Number(movieFilters?.minScore||0) > estimate.score) return false;
@@ -136,7 +135,7 @@ function discoveryCard(c){
         <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},true)">${est.traits.length?`Add + confirm ${est.traits.length} traits`:'Add to Radar'}</button>
         ${est.traits.length?`<button class="secondary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add only</button>`:''}
         <button class="secondary" onclick="hideDiscoveredMovie(${Number(c.tmdb_id)})">Hide for now</button>
-        <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">Hallmark ↗</a>
+        <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">${c.tmdb_type==='hallmark'?'Hallmark':'Source'} ↗</a>
       </div>
     </div>
   </article>`;
@@ -214,20 +213,24 @@ async function addDiscoveredMovie(id,applyTraits){
   const existing=discoverySavedMovie(c);
   if(existing){ selectedMovie=existing.id; render(); return; }
 
+  const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official';
+  const originLabel=isHallmark?'Hallmark official catalog':'TMDB movie search';
+  let originalMeta=c.source_metadata||{};if(typeof originalMeta==='string'){try{originalMeta=JSON.parse(originalMeta)||{}}catch{originalMeta={}}}
   const sourceMetadata={
-    source_type:'hallmark_official',catalog_id:c.catalog_id||null,collection:c.collection||null,
-    official_hallmark_url:c.source_url||c.official_source_url||null,hallmark_plus_url:c.hallmark_plus_url||null,
+    ...originalMeta,source_type:isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
     production_companies:c.production_companies||c.production_company||[],
-    stars:Array.isArray(c.stars)?c.stars:[],cast:Array.isArray(c.stars)?c.stars:[],director:c.director||null,
-    year:Number(c.year)||null,season:c.season||null,holiday:c.holiday||null,
+    stars:Array.isArray(c.stars)?c.stars:[],cast:Array.isArray(c.cast)?c.cast:Array.isArray(c.stars)?c.stars:[],director:c.director||null,
+    genres:c.genres||[],keywords:c.keywords||[],external_ids:c.external_ids||{},
+    year:Number(c.year)||Number(String(c.premiere_date||'').slice(0,4))||null,season:c.season||null,holiday:c.holiday||null,
     identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
-    data_sources:['Hallmark Channel official catalog','Hallmark title metadata']
+    data_sources:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
   };
   const payload={
-    workspace_id:workspace.id,title:c.title,network:c.network||'Hallmark Channel',cheese_score:0,status:'needs_review',summary:c.summary||null,
-    tags:['Hallmark official catalog',...(c.why||[]).slice(0,6)],source_url:c.source_url||null,poster_url:c.poster_url||null,
+    workspace_id:workspace.id,title:c.title,network:c.network||(isHallmark?'Hallmark Channel':null),cheese_score:0,status:'needs_review',summary:c.summary||null,
+    tags:[originLabel,...(c.why||[]).slice(0,6)],source_url:c.source_url||null,poster_url:c.poster_url||null,
     holiday:c.holiday||null,season:c.season||null,providers:c.providers||[],
-    tmdb_id:Number(c.tmdb_id),tmdb_type:'hallmark',source_metadata:sourceMetadata,created_by:me()
+    tmdb_id:Number(c.tmdb_id),tmdb_type:c.tmdb_type||(isHallmark?'hallmark':'movie'),source_metadata:sourceMetadata,created_by:me()
   };
   if(/^\d{4}-\d{2}-\d{2}$/.test(c.premiere_date||'')) payload.premiere_date=c.premiere_date;
 
@@ -242,7 +245,7 @@ async function addDiscoveredMovie(id,applyTraits){
   }
 
   discoveryHidden.add(Number(id));
-  await logActivity(`found and added ${c.title} from Hallmark${suggestions.length?` with ${suggestions.length} confirmed Cheese Traits`:''}.`,'movie',data.id);
+  await logActivity(`found and added ${c.title} from ${originLabel}${suggestions.length?` with ${suggestions.length} confirmed Cheese Traits`:''}.`,'movie',data.id);
   await loadAll();
   selectedMovie=data.id; traitSearch=''; traitSelectedOnly=false; render();
 }

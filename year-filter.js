@@ -3,9 +3,11 @@
 
 (() => {
   function clReleaseYear(item) {
-    const raw = item?.premiere_date || item?.release_date || item?.date || '';
-    const match = String(raw).match(/\b(19|20)\d{2}\b/);
-    return match ? Number(match[0]) : null;
+    let meta=item?.source_metadata;
+    if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}
+    const values=[item?.premiere_date,item?.release_date,item?.release_year,item?.year,meta?.release_date,meta?.release_year,meta?.year,item?.date];
+    for(const value of values){const match=String(value??'').match(/\b(19|20|21)\d{2}\b/);if(match)return Number(match[0])}
+    return null;
   }
 
   function clKnownYears() {
@@ -18,6 +20,7 @@
       const year = clReleaseYear(candidate);
       if (year) years.add(year);
     }
+    for(const candidate of (state.romantiverseSearchResults||[])){const year=clReleaseYear(candidate);if(year)years.add(year)}
     years.add(new Date().getFullYear());
     return [...years].sort((a, b) => b - a);
   }
@@ -34,6 +37,7 @@
   }
 
   window.clReleaseYear = clReleaseYear;
+  window.clPassesYearFilter = clPassesYearFilter;
 
   if (typeof movieMatchesCheeseFilters === 'function') {
     const originalMovieMatches = movieMatchesCheeseFilters;
@@ -73,7 +77,7 @@
         </label>
       </div>
       <div class="trait-chip-grid" style="margin-top:9px">
-        <button class="trait-chip" onclick="setYearRange(${current-4},${current+1})">Recent 5 years</button>
+        <button class="trait-chip" onclick="setYearRange(${current-4},${current})">Recent 5 years</button>
         <button class="trait-chip" onclick="setYearRange(${current},${current})">${current} only</button>
         <button class="trait-chip ${!min&&!max?'selected':''}" onclick="setYearRange(null,null)">All years</button>
       </div>
@@ -125,6 +129,8 @@
       holiday: movieFilters.holiday || null,
       season: movieFilters.season || null,
       studio: movieFilters.studio || null,
+      network: movieFilters.network || null,
+      release_window: movieFilters.releaseWindow || 'all',
       year_min: movieFilters.yearMin || null,
       year_max: movieFilters.yearMax || null
     };
@@ -157,6 +163,8 @@
       holiday: c.holiday || null,
       season: c.season || null,
       studio: c.studio || null,
+      network: c.network || null,
+      releaseWindow: c.release_window || 'all',
       yearMin: c.year_min ? Number(c.year_min) : null,
       yearMax: c.year_max ? Number(c.year_max) : null
     };
@@ -174,6 +182,8 @@
       holiday: null,
       season: null,
       studio: null,
+      network: null,
+      releaseWindow: 'all',
       yearMin: null,
       yearMax: null
     };

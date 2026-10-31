@@ -20,13 +20,50 @@ movieFilters.holiday = movieFilters.holiday || null;
 movieFilters.season = movieFilters.season || null;
 
 function clNorm(value){ return String(value || '').trim().toLowerCase(); }
+function clClassificationMeta(item){
+ let meta=item?.source_metadata;
+ if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}
+ return meta&&typeof meta==='object'&&!Array.isArray(meta)?meta:{};
+}
+function clCanonicalSeason(value){
+ const key=clNorm(value).replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ');
+ return ({winter:'Winter',spring:'Spring',summer:'Summer',fall:'Fall',autumn:'Fall',harvest:'Fall',christmas:'Winter'})[key]||'';
+}
+function clCanonicalHoliday(value){
+ const key=clNorm(value).replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ');
+ const aliases={christmas:'Christmas',xmas:'Christmas',thanksgiving:'Thanksgiving',friendsgiving:'Thanksgiving',halloween:'Halloween',valentine:"Valentine's Day",valentines:"Valentine's Day",'valentines day':"Valentine's Day",'new year':"New Year's",'new years':"New Year's",'new years day':"New Year's",'new years eve':"New Year's",easter:'Easter','st patricks day':"St. Patrick's Day",'saint patricks day':"St. Patrick's Day",'fourth of july':'Fourth of July','4th of july':'Fourth of July','independence day':'Fourth of July','mothers day':"Mother's Day",'fathers day':"Father's Day",other:'Other'};
+ return aliases[key]||'';
+}
+function clHolidayOf(item){
+ const meta=clClassificationMeta(item);
+ return clCanonicalHoliday(item?.holiday)||clCanonicalHoliday(meta.holiday)||(clNorm(item?.season)==='christmas'?'Christmas':'');
+}
+function clSeasonOf(item){
+ const meta=clClassificationMeta(item);
+ // Metadata only: do not invent a movie's season from its title or premiere month.
+ return clCanonicalSeason(item?.season)||clCanonicalSeason(meta.season);
+}
+function clMatchesSeasonHoliday(item,filters=movieFilters){
+ const holiday=clHolidayOf(item),season=clSeasonOf(item);
+ if(filters.holiday==='__unknown__'){if(holiday)return false}
+ else if(filters.holiday&&holiday!==clCanonicalHoliday(filters.holiday))return false;
+ if(filters.season==='__unknown__'){if(season)return false}
+ else if(filters.season&&season!==clCanonicalSeason(filters.season))return false;
+ return true;
+}
+window.clClassificationMeta=clClassificationMeta;
+window.clCanonicalSeason=clCanonicalSeason;
+window.clCanonicalHoliday=clCanonicalHoliday;
+window.clHolidayOf=clHolidayOf;
+window.clSeasonOf=clSeasonOf;
+window.clMatchesSeasonHoliday=clMatchesSeasonHoliday;
+
 function clOption(value, current){ return `<option value="${esc(value)}" ${clNorm(value)===clNorm(current)?'selected':''}>${esc(value)}</option>`; }
 
 const clOriginalMovieMatchesCheeseFilters = movieMatchesCheeseFilters;
 movieMatchesCheeseFilters = function(m){
   if(!clOriginalMovieMatchesCheeseFilters(m)) return false;
-  if(movieFilters.holiday && clNorm(m.holiday)!==clNorm(movieFilters.holiday)) return false;
-  if(movieFilters.season && clNorm(m.season)!==clNorm(movieFilters.season)) return false;
+  if(!clMatchesSeasonHoliday(m)) return false;
   return true;
 };
 
@@ -40,6 +77,7 @@ function clHolidaySeasonFilterHtml(){
     <div class="kicker">Holiday / Special</div>
     <div class="trait-chip-grid">
       <button class="trait-chip ${!movieFilters.holiday?'selected':''}" onclick="setHolidayFilter('')">All</button>
+      <button class="trait-chip ${movieFilters.holiday==='__unknown__'?'selected':''}" onclick="setHolidayFilter('__unknown__')">Not classified</button>
       ${CL_HOLIDAYS.map((v,i)=>`<button class="trait-chip ${clNorm(movieFilters.holiday)===clNorm(v)?'selected':''}" onclick="setHolidayFilterByIndex(${i})">${esc(v)}</button>`).join('')}
     </div>
   </div>
@@ -47,6 +85,7 @@ function clHolidaySeasonFilterHtml(){
     <div class="kicker">Season</div>
     <div class="trait-chip-grid">
       <button class="trait-chip ${!movieFilters.season?'selected':''}" onclick="setSeasonFilter('')">All</button>
+      <button class="trait-chip ${movieFilters.season==='__unknown__'?'selected':''}" onclick="setSeasonFilter('__unknown__')">Not classified</button>
       ${CL_SEASONS.map((v,i)=>`<button class="trait-chip ${clNorm(movieFilters.season)===clNorm(v)?'selected':''}" onclick="setSeasonFilterByIndex(${i})">${esc(v)}</button>`).join('')}
     </div>
   </div>`;

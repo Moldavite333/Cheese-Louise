@@ -153,14 +153,18 @@ async function loadAll(){
     db.from('show_ideas').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}),
     db.from('activity').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}).limit(30)
   ]);
+  const failed=[moviesRes,votesRes,bookmarksRes,commentsRes,episodesRes,scheduleRes,ideasRes,activityRes].find(result=>result.error);
+  if(failed)throw failed.error;
   const votes=votesRes.data||[], bookmarks=bookmarksRes.data||[], comments=commentsRes.data||[];
+  const byMovie=rows=>{const map=new Map();for(const row of rows){if(!map.has(row.movie_id))map.set(row.movie_id,[]);map.get(row.movie_id).push(row)}return map};
+  const votesByMovie=byMovie(votes),bookmarksByMovie=byMovie(bookmarks),commentsByMovie=byMovie(comments);
   state.movies=(moviesRes.data||[]).map(m=>({
     ...m,
     date:m.premiere_date?fmtDate(m.premiere_date):'TBD',
     score:m.cheese_score??'—',
-    votes:Object.fromEntries(votes.filter(v=>v.movie_id===m.id).map(v=>[v.user_id,v.vote])),
-    bookmarks:Object.fromEntries(bookmarks.filter(b=>b.movie_id===m.id).map(b=>[b.user_id,true])),
-    comments:comments.filter(c=>c.movie_id===m.id)
+    votes:Object.fromEntries((votesByMovie.get(m.id)||[]).map(v=>[v.user_id,v.vote])),
+    bookmarks:Object.fromEntries((bookmarksByMovie.get(m.id)||[]).map(b=>[b.user_id,true])),
+    comments:(commentsByMovie.get(m.id)||[])
   }));
   state.episodes=episodesRes.data||[];
   state.schedule=scheduleRes.data||[];
@@ -173,7 +177,7 @@ function subscribeRealtime(){
   channel=db.channel(`workspace:${workspace.id}`)
     .on('postgres_changes',{event:'*',schema:'public'},()=>{
       clearTimeout(reloadTimer);
-      reloadTimer=setTimeout(async()=>{await loadAll();render();},250);
+      reloadTimer=setTimeout(async()=>{try{await loadAll();if(!window.hqWorkspace?.shouldDeferRefresh())render()}catch(error){console.warn('HQ shared refresh failed',error);window.hqWorkspace?.loadError(error)}},500);
     })
     .subscribe();
 }
