@@ -5,7 +5,19 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../production-credits.js',import.meta.url),'utf8');
 function setup({fail=false}={}){
  const calls=[],movie={id:'movie-a',source_metadata:{tagline:'Keep me'}};let payload;
- const db={from(table){calls.push(['table',table]);let update=false;return {select(){return this},eq(...args){calls.push(args);return this},update(value){update=true;payload=value;return this},async single(){if(!update)return {data:{source_metadata:movie.source_metadata,updated_at:'old-timestamp'}};if(fail)return {data:null,error:{message:'Conflict'}};return {data:{id:movie.id,source_metadata:payload.source_metadata}}}}};
+ const db={from(table){
+  calls.push(['table',table]);let update=false;
+  return {
+   select(){return this},
+   eq(...args){calls.push(args);return this},
+   update(value){update=true;payload=value;return this},
+   async single(){
+    if(!update)return {data:{source_metadata:movie.source_metadata,updated_at:'old-timestamp'}};
+    if(fail)return {data:null,error:{message:'Conflict'}};
+    return {data:{id:movie.id,source_metadata:payload.source_metadata}};
+   }
+  };
+ }};
  const ctx={window:null,URL,Date,db,workspace:{id:'workspace-a'},session:{user:{id:'user-a'}},state:{movies:[movie]}};ctx.window=ctx;vm.createContext(ctx);vm.runInContext(source,ctx);
  return {api:ctx.clCredits,calls,movie,payload:()=>payload};
 }
