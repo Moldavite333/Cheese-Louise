@@ -6,13 +6,13 @@ const recording=readFileSync(new URL('../recording-hub.js',import.meta.url),'utf
 const watching=readFileSync(new URL('../watch-along.js',import.meta.url),'utf8');
 function harness(source,initial={}){
  const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
- const elements=new Map([['clp-marker-note',{value:'Keep this moment'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
+ const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
  const context={window:null,workspace:{id:'workspace-test'},session:{user:{id:'test'}},state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],source_metadata:'{"director":"Director A"}'},{id:'b',title:'Movie B',selectedTraitIds:[]}],traits:[{id:'t1',name:'Old flame',points:5,category:'Romance',is_active:true}]},selectedMovie:null,currentTab:'recording',
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(blocked)throw Error('Storage full');storage.set(k,v)},removeItem:k=>storage.delete(k)},
  document:{getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[]},
  Date:class extends Date{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}},
  setInterval:()=>0,setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
- tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
+ tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s;elements.get('clp-marker-note').value='';elements.get('clp-marker-type').value='Funny / Clip'},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
  context.window=context;vm.createContext(context);vm.runInContext(source,context);
@@ -46,4 +46,8 @@ test('storage failure keeps the working session exportable and warns the produce
 test('checked-trait view survives redraw and string-encoded movie credits are included',()=>{
  const h=harness(watching);h.context.currentTab='watchalong';h.context.watchAlongShowSelected();h.context.render();
  assert.ok(h.html().includes('Talk order'));assert.ok(!h.html().includes('No Cheese Traits match that search.'));assert.ok(h.html().includes('Director: Director A'));
+});
+
+test('live recording redraw keeps an unfinished marker note and its category',()=>{
+ const h=harness(recording);h.elements.get('clp-marker-note').value='Do not lose this pickup';h.elements.get('clp-marker-type').value='Retake';h.context.render();assert.equal(h.elements.get('clp-marker-note').value,'Do not lose this pickup');assert.equal(h.elements.get('clp-marker-type').value,'Retake');
 });
