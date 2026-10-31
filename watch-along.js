@@ -196,12 +196,14 @@
       const entries = Array.isArray(value) ? value : (value ? [value] : []);
       return [...new Set(entries.map(x => typeof x === 'string' ? x.trim() : String(x?.name || '').trim()).filter(Boolean))].join(', ');
     };
-    const production = names(movie.production_companies || movie.production_company || meta.production_companies || meta.production_company);
-    const director = names(movie.director || meta.director);
+    const credits = window.clCredits?.get(movie);
+    const production = credits?.production.length ? credits.production.join(', ') : names(movie.production_companies || movie.production_company || meta.production_companies || meta.production_company);
+    const director = credits?.director.length ? credits.director.join(', ') : names(movie.director || meta.director);
     const writer = names(movie.writers || movie.writer || meta.writers || meta.writer);
     const leads = names(movie.stars || movie.cast || meta.stars || meta.cast);
     return [
       'MOVIE CREDITS',
+      ...(credits?.missing.length ? ['NEEDS RESEARCH: '+credits.missing.join(' and ')] : []),
       'Production company: '+(production || 'Not recorded'),
       'Director: '+(director || 'Not recorded'),
       'Writer: '+(writer || 'Not recorded'),

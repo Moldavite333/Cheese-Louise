@@ -49,9 +49,10 @@
     let meta=movie?.source_metadata||{};
     if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}
     const names=v=>(Array.isArray(v)?v:[v]).filter(Boolean).map(x=>typeof x==='string'?x:String(x?.name||'')).filter(Boolean).join(', ')||'Not recorded';
-    return '<h4>Movie credits</h4>'+[
-      ['Production',movie?.production_companies||movie?.production_company||meta.production_companies||meta.production_company],
-      ['Director',movie?.director||meta.director],
+    const credits=window.clCredits?.get(movie);
+    return '<h4>Movie credits</h4>'+(credits?.missing.length?'<p role="status"><strong>Needs research: '+escapeHtml(credits.missing.join(' and '))+'. Update this movie’s Production credits in Movie Radar.</strong></p>':'')+[
+      ['Production',credits?.production.length?credits.production:movie?.production_companies||movie?.production_company||meta.production_companies||meta.production_company],
+      ['Director',credits?.director.length?credits.director:movie?.director||meta.director],
       ['Writer',movie?.writers||movie?.writer||meta.writers||meta.writer],
       ['Lead actors',movie?.stars||movie?.cast||meta.stars||meta.cast]
     ].map(([k,v])=>'<p><strong>'+k+':</strong> '+escapeHtml(names(v))+'</p>').join('');

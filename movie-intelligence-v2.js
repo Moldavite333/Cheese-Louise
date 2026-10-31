@@ -26,6 +26,7 @@
 
   function clStudios(item){
     const meta=clMeta(item);
+    if(window.clCredits)return window.clCredits.get(item).production;
     return clArr(item?.production_companies,meta.production_companies);
   }
 
@@ -85,6 +86,7 @@
       ['synopsis',!!String(item?.summary||'').trim()],
       ['network',!!String(item?.network||clMeta(item)?.network||'').trim()],
       ['production studio',clStudios(item).length>0],
+      ['director',window.clCredits?window.clCredits.get(item).director.length>0:!!clMeta(item).director],
       ['genres',clGenres(item).length>0],
       ['where to watch',clProviders(item).length>0],
       ['IMDb record',!!clImdbUrl(item)],

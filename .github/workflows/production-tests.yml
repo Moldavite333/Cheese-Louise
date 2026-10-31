@@ -19,4 +19,4 @@ jobs:
         run: |
           for file in *.js; do node --check "$file"; done
       - name: Check recording and watch-along workflows with isolated fixture data
-        run: node --test tests/production.test.mjs
+        run: node --test tests/*.test.mjs

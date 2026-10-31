@@ -217,6 +217,7 @@ async function addDiscoveredMovie(id,applyTraits){
   const sourceMetadata={
     source_type:'hallmark_official',catalog_id:c.catalog_id||null,collection:c.collection||null,
     official_hallmark_url:c.source_url||c.official_source_url||null,hallmark_plus_url:c.hallmark_plus_url||null,
+    production_companies:c.production_companies||c.production_company||[],
     stars:Array.isArray(c.stars)?c.stars:[],cast:Array.isArray(c.stars)?c.stars:[],director:c.director||null,
     year:Number(c.year)||null,season:c.season||null,holiday:c.holiday||null,
     identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
