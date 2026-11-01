@@ -8,6 +8,6 @@
     const meta=metadata(movie),raw=movie?.keywords?.keywords||movie?.keywords||meta.keywords||[];
     const keywords=(Array.isArray(raw)?raw:[]).map(value=>typeof value==='string'?value:value?.name).filter(Boolean);
     if(keywords.some(value=>/\bhorror\b|\bslasher\b|\bsplatter\b|\bgore\b|\bdemonic possession\b|\bserial killer\b/i.test(value)))return true;
-    return /\b(slasher|serial killer|masked killer|demonic possession|sadistic killer|bloodthirsty|gory|horror film|horror movie)\b/i.test([movie?.overview,movie?.summary,movie?.tagline].filter(Boolean).join(' '));
+    return /\b(krampus|slasher|serial killer|masked killer|demonic possession|sadistic killer|bloodthirsty|gory|horror film|horror movie)\b/i.test([movie?.title,movie?.overview,movie?.summary,movie?.tagline].filter(Boolean).join(' '));
   };
 })();

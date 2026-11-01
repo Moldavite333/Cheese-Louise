@@ -11,7 +11,8 @@ test('horror is excluded by numeric genres, mixed genres, names, keywords and st
   {genre_ids:[10749,27]}, {genres:[{id:10749,name:'Romance'},{id:27,name:'Horror'}]},
   {genres:['Romance','Horror']}, {genres:['Romantic Horror Comedy']},
   {keywords:[{name:'slasher'}]}, {keywords:{keywords:[{name:'psychological horror'}]}},
-  {source_metadata:'{"genres":["Horror","Romance"]}'}, {summary:'A masked killer stalks the town.'}
+  {source_metadata:'{"genres":["Horror","Romance"]}'}, {summary:'A masked killer stalks the town.'},
+  {title:'Krampus',genres:['Fantasy','Comedy']}, {title:'An Unrelated Title',genres:['Comedy'],summary:'Krampus returns to hunt children.'}
  ]){assert.equal(clMovieIsHorror(movie),true);assert.equal(eligible({...movie,runtime:90}),false);}
 });
 test('friendly ghosts, magical wishes and Halloween romance remain eligible',()=>{
