@@ -166,6 +166,10 @@
 
   function mmCompatibility(movie,candidate){
     const movieFingerprint=clMovieFingerprint(movie);
+    // Season already has its own dimension. Do not count its inferred tags again
+    // as movie personality and mood, which made every autumn film taste alike.
+    const storyFingerprint=clMovieFingerprint({...movie,season:'',holiday:''});
+    const storySet=mmSet(storyFingerprint.weights);
     const cocktailFingerprint=clCandidateFingerprint(candidate);
     const movieSet=mmSet(movieFingerprint.weights);
     const cocktailSet=mmSet(cocktailFingerprint);
@@ -173,27 +177,35 @@
     const chemistry=clTitleCocktailNameMatch(movie,candidate);
     const symbolism=mmSymbolism(movie,candidate);
 
-    const personalityBase=mmRuleScore(movieSet,cocktailSet,MM_PERSONALITY,25);
-    const pDirect=mmDirectOverlap(movieSet,cocktailSet,null,7);
-    const personality={score:Math.min(25,personalityBase.score+pDirect.bonus),hits:[...personalityBase.hits,...pDirect.hits.slice(0,3)]};
+    const personalityBase=mmRuleScore(storySet,cocktailSet,MM_PERSONALITY,25);
+    const pDirect=mmDirectOverlap(storySet,cocktailSet,null,7);
+    // Preserve the strength of evidence instead of flattening all clues to a Set.
+    let matchedWeight=0,totalWeight=0;
+    for(const [tag,weight] of storyFingerprint.weights){
+      totalWeight+=weight;
+      if(cocktailSet.has(tag)) matchedWeight+=weight;
+    }
+    const weightedFit=totalWeight ? 25*matchedWeight/totalWeight : 0;
+    const personality={score:Math.min(25,weightedFit+personalityBase.score*.35+pDirect.bonus*.25),hits:[...personalityBase.hits,...pDirect.hits.slice(0,3)]};
 
-    const moodBase=mmRuleScore(movieSet,cocktailSet,MM_MOODS,20);
+    const moodBase=mmRuleScore(storySet,cocktailSet,MM_MOODS,20);
     const MOOD_TAGS=new Set(['cozy','warming','celebratory','sparkling','light','refreshing','dark','mystery','playful','campy','romantic','elegant','bittersweet']);
-    const mDirect=mmDirectOverlap(movieSet,cocktailSet,MOOD_TAGS,6);
+    const mDirect=mmDirectOverlap(storySet,cocktailSet,MOOD_TAGS,6);
     const mood={score:Math.min(20,moodBase.score+mDirect.bonus),hits:[...moodBase.hits,...mDirect.hits]};
 
     const season=mmSeason(movie,candidate,cocktailSet);
     const novelty=mmNovelty(candidate);
     const dealbreakers=mmDealbreakers(movie,candidate,movieSet,cocktailSet,chemistry.score,symbolism.score);
 
-    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+novelty.score-dealbreakers.penalty;
+    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+5-dealbreakers.penalty-Number(novelty.diversity.penalty||0);
     if(candidate?.iba_official) total+=1;
     if(candidate?.tested&&Number(candidate?.rating||0)>=4) total+=1;
-    total=Math.max(8,Math.min(99,Math.round(total)));
+    const rawScore=total+dealbreakers.penalty;
+    total=Math.max(0,Math.min(99,Math.round(total)));
 
     const dimensions={
       chemistry:{score:chemistry.score,max:25,label:'Name chemistry'},
-      personality:{score:personality.score,max:25,label:'Personality'},
+      personality:{score:personality.score,max:25,label:'Movie fit'},
       mood:{score:mood.score,max:20,label:'Mood'},
       season:{score:season.score,max:15,label:'Season'},
       symbolism:{score:symbolism.score,max:10,label:'Story symbol'},
@@ -217,7 +229,7 @@
     return {
       cocktail:candidate,
       score:total,
-      rawScore:Math.round(total+dealbreakers.penalty),
+      rawScore,
       overlaps:overlap.slice(0,12),
       reasons,
       diversity:novelty.diversity,
@@ -250,20 +262,21 @@
   clSmartOriginalMatches=function(movie){
     const catalog=clMergedOriginalCatalog();
     if(!catalog.length) return [];
-    const retrieved=catalog.map(c=>({c,retrieve:mmRetrieveScore(movie,c)})).sort((a,b)=>b.retrieve-a.retrieve||String(a.c.name).localeCompare(String(b.c.name)));
-    const mustKeep=retrieved.filter(x=>clTitleCocktailNameMatch(movie,x.c).score>=10||mmSymbolism(movie,x.c).score>0);
-    const pool=[]; const seen=new Set();
-    for(const row of [...mustKeep,...retrieved.slice(0,90)]){
-      const key=clNormName(row.c.name); if(seen.has(key)) continue; seen.add(key); pool.push(row.c);
-    }
-    return pool.map(c=>mmCompatibility(movie,c)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
+    // Score the full catalog so seasonal ingredients cannot be cut before scoring.
+    return catalog.map(c=>mmCompatibility(movie,c)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
   };
 
   // Three distinct recommendations: overall best, strongest chemistry/symbolism,
   // and a high-quality wildcard that differs in family/base spirit.
   if(typeof clPickThreeBases==='function'){
-    clPickThreeBases=function(movie){
-      const ranked=clSmartOriginalMatches(movie);
+    clPickThreeBases=function(movie,excludeNames=[]){
+      let ranked=clSmartOriginalMatches(movie);
+      if(excludeNames.length && ranked.length>3){
+        const excluded=new Set(excludeNames.map(clNormName));
+        const floor=Math.max(0,ranked[0].score-18);
+        const fresh=ranked.filter(r=>!excluded.has(clNormName(r.cocktail.name))&&r.score>=floor);
+        if(fresh.length>=3) ranked=fresh;
+      }
       if(!ranked.length) return [];
       const best=ranked[0];
       const notBest=ranked.filter(r=>clNormName(r.cocktail.name)!==clNormName(best.cocktail.name));
@@ -283,11 +296,12 @@
         return d;
       };
       const wildcard=(wildcardPool.length?wildcardPool:notBest).slice().sort((a,b)=>(b.score+difference(b))-(a.score+difference(a)))[0]||best;
+      const unique=new Set();
       return [
         {role:'Familiar',match:best,matchmakerLabel:'Best Match'},
         {role:'Craft',match:chemistry,matchmakerLabel:'Chemistry Pick'},
         {role:'Wildcard',match:wildcard,matchmakerLabel:'Wildcard'}
-      ];
+      ].filter(pick=>{const key=clNormName(pick.match.cocktail.name);if(unique.has(key)) return false;unique.add(key);return true;});
     };
   }
 
@@ -322,3 +336,4 @@
   window.clCocktailMatchmakerCompatibility=mmCompatibility;
   window.clCocktailMatchmakerRetrieveScore=mmRetrieveScore;
 })();
+

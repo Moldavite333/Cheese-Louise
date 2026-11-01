@@ -83,7 +83,7 @@ const CL_TRAIT_SIGNAL_RULES = [
   [/snowed in|snowed-in|blizzard|forced proximity/, ['warming','cozy']],
   [/vineyard|winery|wine/, ['wine','grape','elegant']],
   [/bookstore|book shop|bookshop/, ['cozy','coffee']],
-  [/inn|b&b|bed and breakfast/, ['cozy','warming']],
+  [/\binn\b|b&b|bed and breakfast/, ['cozy','warming']],
   [/tropical|beach|island|resort/, ['tropical','rum','citrus','refreshing']],
   [/festival|tree lighting|fundraiser/, ['festive','sparkling','crowd-friendly']],
   [/carpenter|handyman|contractor/, ['bourbon','warming']],
@@ -114,7 +114,7 @@ function clMovieCocktailSignals(movie){
   for(const [re,vals] of CL_TRAIT_SIGNAL_RULES){
     if(re.test(text)) add(vals, `Romantiverse clue: ${text.match(re)?.[0]||'movie trait'}`);
   }
-  if(/christmas|holiday/.test(text)) add(['holiday','winter','warming'], 'holiday language');
+  if(/\bchristmas\b|\bxmas\b/.test(text)) add(['holiday','winter','warming'], 'Christmas language');
   if(/coffee|cafe|café/.test(text)) add(['coffee','cozy'], 'coffee/café setting');
   if(/farm|country|ranch/.test(text)) add(['bourbon','herbal','rustic'], 'farm/country setting');
   if(/city|executive|corporate/.test(text)) add(['elegant','night'], 'big-city career energy');
@@ -560,3 +560,4 @@ window.closeCocktailEditor=closeCocktailEditor;
 window.clCocktailTypeChanged=clCocktailTypeChanged;
 window.saveCocktail=saveCocktail;
 window.clGenerateVariation=clGenerateVariation;
+
