@@ -10,7 +10,7 @@
  const escape=value=>esc(String(value??''));
  const local=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return {}}};
  const routes=[
-  ['home','Today','Plan'],['movies','Movie Radar','Plan'],['episodes','Episodes','Plan'],['schedule','Calendar','Plan'],
+  ['home','Today','Plan'],['movies','Movie Radar','Plan'],['ourmovies','Our Movies','Plan'],['episodes','Episodes','Plan'],['schedule','Calendar','Plan'],
   ['watchalong','Watch Along','Make'],['recording','Recording','Make'],
   ['cocktails','Cocktail Bar','Library'],['cheesetray','Cheese Grating','Library'],['traits','Trope Library','Library'],['bingo','Bingo Builder','Library'],
   ['producer','Producer Desk','Resources'],['checklist','Podcast 101','Resources'],['lab','Show Lab','Resources']

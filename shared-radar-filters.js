@@ -121,6 +121,7 @@ movies = function(){
     <div class="subtle">Find, save, vote, discuss — and build the Cheese Rating from actual Romantiverse traits.</div>
     <div class="movie-header-actions">
       <button class="primary" onclick="addMovie()">+ Add movie</button>
+      <button class="secondary our-movies-shortcut" onclick="hqWorkspace.open('ourmovies')">Our Movies</button>
       <button id="radarFiltersButton" class="secondary" onclick="toggleMovieFilters()">⚙ Filters${filterCount?` (${filterCount})`:''}</button>
       <button class="secondary" onclick="openTraitManager()">🧀 Trait Library</button>
     </div>

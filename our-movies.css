@@ -1,0 +1,10 @@
+.our-movies-heading{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+.our-movies-heading>div{min-width:0}.our-movies-heading>button{flex-shrink:0}
+.our-movies-tools{display:grid;gap:14px;margin:22px 0 16px}
+.our-movies-tools>label{display:grid;gap:8px;font-size:13px;color:var(--muted)}
+.our-movies-tools .toolbar{margin:0;flex-wrap:wrap}
+.our-movie-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:6px 0}
+.our-movie-choice{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);font-size:12px;overflow-wrap:anywhere}
+.our-movie-choice>span{color:var(--muted)}
+.our-choice-yes{border-left:3px solid #8be1ad}.our-choice-maybe{border-left:3px solid #edc568}.our-choice-no{border-left:3px solid #e7a2aa}
+@media(max-width:600px){.our-movies-heading{flex-direction:column;gap:10px}.our-movies-heading>button{width:100%}.our-movies-tools .toolbar>button{flex:1 1 60px}.movie-header-actions>.our-movies-shortcut{grid-column:1/-1}}

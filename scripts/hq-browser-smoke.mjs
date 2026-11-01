@@ -25,6 +25,7 @@ try{
   discoveryLoaded=true;discoveryLoading=false;discoveryError='';currentTab='home';render();
   state.traits=Array.from({length:18},(_,i)=>({id:'trait-'+i,name:i%2?'An elaborate town festival with a very long name':'An unexpected magical romantic connection',category:'Romance',points:2,is_active:true}));
   state.movies[0].poster_url='/fixture-poster.svg';
+  state.movies[0].votes={'fixture-partner':'maybe'};members.push({user_id:'fixture-partner'});profiles['fixture-partner']={display_name:'Co-host'};
   localStorage.setItem('cheeseLouise:watchAlong:fixture-workspace:draft:fixture-movie',JSON.stringify({traitIds:['trait-0','trait-1'],outlineItems:[{id:'opening-note',type:'note',text:'Open with the enchanted hourglass joke.'},{id:'first-trait',type:'trait',traitId:'trait-0'}],notes:'The snow only appears when the leads argue.\nThe town festival has no boats, just pastries.\nReturn to the coffee-shop callback before Bingo.'}));
   localStorage.setItem('cheeseLouise:production:v1:fixture-workspace',JSON.stringify({movieId:'fixture-movie',session:{movieId:'fixture-movie',title:'Autumn at the Orchard',snapshot:{notes:'',talkingPoints:[]},segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false}}));
   state.activity=[{user_id:'fixture-user',action:'added a movie to the shared Radar.'}];
@@ -51,7 +52,7 @@ try{
   assert.equal(await page.locator('#hq-more-button').getAttribute('aria-expanded'),'false','Desktop resize closes the mobile menu');
  }else assert.ok(await page.locator('.hq-sidebar').isVisible());
  await page.screenshot({path:'artifacts/hq-today-'+width+'.png',fullPage:true});
- for(const route of ['movies','watchalong','recording','episodes','schedule','cocktails','cheesetray','producer','lab','checklist','bingo']){
+ for(const route of ['movies','ourmovies','watchalong','recording','episodes','schedule','cocktails','cheesetray','producer','lab','checklist','bingo']){
   await page.evaluate(id=>hqWorkspace.open(id),route);
   assert.ok((await page.locator('#hq-main').innerText()).length>30,'Route renders '+route);
   assert.equal(await page.locator('[onclick*="openRomantiverseRules"],[onclick*="openRuleify"]').count(),0,'Retired show segments are absent from '+route);
@@ -63,6 +64,17 @@ try{
    assert.ok(await page.locator('.radar-poster-image').isVisible(),'Saved movie posters render and load');
    const clipped=await page.locator('#radarModeToolbar').evaluate(el=>el.scrollWidth>el.clientWidth+1);
    assert.equal(clipped,false,'Every Radar view control fits without hidden horizontal scrolling');
+  }
+  if(route==='ourmovies'){
+   assert.ok(await page.getByRole('heading',{name:'Our Movies',exact:true}).isVisible());
+   assert.equal(await page.locator('#ourMoviesGrid .movie-card').count(),1,'Partner-only Maybe appears in the shared collection');
+   assert.match(await page.locator('.our-movie-choices').innerText(),/Co-host[\s\S]*Maybe/);
+   await page.locator('.our-movies-tools').getByRole('button',{name:'Saved',exact:true}).click();
+   assert.equal(await page.locator('#ourMoviesGrid .movie-card').count(),0);
+   await page.locator('.our-movies-tools').getByRole('button',{name:'All ours',exact:true}).click();
+   await page.evaluate(()=>{movieFilters.yearMin=2099;movieFilters.minScore=100;render()});
+   assert.equal(await page.locator('#ourMoviesGrid .movie-card').count(),1,'Radar filters do not hide Our Movies');
+   await page.evaluate(()=>{movieFilters.yearMin=null;movieFilters.minScore=0});
   }
   if(route==='watchalong'){
    const preview=page.locator('#watchRundownPreview');
@@ -93,7 +105,7 @@ try{
    if(width<=900)assert.ok(await page.evaluate(()=>document.querySelector('.clp-sticky-actions').getBoundingClientRect().bottom<=document.querySelector('.hq-mobile-nav').getBoundingClientRect().top+1),'Recording actions clear mobile navigation');
   }
   await page.evaluate(()=>window.scrollTo(0,0));
-  if(['movies','watchalong','recording','schedule'].includes(route))await page.screenshot({path:'artifacts/hq-layout-'+route+'-'+width+'.png',fullPage:true});
+  if(['movies','ourmovies','watchalong','recording','schedule'].includes(route))await page.screenshot({path:'artifacts/hq-layout-'+route+'-'+width+'.png',fullPage:true});
  }
  await page.evaluate(()=>hqWorkspace.open('movies'));
  const search=page.getByRole('searchbox',{name:'Search Movie Radar',exact:true});

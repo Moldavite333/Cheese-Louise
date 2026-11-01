@@ -2,6 +2,8 @@
 
 Scope: Cheese Louise HQ only, https://moldavite333.github.io/Cheese-Louise/, repository `Moldavite333/Cheese-Louise`. Preserve the current layout, personal movie taste and production data.
 
+Our Movies is the shared collection, accessible from navigation and Movie Radar. Include a movie when either person has voted Yes or Maybe, or saved it. A No from the other person must not hide a qualifying movie. Views and search in this collection are independent of Movie Radar filters. Keep each person's choices visible and preserve the permanent horror exclusion.
+
 Current show format: Rules of the Romantiverse and Ruleify have been removed at the user's request. Do not restore these features, navigation entries, or prompts in episode templates, launch checklists, Producer Desk, or Bingo artwork. Keep Show Lab, Podcast 101, Cheese Traits, Cheese Grating, and Bingo available.
 
 Recording layout preference: notes are the main feature and timing stays small. Preserve the compact timer, labeled/color-coded cue cards, full Watch Along talk order, separated observation blocks, and collapsed reference material. Do not bring back large timer panels or flatten the notes into one text block.
