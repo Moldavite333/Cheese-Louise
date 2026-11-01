@@ -45,6 +45,11 @@ try{
  await search.fill('');
  await page.locator('#hq-season').selectOption('Fall');
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
+ await page.getByRole('button',{name:'Find movies for us',exact:true}).click();
+ await page.waitForFunction(()=>!romantiverseSearchLoading&&romantiverseSearchLoadedQuery==='__taste__');
+ assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
+ await page.screenshot({path:'artifacts/hq-taste-'+width+'.png',fullPage:true});
  await page.evaluate(()=>{clearMovieFilters();hqWorkspace.open('home');openMovie('fixture-movie')});
  const dialog=page.getByRole('dialog');await dialog.waitFor();
  const production=dialog.locator('input[name="production"]');await production.fill('Unsaved studio draft');

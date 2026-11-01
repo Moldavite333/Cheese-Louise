@@ -9,6 +9,10 @@
 .rom-search-reason{background:#243129;border-color:#35513f;color:#d8f5df}
 .rom-search-attribution{margin-top:10px}
 .rom-search-panel>.new-find-grid{margin-top:10px}
+.cl-taste-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+.cl-taste-actions>*{max-width:100%;min-width:0;white-space:normal}
+.cl-taste-actions label{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cl-taste-actions select{max-width:100%;min-height:44px}
 @media(max-width:520px){
   .rom-search-head{align-items:stretch}
   .rom-search-head .secondary{padding:8px 9px;font-size:.8rem;white-space:nowrap}
