@@ -49,7 +49,8 @@ html{scroll-padding-top:calc(var(--hq-header-height) + 16px)}
 .watch-jump-links,.hq-calendar-agenda{display:none}
 .watch-writing-stack{position:static}
 .watch-writing-card :is(textarea,.watch-outline){background:var(--panel-2)}
-.watch-rundown-preview{max-height:480px;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);scrollbar-gutter:stable}
+.watch-rundown-preview{display:block;width:100%;min-height:260px;max-height:480px;resize:vertical;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:inherit;font:inherit;line-height:1.5;scrollbar-gutter:stable}
+.watch-rundown-preview:focus{outline:2px solid var(--accent);outline-offset:2px}
 .clp{max-width:none;margin:0;padding:22px 0 32px}
 .clp :is(.clp-clock,.clp-current,.clp-notes,.clp-two-clocks>div,.clp-rundown){background:var(--panel);border-color:var(--line)}
 .clp :is(.clp-marker button,.clp-actions button,.clp-foot button){border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);padding:12px;line-height:1.35}
@@ -132,3 +133,4 @@ html{scroll-padding-top:calc(var(--hq-header-height) + 16px)}
  .hq-modal-open .modal-header{top:-16px}
  .hq-section-title>button{flex-shrink:0}
 }
+
