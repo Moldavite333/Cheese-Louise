@@ -71,3 +71,21 @@ test('older recording snapshots retain their notes and talking points in the new
  const h=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)});h.context.render();
  assert.ok(h.html().includes('Keep this old talking point'));assert.ok(h.html().includes('Keep this old note'));assert.equal(h.data().session.elapsedMs,9000);
 });
+test('a stale recording snapshot cannot hide the latest Watch Along notes',()=>{
+ const saved={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{notes:'Earlier saved observation'},segment:1,laps:[],markers:[{note:'Keep marker'}],elapsedMs:9000,runningSince:null,finished:false}};
+ const initial={'cheeseLouise:production:v1:workspace-test':JSON.stringify(saved),'cheeseLouise:watchAlong:workspace-test:draft:a':JSON.stringify({notes:'Latest Watch Along observation',outlineItems:[{type:'note',text:'Latest talk order'}]})};
+ const h=harness(recording,initial);h.context.render();
+ assert.ok(h.html().includes('Latest Watch Along observation'));assert.ok(h.html().includes('Latest talk order'));assert.ok(h.html().includes('Earlier saved observation'));
+ assert.equal(h.storage.get('cheeseLouise:production:v1:workspace-test'),initial['cheeseLouise:production:v1:workspace-test'],'Reading notes does not rewrite the saved session');
+});
+test('recording initially follows the Watch Along movie rather than the first saved movie',()=>{
+ const h=harness(recording,{'cheeseLouise:watchAlong:workspace-test:movie':'b','cheeseLouise:watchAlong:workspace-test:draft:b':JSON.stringify({notes:'Movie B observation'})});h.context.render();
+ assert.ok(h.html().includes('Movie B observation'));assert.ok(h.html().includes('<option value="b" selected>Movie B'));
+});
+test('Watch Along handoff preserves previous sessions and never switches a running timer',()=>{
+ const saved={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{notes:'Movie A note'},segment:1,laps:[],markers:[],elapsedMs:9000,runningSince:null,finished:false}};
+ const h=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(saved),'cheeseLouise:watchAlong:workspace-test:movie':'b'});
+ h.context.clProduction.followWatchMovie();assert.equal(h.data().movieId,'b');assert.equal(h.data().session.elapsedMs,9000);
+ saved.session.runningSince=100000;const running=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(saved),'cheeseLouise:watchAlong:workspace-test:movie':'b'});
+ running.context.clProduction.followWatchMovie();assert.equal(running.data().movieId,'a');assert.equal(running.data().session.runningSince,100000);
+});

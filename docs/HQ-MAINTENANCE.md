@@ -6,6 +6,8 @@ Current show format: Rules of the Romantiverse and Ruleify have been removed at 
 
 Recording layout preference: notes are the main feature and timing stays small. Preserve the compact timer, labeled/color-coded cue cards, full Watch Along talk order, separated observation blocks, and collapsed reference material. Do not bring back large timer panels or flatten the notes into one text block.
 
+Notes must be findable: keep the “Jump to Watch Along notes” shortcut and the direct Watch Along button. Display the latest available Watch Along draft for the selected movie rather than hiding it behind an older recording snapshot. Preserve older session notes separately and never overwrite recording timing just to display notes. Moving from Watch Along to Recording should follow the watched movie unless another movie's timer is currently running. Watch Along notes remain browser-local; an empty-state message must explain the selected movie and device context rather than imply the notes were deleted.
+
 ## Hourly checks
 
 1. Run `node scripts/hq-health.mjs` to fetch the deployed page and its local script/style dependencies. Confirm successful responses, correct content types and no HTML error page masquerading as JavaScript.

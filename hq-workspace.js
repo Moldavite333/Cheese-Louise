@@ -32,6 +32,7 @@
  function dirtyModal(){return document.querySelector('.modal-backdrop .modal[data-hq-dirty="true"]')}
  function open(id){
   if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return;
+  if(id==='recording'&&currentTab==='watchalong')window.clProduction?.followWatchMovie?.();
   moreOpen=false;selectedMovie=null;
   const actions={cocktails:'openCocktailBar',traits:'openTraitManager',bingo:'openRomantiverseBingo',checklist:'openPodcastLaunchChecklist',lab:'openShowLabView'};
   if(actions[id]&&typeof window[actions[id]]==='function')window[actions[id]]();
