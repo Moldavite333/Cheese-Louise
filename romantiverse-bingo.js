@@ -366,7 +366,7 @@ function rvBingoCardHtml(){
     <div class="rv-bingo-label-head">
       <div class="rv-bingo-brand-small">CHEESE LOUISE</div>
       <div class="rv-bingo-title">ROMANTIVERSE BINGO</div>
-      <div class="rv-bingo-tagline">Unlocking the Rules of the Romantiverse</div>
+      <div class="rv-bingo-tagline">Unlocking the Mysteries of the Romantiverse</div>
       <div class="rv-bingo-card-meta">${rvBingoDraft.card_number?`Card #${rvBingoDraft.card_number}`:'Unsaved card'}${rvBingoDraft.seed_code?` · Seed ${esc(rvBingoDraft.seed_code)}`:''}</div>
     </div>
     ${wins?`<div class="rv-bingo-celebration">🎉 ROMANTIVERSE BINGO! ${wins>1?`· ${wins} lines`:''}</div>`:''}
@@ -613,7 +613,7 @@ function rvBingoCanvas(){
   ctx.fillStyle=green;ctx.fillRect(0,0,canvas.width,210);
   ctx.textAlign='center';ctx.fillStyle=gold;ctx.font='700 30px Georgia';ctx.fillText('CHEESE LOUISE',700,48);
   ctx.fillStyle=cream;ctx.font='900 68px Arial';ctx.fillText('ROMANTIVERSE BINGO',700,118);
-  ctx.font='28px Georgia';ctx.fillText('Unlocking the Rules of the Romantiverse',700,165);
+  ctx.font='28px Georgia';ctx.fillText('Unlocking the Mysteries of the Romantiverse',700,165);
   ctx.fillStyle=red;ctx.fillRect(80,230,1240,8);
   const x0=80,y0=270,size=248;
   function wrap(text,x,y,maxWidth,maxLines=5){
@@ -677,18 +677,10 @@ function openRomantiverseBingo(){
   window.scrollTo(0,0);
 }
 
-rvRulesHubNav=function(){
-  return `<section class="section"><div class="toolbar" style="margin-bottom:0">
-    <button class="filter ${romantiverseHubView==='lab'?'active-filter':''}" onclick="openShowLabView()">💡 Show Lab</button>
-    <button class="filter ${romantiverseHubView==='rules'?'active-filter':''}" onclick="openRomantiverseRules()">📜 Rules of the Romantiverse</button>
-    <button class="filter ${romantiverseHubView==='checklist'?'active-filter':''}" onclick="openPodcastLaunchChecklist()">🚀 Podcast 101</button>
-    <button class="filter ${romantiverseHubView==='bingo'?'active-filter':''}" onclick="openRomantiverseBingo()">🎯 Romantiverse Bingo</button>
-  </div></section>`;
-};
 
 const rvBingoOriginalIdeas=ideas;
 ideas=function(){
-  if(romantiverseHubView==='bingo') return rvRulesHubNav()+rvBingoPage();
+  if(romantiverseHubView==='bingo') return productionHubNav()+rvBingoPage();
   return rvBingoOriginalIdeas();
 };
 

@@ -13,12 +13,12 @@
   ['home','Today','Plan'],['movies','Movie Radar','Plan'],['episodes','Episodes','Plan'],['schedule','Calendar','Plan'],
   ['watchalong','Watch Along','Make'],['recording','Recording','Make'],
   ['cocktails','Cocktail Bar','Library'],['cheesetray','Cheese Grating','Library'],['traits','Trope Library','Library'],['bingo','Bingo Builder','Library'],
-  ['producer','Producer Desk','Resources'],['checklist','Podcast 101','Resources'],['lab','Show Lab','Resources'],['rules','Rules archive','Resources'],['ruleify','Ruleify archive','Resources']
+  ['producer','Producer Desk','Resources'],['checklist','Podcast 101','Resources'],['lab','Show Lab','Resources']
  ];
  function active(id){
   if(id==='cocktails')return currentTab==='episodes'&&typeof cocktailHubView!=='undefined'&&cocktailHubView==='bar';
   if(id==='episodes')return currentTab==='episodes'&&!(typeof cocktailHubView!=='undefined'&&cocktailHubView==='bar');
-  if(['bingo','checklist','lab','rules','ruleify'].includes(id))return currentTab==='ideas'&&typeof romantiverseHubView!=='undefined'&&romantiverseHubView===id;
+  if(['bingo','checklist','lab'].includes(id))return currentTab==='ideas'&&typeof romantiverseHubView!=='undefined'&&romantiverseHubView===id;
   return currentTab===id;
  }
  function navButton(id,label){return '<button type="button" data-hq-route="'+id+'" '+(active(id)?'aria-current="page" class="is-active"':'')+' onclick="hqWorkspace.open(\''+id+'\')">'+escape(label)+'</button>'}
@@ -33,7 +33,7 @@
  function open(id){
   if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return;
   moreOpen=false;selectedMovie=null;
-  const actions={cocktails:'openCocktailBar',traits:'openTraitManager',bingo:'openRomantiverseBingo',checklist:'openPodcastLaunchChecklist',lab:'openShowLabView',rules:'openRomantiverseRules',ruleify:'openRuleify'};
+  const actions={cocktails:'openCocktailBar',traits:'openTraitManager',bingo:'openRomantiverseBingo',checklist:'openPodcastLaunchChecklist',lab:'openShowLabView'};
   if(actions[id]&&typeof window[actions[id]]==='function')window[actions[id]]();
   else if(id==='episodes'){if(typeof cocktailHubView!=='undefined')cocktailHubView='episodes';go('episodes')}
   else if(routes.some(r=>r[0]===id))go(id);

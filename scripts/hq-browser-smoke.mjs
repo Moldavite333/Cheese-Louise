@@ -49,9 +49,11 @@ try{
   assert.equal(await page.locator('#hq-more-button').getAttribute('aria-expanded'),'false','Desktop resize closes the mobile menu');
  }else assert.ok(await page.locator('.hq-sidebar').isVisible());
  await page.screenshot({path:'artifacts/hq-today-'+width+'.png',fullPage:true});
- for(const route of ['movies','watchalong','recording','episodes','schedule','cocktails','cheesetray','producer','lab','checklist']){
+ for(const route of ['movies','watchalong','recording','episodes','schedule','cocktails','cheesetray','producer','lab','checklist','bingo']){
   await page.evaluate(id=>hqWorkspace.open(id),route);
   assert.ok((await page.locator('#hq-main').innerText()).length>30,'Route renders '+route);
+  assert.equal(await page.locator('[onclick*="openRomantiverseRules"],[onclick*="openRuleify"]').count(),0,'Retired show segments are absent from '+route);
+  assert.equal(await page.locator('[data-hq-route="rules"],[data-hq-route="ruleify"]').count(),0,'No retired navigation routes');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Route fits '+width+': '+route);
   assert.ok(await page.locator('#hq-main').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Workspace content fits '+width+': '+route);
   if(route==='movies'){

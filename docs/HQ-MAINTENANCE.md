@@ -2,6 +2,8 @@
 
 Scope: Cheese Louise HQ only, https://moldavite333.github.io/Cheese-Louise/, repository `Moldavite333/Cheese-Louise`. Preserve the current layout, personal movie taste and production data.
 
+Current show format: Rules of the Romantiverse and Ruleify have been removed at the user's request. Do not restore these features, navigation entries, or prompts in episode templates, launch checklists, Producer Desk, or Bingo artwork. Keep Show Lab, Podcast 101, Cheese Traits, Cheese Grating, and Bingo available.
+
 ## Hourly checks
 
 1. Run `node scripts/hq-health.mjs` to fetch the deployed page and its local script/style dependencies. Confirm successful responses, correct content types and no HTML error page masquerading as JavaScript.

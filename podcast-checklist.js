@@ -9,11 +9,11 @@ let pcEditingTaskKey = null;
 const PC_PHASES = [
   {
     id:'foundation', stage:'launch', icon:'🧀', title:'1. Show foundation',
-    description:'Lock the promise, format, and rules before the first real recording.',
+    description:'Lock the promise and format before the first real recording.',
     tasks:[
       ['foundation-promise','Lock the one-line show promise','Write the one sentence that tells a new listener exactly what Cheese Louise is and why they should care.',true],
       ['foundation-listener','Define the target listener','Describe the person most likely to love the show: what they watch, what they laugh at, and why they would come back.',true],
-      ['foundation-format','Lock the core episode format','Finalize the repeatable rundown: welcome, cocktail, game, guest, recap/discussion, Romantiverse rules, bingo, outro.',true],
+      ['foundation-format','Lock the core episode format','Finalize the repeatable rundown: welcome, cocktail, game, guest, recap/discussion, Cheese Grating, bingo, outro.',true],
       ['foundation-runtime','Choose a target episode length','Pick a realistic range so recording and editing do not balloon unpredictably.'],
       ['foundation-cadence','Lock release cadence and day','Choose the normal publishing rhythm and what happens during holidays, vacations, or missed weeks.',true],
       ['foundation-intro-outro','Finalize standard intro and outro','Have a short repeatable opening, closing CTA, credits, and music cues ready to drop into every episode.',true],
@@ -44,7 +44,7 @@ const PC_PHASES = [
       ['pilot-listen','Listen on multiple real-world devices','Check headphones, phone speaker, car, TV/soundbar, and anything else your audience will use.'],
       ['pilot-edit-template','Turn the pilot edit into a reusable template','Save the track layout, processing chain, intro/outro placement, markers, and export settings.'],
       ['pilot-outline','Finalize the episode outline template','Make one reusable outline that keeps structure without making Nick and Jenny sound scripted.'],
-      ['pilot-shownotes','Create the show-notes template','Include movie info, cocktail, guest links, credits, Romantiverse rules, and the standard listener CTA.'],
+      ['pilot-shownotes','Create the show-notes template','Include movie info, cocktail, guest links, credits, bingo highlights, and the standard listener CTA.'],
       ['pilot-qc','Create a final QC checklist','Listen for edits, wrong names, clipped audio, missing music, broken links, explicit-language flags, and bad metadata.'],
       ['pilot-buffer','Bank at least 2 finished episodes before launch','Give yourselves breathing room so week two does not immediately become an emergency.',true]
     ]
@@ -70,7 +70,7 @@ const PC_PHASES = [
       ['assets-handles','Reserve the Cheese Louise social handles','Claim the same or closest possible name everywhere you realistically plan to use.'],
       ['assets-social-kit','Create profile images, headers, and bios','Make every profile obviously the same show and give each bio a clear follow/listen CTA.'],
       ['assets-video-template','Build a vertical clip template','Create one repeatable captioned layout for Shorts/Reels/TikTok so clipping is fast.'],
-      ['assets-quote-template','Build a still/quote post template','Make a simple reusable graphic for jokes, rules, polls, guest announcements, and movie picks.'],
+      ['assets-quote-template','Build a still/quote post template','Make a simple reusable graphic for jokes, tropes, polls, guest announcements, and movie picks.'],
       ['assets-photo-bank','Create a small photo/visual bank','Collect clean photos of Nick and Jenny, podcast setup, cocktails, movie-night imagery, and brand art.'],
       ['assets-press-kit','Create a lightweight guest/press kit','Keep the show description, hosts bio, artwork, photos, links, and contact info in one shareable place.'],
       ['assets-contact','Create a public show contact route','Set a show email or contact form for guests, listeners, press, and partnerships.']
@@ -80,7 +80,7 @@ const PC_PHASES = [
     id:'prelaunch', stage:'launch', icon:'📣', title:'6. Pre-launch marketing',
     description:'Create awareness before asking the first episode to do all the work.',
     tasks:[
-      ['prelaunch-content-bank','Bank at least 8–10 social posts','Have enough clips, images, jokes, rules, polls, and behind-the-scenes posts to survive launch week.'],
+      ['prelaunch-content-bank','Bank at least 8–10 social posts','Have enough clips, images, jokes, tropes, polls, and behind-the-scenes posts to survive launch week.'],
       ['prelaunch-countdown','Plan a simple launch countdown','Schedule a few clear beats: show reveal, trailer, hosts/premise, first movies, launch date.'],
       ['prelaunch-warm-list','Make the warm-launch share list','List friends, coworkers, comedians, movie fans, and communities who would genuinely enjoy the show.'],
       ['prelaunch-guests','Line up the first guest/collaboration targets','Keep a ranked outreach list with local comedians, movie people, and stretch guests.'],
@@ -126,7 +126,7 @@ const PC_PHASES = [
       ['growth-search','Improve searchable episode titles and descriptions','Include the movie, guest, and useful terms without turning titles into keyword soup.'],
       ['growth-youtube','Build a useful YouTube presence','Publish full episodes or strong visual versions plus Shorts so the show can be discovered outside podcast apps.'],
       ['growth-crosspromo','Arrange podcast swaps and cross-promotions','Trade guest spots, promo mentions, or feed swaps with shows that share the right audience.'],
-      ['growth-community','Give listeners recurring ways to participate','Use movie voting, Rules disputes, bingo, cocktail picks, and questions that can feed the next episode.'],
+      ['growth-community','Give listeners recurring ways to participate','Use movie voting, trope debates, bingo, cocktail picks, and questions that can feed the next episode.'],
       ['growth-email','Start an owned listener list','Give interested listeners an email/newsletter option so the relationship is not dependent on algorithms.'],
       ['growth-local','Use the Denver/Evergreen comedy network','Invite comics, attend shows, trade appearances, and turn local relationships into genuine audience overlap.']
     ]
@@ -434,18 +434,11 @@ function openPodcastLaunchChecklist(){
   window.scrollTo(0,0);
 }
 
-// Extend the existing Show Lab / Rules hub without adding a sixth bottom tab.
-rvRulesHubNav = function(){
-  return `<section class="section"><div class="toolbar" style="margin-bottom:0">
-    <button class="filter ${romantiverseHubView==='lab'?'active-filter':''}" onclick="openShowLabView()">💡 Show Lab</button>
-    <button class="filter ${romantiverseHubView==='rules'?'active-filter':''}" onclick="openRomantiverseRules()">📜 Rules of the Romantiverse</button>
-    <button class="filter ${romantiverseHubView==='checklist'?'active-filter':''}" onclick="openPodcastLaunchChecklist()">🚀 Podcast 101</button>
-  </div></section>`;
-};
+// Keep Podcast 101 alongside the active production resources.
 
 const pcOriginalIdeas=ideas;
 ideas=function(){
-  if(romantiverseHubView==='checklist') return rvRulesHubNav()+pcChecklistPage();
+  if(romantiverseHubView==='checklist') return productionHubNav()+pcChecklistPage();
   return pcOriginalIdeas();
 };
 

@@ -49,16 +49,6 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Trait combinations, minimum Cheese Rating, Holiday, Season, provider, and release-timing filtering
 - Saved filter presets
 
-### Rules of the Romantiverse
-
-- Shared persistent rulebook for Nick and Jenny
-- Automatic stable rule numbering
-- **Canon**, **Proposed**, and **Retired** states
-- Notes/examples on each rule
-- Search and status filtering
-- Rules stay in the historical log instead of being deleted when they stop applying
-- Rule changes appear in shared activity
-
 ### Cheese Louise Bar
 
 - Shared cocktail library with two clear types: **Original Cocktail** and **Cheese Louise Cocktail**
@@ -83,7 +73,7 @@ A mobile-first shared podcast workspace and cheesy-movie hunting system for **Ch
 - Episode pipeline with status, linked movie, release date, guest, cocktail, working notes, and full episode outline editor
 - Shared schedule for watch, record, edit, release, premiere, guest, and other events
 - Show Lab with Ideas / Testing / Working / Retired stages
-- Show Lab and Rules of the Romantiverse share the same planning area
+- Show Lab, Podcast 101, and Bingo share production-resource navigation
 - Quick capture and explicit Show Lab idea creation
 
 ## Movie discovery source

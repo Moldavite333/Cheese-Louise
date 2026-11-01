@@ -136,7 +136,7 @@ loadAll=async function(){
 const traitArtOriginalAddTrait=addTrait;
 addTrait=async function(){
   const name=prompt('New Cheese Trait:'); if(!name) return;
-  const category=prompt('Category:','Romantiverse Rules')||'Other';
+  const category=prompt('Category:','Cheese Traits')||'Other';
   const raw=prompt('Point value (0–50):','5');
   const points=Math.max(0,Math.min(50,Number(raw)||0));
   const cleanName=name.trim();const cleanCategory=category.trim()||'Other';
@@ -271,7 +271,7 @@ function traitArtWrapCanvasText(ctx,text,x,y,maxWidth,maxLines,fontSize){
 async function traitArtIllustratedCanvas(){
   if(!rvBingoDraft)return null;
   const canvas=document.createElement('canvas');canvas.width=1400;canvas.height=1600;const ctx=canvas.getContext('2d');const C=TRAIT_ART_COLORS;
-  ctx.fillStyle=C.cream;ctx.fillRect(0,0,1400,1600);ctx.fillStyle=C.green;ctx.fillRect(0,0,1400,210);ctx.textAlign='center';ctx.fillStyle=C.gold;ctx.font='700 30px Georgia';ctx.fillText('CHEESE LOUISE',700,48);ctx.fillStyle=C.cream;ctx.font='900 68px Arial';ctx.fillText('ROMANTIVERSE BINGO',700,118);ctx.font='28px Georgia';ctx.fillText('Unlocking the Rules of the Romantiverse',700,165);ctx.fillStyle=C.red;ctx.fillRect(80,230,1240,8);
+  ctx.fillStyle=C.cream;ctx.fillRect(0,0,1400,1600);ctx.fillStyle=C.green;ctx.fillRect(0,0,1400,210);ctx.textAlign='center';ctx.fillStyle=C.gold;ctx.font='700 30px Georgia';ctx.fillText('CHEESE LOUISE',700,48);ctx.fillStyle=C.cream;ctx.font='900 68px Arial';ctx.fillText('ROMANTIVERSE BINGO',700,118);ctx.font='28px Georgia';ctx.fillText('Unlocking the Mysteries of the Romantiverse',700,165);ctx.fillStyle=C.red;ctx.fillRect(80,230,1240,8);
   const x0=80,y0=270,size=248;
   for(let i=0;i<25;i++){
     const col=i%5,row=Math.floor(i/5),x=x0+col*size,y=y0+row*size,free=i===12;ctx.fillStyle=free?C.gold:'#fffaf0';ctx.fillRect(x,y,size,size);ctx.strokeStyle=C.green;ctx.lineWidth=5;ctx.strokeRect(x,y,size,size);

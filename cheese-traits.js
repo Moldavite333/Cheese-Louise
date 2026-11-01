@@ -272,7 +272,7 @@ async function suggestTraits(movieId){
 
 async function addTrait(){
   const name=prompt('New Cheese Trait:'); if(!name) return;
-  const category=prompt('Category:','Romantiverse Rules')||'Other';
+  const category=prompt('Category:','Cheese Traits')||'Other';
   const raw=prompt('Point value (0–50):','5');
   const points=Math.max(0,Math.min(50,Number(raw)||0));
   const maxSort=Math.max(0,...state.traits.map(t=>Number(t.sort_order)||0));

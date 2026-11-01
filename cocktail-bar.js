@@ -1,5 +1,5 @@
 // Cheese Louise v1.12 — Cocktail Bar + movie/cocktail matchmaker
-// Loaded after the Romantiverse rules layer so it can use the final shared state.
+// Uses the shared production workspace state.
 
 state.cocktails = state.cocktails || [];
 
@@ -476,7 +476,7 @@ v16EpisodeModal = function(){
         <div class="cl-dual-buttons" style="margin-top:10px"><button type="button" class="secondary" onclick="showEpisodeCocktailMatches('original')">Original Cocktail</button><button type="button" class="secondary" onclick="showEpisodeCocktailMatches('cheese_louise')">Cheese Louise Cocktail</button></div>
         <div id="epCocktailMatches">${episodeCocktailMatchType?clEpisodeMatchHtml(e.movie_id,episodeCocktailMatchType):'<div class="subtle" style="margin-top:8px">Use either button to rank cocktails against the linked movie.</div>'}</div>
       </label>
-      <label class="wide">Episode outline<textarea id="epOutline" class="search" rows="12" placeholder="Welcome / intro\nCocktail of the week\nGame\nGuest intro\nRecap + discussion\nRules of the Romantiverse\nRomantiverse Bingo…">${esc(e.outline||'')}</textarea></label>
+      <label class="wide">Episode outline<textarea id="epOutline" class="search" rows="12" placeholder="Welcome / intro\nCocktail of the week\nGame\nGuest intro\nRecap + discussion\nRomantiverse Bingo…">${esc(e.outline||'')}</textarea></label>
       <label class="wide">Working notes<textarea id="epNotes" class="search" rows="6" placeholder="Bits, callbacks, research, things to remember…">${esc(e.notes||'')}</textarea></label>
     </div>
     <div class="episode-editor-actions"><button class="primary" onclick="saveEpisode('${e.id}')">Save episode</button><button class="secondary" onclick="scheduleEpisode('${e.id}')">📅 Schedule recording</button><button class="secondary" onclick="openCocktailBarFromEpisode()">🍸 Cocktail Bar</button></div>

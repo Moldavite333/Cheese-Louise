@@ -141,7 +141,7 @@ function v16EpisodeModal(){
       <label class="wide">Movie<select id="epMovie" class="search">${v16MovieOptions(e.movie_id||'')}</select></label>
       <label>Guest<input id="epGuest" class="search" value="${esc(e.guest||'')}"></label>
       <label>Cocktail<input id="epCocktail" class="search" value="${esc(e.cocktail||'')}"></label>
-      <label class="wide">Episode outline<textarea id="epOutline" class="search" rows="12" placeholder="Welcome / intro\nCocktail of the week\nGame\nGuest intro\nRecap + discussion\nRules of the Romantiverse\nRomantiverse Bingo…">${esc(e.outline||'')}</textarea></label>
+      <label class="wide">Episode outline<textarea id="epOutline" class="search" rows="12" placeholder="Welcome / intro\nCocktail of the week\nGame\nGuest intro\nRecap + discussion\nRomantiverse Bingo…">${esc(e.outline||'')}</textarea></label>
       <label class="wide">Working notes<textarea id="epNotes" class="search" rows="6" placeholder="Bits, callbacks, research, things to remember…">${esc(e.notes||'')}</textarea></label>
     </div>
     <div class="episode-editor-actions"><button class="primary" onclick="saveEpisode('${e.id}')">Save episode</button><button class="secondary" onclick="scheduleEpisode('${e.id}')">📅 Schedule recording</button></div>
