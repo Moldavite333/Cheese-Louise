@@ -38,6 +38,7 @@
       traitIds: [...new Set(movie.selectedTraitIds || [])],
       notes: '',
       rules: '',
+      rundownText: '',
       outline: '',
       outlineItems: [],
       updatedAt: new Date().toISOString()
@@ -245,16 +246,34 @@
     ].join('\n').trim();
   }
 
+  function currentRundownText(movie = watchMovie(), draft = getDraft(movie)) {
+    const saved = String(draft?.rundownText || '').trim();
+    return saved || watchRundownText(movie, draft);
+  }
+
   window.watchAlongGenerateRundown = function() {
     const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    draft.rundownText = watchRundownText(movie, draft);
+    putDraft(draft);
     const preview = document.getElementById('watchRundownPreview');
-    if (preview && movie) preview.textContent = watchRundownText(movie, getDraft(movie));
+    if (preview) preview.value = draft.rundownText;
+  };
+
+  window.watchAlongSaveRundown = function(value) {
+    const movie = watchMovie();
+    const draft = getDraft(movie);
+    if (!movie || !draft) return;
+    draft.rundownText = String(value || '');
+    putDraft(draft);
   };
 
   window.watchAlongCopyRundown = async function() {
     const movie = watchMovie();
     if (!movie) return;
-    const content = watchRundownText(movie, getDraft(movie));
+    const preview = document.getElementById('watchRundownPreview');
+    const content = String(preview?.value || currentRundownText(movie, getDraft(movie)));
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(content);
       else {
@@ -268,9 +287,24 @@
       }
       alert('Copied. Paste the rundown into Samsung Notes.');
     } catch {
-      const preview = document.getElementById('watchRundownPreview');
-      if (preview) preview.textContent = content;
       alert('Automatic copy unavailable. Select and copy the rundown text.');
+    }
+  };
+
+  window.watchAlongShareRundown = async function() {
+    const movie = watchMovie();
+    if (!movie) return;
+    const preview = document.getElementById('watchRundownPreview');
+    const content = String(preview?.value || currentRundownText(movie, getDraft(movie)));
+    const title = `Cheese Louise — ${movie.title || 'Recording rundown'}`;
+    if (typeof navigator.share !== 'function') {
+      await window.watchAlongCopyRundown();
+      return;
+    }
+    try {
+      await navigator.share({ title, text: content });
+    } catch (error) {
+      if (error?.name !== 'AbortError') alert('Could not open sharing. Your rundown is still saved here.');
     }
   };
 
@@ -341,10 +375,12 @@
             <div class="watch-panel-head"><div><div class="kicker">Recording prep</div><h2>Episode Rundown</h2></div></div>
             <div class="subtle">A condensed guide using your existing talk order and Watch Notes.</div>
             <div class="watch-outline-tools">
-              <button class="primary" type="button" onclick="watchAlongGenerateRundown()">Refresh Rundown</button>
+              <button class="primary" type="button" onclick="watchAlongGenerateRundown()">Rebuild from notes</button>
               <button class="secondary" type="button" onclick="watchAlongCopyRundown()">Copy to Samsung Notes</button>
+              <button class="secondary" type="button" onclick="watchAlongShareRundown()">Share rundown</button>
             </div>
-            <pre id="watchRundownPreview" class="watch-rundown-preview" tabindex="0" aria-label="Episode rundown preview" style="font:inherit;line-height:1.5">${esc(watchRundownText(movie,draft))}</pre>
+            <textarea id="watchRundownPreview" class="watch-rundown-preview" aria-label="Editable episode rundown" oninput="watchAlongSaveRundown(this.value)">${esc(currentRundownText(movie,draft))}</textarea>
+            <div class="subtle">Edit this version freely. Rebuild only when you want to replace it with the latest Watch Notes and talk order.</div>
           </div>
         </div>
       </section>
@@ -667,3 +703,4 @@
   patchTabs();
   patchRender();
 })();
+
