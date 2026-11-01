@@ -10,7 +10,7 @@ let clGeneratedForMovieId = '';
 let clGeneratedContext = 'bar';
 
 const CL_COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
-const CL_COCKTAILDB_CACHE_KEY = 'cheeseLouiseCocktailDB_v113';
+const CL_COCKTAILDB_CACHE_KEY = 'cheeseLouiseCocktailDB_v114';
 const CL_COCKTAILDB_CACHE_MS = 24 * 60 * 60 * 1000;
 const CL_COCKTAIL_INTELLIGENCE_VERSION = 'v1.13';
 
@@ -68,14 +68,14 @@ const CL_CRAFT_TREND_LENSES = [
 
 const CL_SPIRIT_RULES = [
   [/rye whiskey|rye\b/i,'Rye'],[/bourbon/i,'Bourbon'],[/scotch/i,'Scotch'],[/irish whiskey/i,'Irish Whiskey'],[/whisk(?:e)?y/i,'Whiskey'],
-  [/gin/i,'Gin'],[/dark rum|aged rum/i,'Aged Rum'],[/white rum|light rum/i,'White Rum'],[/rum/i,'Rum'],
+  [/\bgin\b/i,'Gin'],[/dark rum|aged rum/i,'Aged Rum'],[/white rum|light rum/i,'White Rum'],[/\brum\b/i,'Rum'],
   [/mezcal/i,'Mezcal'],[/tequila/i,'Tequila'],[/pisco/i,'Pisco'],[/cachaca|cachaça/i,'Cachaça'],
   [/cognac/i,'Cognac'],[/brandy/i,'Brandy'],[/vodka/i,'Vodka'],[/champagne|prosecco|sparkling wine/i,'Sparkling Wine'],
   [/sherry/i,'Sherry'],[/port\b/i,'Port'],[/vermouth/i,'Vermouth'],[/wine/i,'Wine']
 ];
 
 const CL_INGREDIENT_TAG_RULES = [
-  [/gin|juniper/i,['gin','botanical','herbal']],
+  [/\bgin\b|juniper/i,['gin','botanical','herbal']],
   [/rye/i,['rye','whiskey','warming','spirit-forward','amber']],
   [/bourbon/i,['bourbon','whiskey','warming','spirit-forward','amber']],
   [/whisk(?:e)?y|scotch/i,['whiskey','warming','spirit-forward','amber']],
@@ -106,8 +106,8 @@ const CL_INGREDIENT_TAG_RULES = [
   [/simple syrup|sugar|syrup|grenadine/i,['sweet']],
   [/bitters/i,['bitter','spiced','spirit-forward']],
   [/soda|club soda|tonic|ginger ale/i,['highball','refreshing','long']],
-  [/beer|ale/i,['beer','long','casual']],
-  [/tea/i,['tea','craft','low-abv']]
+  [/(?<!ginger )\bbeer\b|(?<!ginger )\bale\b/i,['beer','long','casual']],
+  [/\btea\b/i,['tea','craft']]
 ];
 
 const CL_MOVIE_FINGERPRINT_RULES = [
@@ -133,11 +133,11 @@ const CL_MOVIE_FINGERPRINT_RULES = [
   [/widow|widower|late husband|late wife|dead spouse|deceased spouse/i,['bittersweet','dark','spirit-forward','warming']],
   [/single mom|single dad|single mother|single father/i,['family','cozy','approachable']],
   [/executive|corporate|lawyer|attorney|ceo|big city|new york|manhattan/i,['city','elegant','martini','night']],
-  [/christmas|holiday/i,['holiday','winter','cranberry','warming','baking-spice','sparkling']],
+  [/\bchristmas\b|\bxmas\b/i,['holiday','winter','cranberry','warming','baking-spice','sparkling']],
   [/halloween|spooky|haunted/i,['halloween','dark','spiced','berry','playful']],
   [/valentine|valentine's/i,['valentines','romantic','berry','floral','sparkling','pink']],
   [/new year|new year's/i,['new-years','celebratory','sparkling','elegant','night']],
-  [/fall|autumn|harvest/i,['fall','apple','maple','warming','spiced']],
+  [/\bautumn\b|\bharvest\b|\bfall festival\b/i,['fall','apple','maple','warming','spiced']],
   [/spring/i,['spring','floral','light','citrus']],
   [/summer/i,['summer','refreshing','citrus','tropical']],
   [/cozy|fireplace|fireside/i,['cozy','warming','rich']],
@@ -226,9 +226,15 @@ function clInferFamily(candidate){
   return category ? category.replace(/\b\w/g,c=>c.toUpperCase()) : 'Cocktail';
 }
 
+function clRecipeRows(candidate){
+  if(Array.isArray(candidate?.ingredientRows) && candidate.ingredientRows.length) return candidate.ingredientRows;
+  return String(candidate?.ingredients||'').split(/\n+/).filter(s=>s.trim()).map(ingredient=>({ingredient}));
+}
+
 function clDeriveCocktailTags(candidate){
-  const rows=candidate?.ingredientRows||[];
-  const text=[candidate?.name,candidate?.source_category,candidate?.glassware,candidate?.method,...rows.map(r=>r.ingredient)].filter(Boolean).join(' ');
+  const rows=clRecipeRows(candidate);
+  // Names and directions are not ingredients ("Ginger Sunset", "stir", "tall glass").
+  const text=rows.map(r=>r.ingredient).join(' ');
   const tags=new Set();
   for(const [re,vals] of CL_INGREDIENT_TAG_RULES) if(re.test(text)) vals.forEach(v=>tags.add(clCleanTag(v)));
   const family=clInferFamily({...candidate,ingredientText:text});
@@ -300,7 +306,7 @@ async function clLoadOnlineCatalog(force=false){
     for(let i=0;i<letters.length;i+=5){
       const batch=letters.slice(i,i+5);
       const results=await Promise.all(batch.map(async letter=>{
-        const res=await fetch(`${CL_COCKTAILDB_BASE}/1/search.php?f=${letter}`);
+        const res=await fetch(`${CL_COCKTAILDB_BASE}/search.php?f=${letter}`);
         if(!res.ok) throw new Error(`Cocktail source returned ${res.status}`);
         const json=await res.json();
         return json?.drinks||[];
@@ -333,6 +339,10 @@ function clFingerprintAdd(map,tag,weight=1){
 }
 
 function clMovieFingerprint(movie){
+  const ids=new Set((movie?.selectedTraitIds||[]).map(String));
+  const traits=new Map((movie?.selectedTraits||[]).map(t=>[String(t.id||t.name),t]));
+  for(const trait of state.traits||[]) if(ids.has(String(trait.id))) traits.set(String(trait.id),trait);
+  movie={...movie,selectedTraits:[...traits.values()]};
   const weights=new Map();
   const evidence=[];
   const add=(tags,weight,why)=>{
@@ -376,12 +386,13 @@ function clCandidateFingerprint(candidate){
   const add=(tags,w=1)=>{ for(const t of tags||[]) clFingerprintAdd(weights,t,w); };
   add(candidate?.flavor_tags||[],3);
   add([candidate?.base_spirit,candidate?.style,candidate?.holiday,candidate?.season,candidate?.source_category],3);
-  const ingredientRows=candidate?.ingredientRows||[];
+  const ingredientRows=clRecipeRows(candidate);
   for(const row of ingredientRows){
-    const temp={name:candidate?.name,ingredientRows:[row],source_category:candidate?.source_category,glassware:candidate?.glassware,method:candidate?.method};
+    const temp={ingredientRows:[row]};
     add(clDeriveCocktailTags(temp),2);
   }
   if(candidate?.iba_official) add(['classic','iba-official'],2);
+  add(clDeriveCocktailTags({...candidate,ingredientRows}),2);
   return weights;
 }
 
@@ -598,16 +609,18 @@ function clBuildGeneratedVariant(movie,selection,index){
 function clGenerateThree(movieId,context='bar'){
   const movie=(state.movies||[]).find(m=>m.id===movieId);
   if(!movie) return;
-  if(!clOnlineCatalogStatus.loaded && !(state.onlineCocktails||[]).length){
+  if(!clOnlineCatalogStatus.loaded && !clMergedOriginalCatalog().length){
     clGeneratedVersions=[];
     clGeneratedForMovieId=movieId;
     clGeneratedContext=context;
     clLoadOnlineCatalog(false).then(()=>{
-      if(clOnlineCatalogStatus.loaded) clGenerateThree(movieId,context);
+      // A request for an old movie must not overwrite a newer selection.
+      if(clGeneratedForMovieId===movieId && clGeneratedContext===context && clMergedOriginalCatalog().length) clGenerateThree(movieId,context);
     });
     return;
   }
-  const picks=clPickThreeBases(movie);
+  const previous=clGeneratedForMovieId===movieId ? clGeneratedVersions.map(v=>v.base.name) : [];
+  const picks=clPickThreeBases(movie,previous);
   clGeneratedVersions=picks.map((p,i)=>clBuildGeneratedVariant(movie,p,i));
   clGeneratedForMovieId=movieId;
   clGeneratedContext=context;
@@ -894,3 +907,4 @@ let clIntWarmAttempts=0;
   if(session && workspace){ clWarmOnlineCatalog(); return; }
   if(clIntWarmAttempts++<20) setTimeout(clIntWaitForWorkspace,350);
 })();
+
