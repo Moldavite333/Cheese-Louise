@@ -274,6 +274,16 @@
     }
   };
 
+  function watchGratingSummaryHtml(draft,location){
+    const selected=new Set(draft.traitIds||[]);
+    const traits=(state.traits||[]).filter(t=>selected.has(t.id));
+    const total=traits.reduce((sum,t)=>sum+Number(t.points||0),0);
+    return `<div class="watch-grating-subtotal" data-watch-grating-summary="${location}" ${location==='traits'?'role="status" aria-live="polite" aria-atomic="true"':''}>
+      <div><span class="kicker">Cheese Grating</span><span class="watch-grating-count" data-watch-grating-count>${traits.length} trope${traits.length===1?'':'s'} checked</span></div>
+      <strong><span data-watch-grating-value>${total}</span> <span class="watch-grating-unit">points</span></strong>
+    </div>`;
+  }
+
   function watchAlongPage() {
     const movie = watchMovie();
     if (!movie) {
@@ -330,6 +340,7 @@
             <button class="secondary" type="button" onclick="watchAlongShowAll()">Show all</button>
           </div>
           <div id="watchTraitBody" class="watch-trait-body">${traitGridHtml(movie, draft)}</div>
+          ${watchGratingSummaryHtml(draft,'traits')}
         </div>
 
         <div class="watch-writing-stack">
@@ -346,6 +357,7 @@
               <button class="secondary" type="button" onclick="watchAlongCopyRundown()">Copy to Samsung Notes</button>
             </div>
             <pre id="watchRundownPreview" class="watch-rundown-preview" tabindex="0" aria-label="Episode rundown preview" style="font:inherit;line-height:1.5">${esc(watchRundownText(movie,draft))}</pre>
+            ${watchGratingSummaryHtml(draft,'rundown')}
           </div>
         </div>
       </section>
@@ -419,6 +431,8 @@
     const draft=getDraft(movie),selected=new Set(draft.traitIds);
     const total=(state.traits||[]).filter(t=>selected.has(t.id)).reduce((sum,t)=>sum+Number(t.points||0),0);
     for(const el of document.querySelectorAll?.('[data-watch-grating]')||[]) el.textContent=`Cheese Grating: ${total} points`;
+    for(const el of document.querySelectorAll?.('[data-watch-grating-value]')||[]) el.textContent=String(total);
+    for(const el of document.querySelectorAll?.('[data-watch-grating-count]')||[]) el.textContent=`${selected.size} trope${selected.size===1?'':'s'} checked`;
     const count=document.querySelector('[data-watch-trait-count]');if(count)count.textContent=`${selected.size} checked`;
     const body=document.getElementById('watchTraitBody');
     if(body)body.innerHTML=watchTraitQuery==='__selected__'?watchAlongOrderedSelectedHtml(movie,draft):traitGridHtml(movie,draft);

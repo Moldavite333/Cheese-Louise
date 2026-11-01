@@ -7,12 +7,13 @@ function harness(saved={}){
   const storage=new Map(Object.entries(saved)),server=new Map([['a',new Set(['t1'])],['b',new Set()]]);
   let html='',fail=false,gate=null;
   const score={textContent:'5',dataset:{cheeseScoreMovie:'a'}},badge={textContent:''};
+  const subtotals=[{textContent:'5'},{textContent:'5'}],subtotalCounts=[{textContent:''},{textContent:''}];
   const elements=new Map([['watchRundownPreview',{textContent:''}],['watchTraitBody',{innerHTML:''}],['clp-body',{innerHTML:''}],['clp-marker-note',{value:'Keep typing',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}]]);
   const sync={textContent:''},retry={hidden:true};
   const ctx=vm.createContext({console:{...console,warn(){}},Map,Set,Date,Promise,workspace:{id:'w'},session:{user:{id:'u'}},me:()=> 'u',
     state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],score:5},{id:'b',title:'Movie B',selectedTraitIds:[],score:0}],traits:[{id:'t1',name:'Old flame',points:5,is_active:true},{id:'t2',name:'Bakery',points:9,is_active:true}]},
     selectedMovie:null,currentTab:'watchalong',localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
-    document:{getElementById:id=>elements.get(id)||null,querySelector:s=>s==='[data-watch-trait-sync]'?sync:s==='[data-watch-trait-retry]'?retry:null,querySelectorAll:s=>s==='[data-cheese-score-movie]'?[score]:s==='[data-watch-grating]'?[badge]:[],activeElement:null},
+    document:{getElementById:id=>elements.get(id)||null,querySelector:s=>s==='[data-watch-trait-sync]'?sync:s==='[data-watch-trait-retry]'?retry:null,querySelectorAll:s=>s==='[data-cheese-score-movie]'?[score]:s==='[data-watch-grating]'?[badge]:s==='[data-watch-grating-value]'?subtotals:s==='[data-watch-grating-count]'?subtotalCounts:[],activeElement:null},
     navigator:{clipboard:{writeText:async value=>{ctx.copied=value}}},setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,confirm:()=>true,alert(){},
     tabs:()=>'<nav></nav>',render(){},shell:s=>{html=s;},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},esc:x=>String(x??''),
     async loadAll(){const copy=new Map([...server].map(([k,v])=>[k,[...v]]));if(gate)await gate;ctx.state.movies=ctx.state.movies.map(m=>({...m,selectedTraitIds:copy.get(m.id)||[],cheese_score:999,score:999}));},
@@ -23,17 +24,19 @@ function harness(saved={}){
   });ctx.window=ctx;
   async function write(on,movieId,traitId){if(gate)await gate;if(fail)return {error:{message:'Offline'}};if(on)server.get(movieId).add(traitId);else server.get(movieId).delete(traitId);return {error:null};}
   for(const file of ['watch-along.js','recording-hub.js','movie-trait-sync.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
-  return {ctx,storage,server,elements,score,badge,sync,retry,html:()=>html,fail:v=>{fail=v},block:()=>{let release;gate=new Promise(r=>{release=r});return ()=>{gate=null;release();}}};
+  return {ctx,storage,server,elements,score,badge,subtotals,subtotalCounts,sync,retry,html:()=>html,fail:v=>{fail=v},block:()=>{let release;gate=new Promise(r=>{release=r});return ()=>{gate=null;release();}}};
 }
 
 test('a Watch Along check immediately updates the score, card and rundown and saves to shared traits',async()=>{
   const h=harness();await h.ctx.loadAll();
   h.ctx.watchAlongToggleTrait('t2');
   assert.equal(h.ctx.state.movies[0].score,14);assert.equal(h.score.textContent,'14');
+  assert.ok(h.subtotals.every(el=>el.textContent==='14'));assert.ok(h.subtotalCounts.every(el=>el.textContent==='2 tropes checked'));
   assert.match(h.badge.textContent,/14 points/);assert.match(h.elements.get('watchRundownPreview').textContent,/14 points from 2 confirmed/);
   await h.ctx.clMovieTraits.retry('a');assert.equal(h.server.get('a').has('t2'),true);
   assert.equal(h.ctx.clMovieTraits.status('a').pending,0);
   await h.ctx.clMovieTraits.set('a','t1',false);assert.equal(h.score.textContent,'9');
+  assert.ok(h.subtotals.every(el=>el.textContent==='9'));assert.ok(h.subtotalCounts.every(el=>el.textContent==='1 trope checked'));
 });
 test('rapid on/off taps persist the last intent without duplicate counting',async()=>{
   const h=harness();await h.ctx.loadAll();const release=h.block();
