@@ -25,6 +25,7 @@ try{
   discoveryLoaded=true;discoveryLoading=false;discoveryError='';currentTab='home';render();
   state.traits=Array.from({length:18},(_,i)=>({id:'trait-'+i,name:i%2?'An elaborate town festival with a very long name':'An unexpected magical romantic connection',category:'Romance',points:2,is_active:true}));
   state.movies[0].poster_url='/fixture-poster.svg';
+  localStorage.setItem('cheeseLouise:watchAlong:fixture-workspace:draft:fixture-movie',JSON.stringify({traitIds:['trait-0','trait-1'],outlineItems:[{id:'opening-note',type:'note',text:'Open with the enchanted hourglass joke.'},{id:'first-trait',type:'trait',traitId:'trait-0'}],notes:'The snow only appears when the leads argue.\nThe town festival has no boats, just pastries.\nReturn to the coffee-shop callback before Bingo.'}));
   state.activity=[{user_id:'fixture-user',action:'added a movie to the shared Radar.'}];
   state.schedule=[{id:'fixture-event',title:'Record the holiday episode and review the very long production checklist together',item_type:'record',starts_at:new Date().toISOString(),notes:'Fixture calendar item'}];
   render();
@@ -79,6 +80,11 @@ try{
    assert.ok((await agenda.innerText()).includes('very long production checklist'),'Agenda preserves complete event names');
   }
   if(route==='recording'){
+   assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
+   assert.ok(await page.locator('.clp-compact-timer').evaluate(el=>el.getBoundingClientRect().height<90),'Timing stays compact');
+   assert.ok(await page.locator('#clp-total').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)<=18),'Timer digits are secondary');
+   assert.equal(await page.locator('.clp-cue-observation').count(),3,'Observations render as separate cards');
+   assert.ok((await page.locator('.clp-cue-note p').first().innerText()).includes('enchanted hourglass'),'Custom talk order survives recording handoff');
    assert.ok(await page.locator('.hq-topbar').evaluate(el=>el.getBoundingClientRect().height<100),'Recording gets a compact header');
    await page.locator('.clp-sticky-actions').scrollIntoViewIfNeeded();
    if(width<=900)assert.ok(await page.evaluate(()=>document.querySelector('.clp-sticky-actions').getBoundingClientRect().bottom<=document.querySelector('.hq-mobile-nav').getBoundingClientRect().top+1),'Recording actions clear mobile navigation');

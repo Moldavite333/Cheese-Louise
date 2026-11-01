@@ -51,3 +51,23 @@ test('checked-trait view survives redraw and string-encoded movie credits are in
 test('live recording redraw keeps an unfinished marker note and its category',()=>{
  const h=harness(recording);h.elements.get('clp-marker-note').value='Do not lose this pickup';h.elements.get('clp-marker-type').value='Retake';h.context.render();assert.equal(h.elements.get('clp-marker-note').value,'Do not lose this pickup');assert.equal(h.elements.get('clp-marker-type').value,'Retake');
 });
+test('recording uses Watch Along talk order and separates observations into labeled cue cards',()=>{
+ const draft={traitIds:['t1'],outlineItems:[{id:'note1',type:'note',text:'Lead with the coffee joke.'},{id:'trait1',type:'trait',traitId:'t1'},{id:'note2',type:'note',text:'Return to the opening callback.'}],notes:'First observation.\nSecond observation.'};
+ const h=harness(recording,{'cheeseLouise:watchAlong:workspace-test:draft:a':JSON.stringify(draft)});h.context.render();
+ const html=h.html();assert.ok(html.indexOf('Lead with the coffee joke.')<html.indexOf('Old flame'));assert.ok(html.indexOf('Old flame')<html.indexOf('Return to the opening callback.'));
+ assert.equal((html.match(/class="clp-cue clp-cue-observation"/g)||[]).length,2);
+ assert.ok(html.includes('clp-cue-trait'));assert.ok(html.includes('clp-cue-note'));assert.ok(html.includes('clp-compact-timer'));
+});
+test('long note chunks keep every sentence and escape markup without changing recording timing',()=>{
+ const sentences=Array.from({length:12},(_,i)=>'Observation '+i+': the long callback belongs in our discussion.');
+ const draft={notes:sentences.join(' ')+' <script>unsafe</script>'};
+ const h=harness(recording,{'cheeseLouise:watchAlong:workspace-test:draft:a':JSON.stringify(draft)});h.context.clProduction.start();h.advance(5000);h.context.render();
+ const html=h.html();for(const sentence of sentences)assert.ok(html.includes(sentence));assert.ok(!html.includes('<script>unsafe</script>'));assert.ok(html.includes('&lt;script&gt;unsafe&lt;/script&gt;'));
+ assert.ok((html.match(/class="clp-cue clp-cue-observation"/g)||[]).length>1);
+ assert.equal(h.data().session.runningSince,100000);assert.equal(h.data().session.laps.length,0);
+});
+test('older recording snapshots retain their notes and talking points in the new reading layout',()=>{
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{talkingPoints:['Keep this old talking point'],notes:'Keep this old note'},segment:2,laps:[],markers:[],elapsedMs:9000,runningSince:null,finished:false}};
+ const h=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)});h.context.render();
+ assert.ok(h.html().includes('Keep this old talking point'));assert.ok(h.html().includes('Keep this old note'));assert.equal(h.data().session.elapsedMs,9000);
+});

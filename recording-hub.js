@@ -29,7 +29,14 @@
     const byId=new Map(traits.map(t=>[t.id,t]));
     const selected=(draft.traitIds||movie.selectedTraitIds||[]).map(id=>byId.get(id)).filter(Boolean);
     const confirmed=(movie.selectedTraitIds||[]).map(id=>byId.get(id)).filter(Boolean);
-    return {talkingPoints:selected.map(t=>t.name),notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
+    const outlineItems=(Array.isArray(draft.outlineItems)?draft.outlineItems:[]).flatMap(item=>{
+      if(!item)return [];
+      const trait=item.type==='trait'?byId.get(item.traitId):null;
+      const text=trait?.name||String(item.text||'');
+      return text.trim()?[{type:trait?'trait':'note',text,category:trait?.category||''}]:[];
+    });
+    if(!outlineItems.length&&String(draft.outline||'').trim())outlineItems.push({type:'note',text:String(draft.outline),category:''});
+    return {talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
@@ -38,7 +45,7 @@
   const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
-    return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Rundown, recording timer, and editing markers. Saved on this browser.</p></div></header>'
+    return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Your notes and talk order, ready for the mic.</p></div></header>'
       +'<label class="clp-select">Movie <select onchange="clProduction.movie(this.value)">'+movieList().map(x=>'<option value="'+escapeHtml(x.id)+'" '+(m?.id===x.id?'selected':'')+'>'+escapeHtml(x.title||'Untitled')+'</option>').join('')+'</select></label>'
       +'<div class="clp-tabs">'+[['record','Record'],['edit','Edit'],['socials','Socials']].map(([id,name])=>'<button class="'+(view===id?'selected':'')+'" onclick="clProduction.view(\''+id+'\')">'+name+'</button>').join('')+'</div>'
       +'<section id="clp-body">'+(m?bodyHtml(): '<p>Add a movie in HQ to begin.</p>')+'</section></main>';
@@ -58,21 +65,47 @@
     ].map(([k,v])=>'<p><strong>'+k+':</strong> '+escapeHtml(names(v))+'</p>').join('');
   }
   function rundownSection(n,s){
-    const snap=s.snapshot||{};
     if(n===0)return '<p>Introduce yourselves, share a quick story and settle into the conversation.</p>';
     if(n===1)return '<p>Introduce, taste and react to the Cheesy Concoction.</p>';
-    if(n===2)return '<div class="clp-notes">'+movieCredits(currentMovie())+'<p><strong>Premise:</strong> Brief setup, not a scene-by-scene recap.</p><h4>Ordered tropes</h4><ol>'+((snap.talkingPoints||[]).map(t=>'<li>'+escapeHtml(t)+'</li>').join('')||'<li>No traits selected in Watch Along.</li>')+'</ol><h4>Watch Along notes</h4><p class="clp-watch-notes">'+(snap.notes?escapeHtml(snap.notes):'No notes recorded yet.')+'</p><p><strong>Cheese Grating:</strong> '+Number(snap.grating||0)+' points from '+Number(snap.confirmedCount||0)+' confirmed traits.</p></div>';
+    if(n===2)return '<p>Give a brief premise, then use your talk order and Watch Along cards below.</p>';
     if(n===3)return '<p>Horror-fied mini-game and reactions.</p>';
     if(n===4)return '<p>Give the Cheese Grating, play the Bingo theme sting, and announce the winners. Mention squares naturally during the movie discussion.</p>';
     return '<p>Final thoughts and sign-off.</p>';
   }
+  function noteBlocks(value){
+    const paragraphs=String(value||'').replace(/\r\n?/g,'\n').split(/\n+/).map(text=>text.trim()).filter(Boolean);
+    return paragraphs.flatMap(paragraph=>{
+      if(paragraph.length<=320||typeof Intl.Segmenter!=='function')return [paragraph];
+      const sentences=[...new Intl.Segmenter(undefined,{granularity:'sentence'}).segment(paragraph)].map(item=>item.segment);
+      const blocks=[];let current='';
+      for(const sentence of sentences){if(current&&current.length+sentence.length>320){blocks.push(current.trim());current='';}current+=sentence;}
+      if(current.trim())blocks.push(current.trim());return blocks;
+    });
+  }
+  function cueCard(text,index,type,label){
+    return '<li class="clp-cue clp-cue-'+type+'"><span class="clp-cue-number" aria-hidden="true">'+(index+1)+'</span><div><span class="clp-cue-label">'+escapeHtml(label)+'</span><p>'+escapeHtml(text)+'</p></div></li>';
+  }
+  function recordingNotes(s){
+    const snap=s.snapshot||{},ordered=Array.isArray(snap.outlineItems)&&snap.outlineItems.length?snap.outlineItems:(snap.talkingPoints||[]).map(text=>({type:'trait',text}));
+    const observations=noteBlocks(snap.notes);
+    return '<section class="clp-notebook" aria-labelledby="clp-notes-title"><div class="clp-notebook-head"><div><span class="clp-eyebrow">AT THE MIC</span><h2 id="clp-notes-title">Recording notes</h2></div><span class="clp-snapshot-label">Notes saved for this session</span></div>'+
+      '<div class="clp-note-legend" aria-label="Note colors"><span class="clp-legend-trait">Cheese Traits</span><span class="clp-legend-note">Talking points</span><span class="clp-legend-observation">Watch notes</span></div>'+
+      '<section class="clp-note-group"><h3>Your talk order</h3><ol class="clp-cue-list">'+(ordered.map((item,index)=>cueCard(item.text,index,item.type==='trait'?'trait':'note',item.type==='trait'?'Cheese Trait'+(item.category?' · '+item.category:''):'Talking point')).join('')||'<li class="clp-note-empty">Build your talk order in Watch Along, then update the snapshot here.</li>')+'</ol></section>'+
+      '<section class="clp-note-group"><h3>Watch Along observations</h3><ol class="clp-cue-list">'+(observations.map((text,index)=>cueCard(text,index,'observation','Watch note')).join('')||'<li class="clp-note-empty">No Watch Along notes in this snapshot yet.</li>')+'</ol></section>'+
+      '<div class="clp-grating-cue"><span>Cheese Grating</span><strong>'+Number(snap.grating||0)+' points</strong><small>'+Number(snap.confirmedCount||0)+' confirmed traits · Bingo results follow the discussion</small></div>'+
+      '<details class="clp-credit-reference"><summary>Movie credits & research reference</summary>'+movieCredits(currentMovie())+'</details></section>';
+  }
   function recordHtml(){
     const s=getSession(),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
+    const focused=expandedSegment!==null&&expandedSegment>=0?expandedSegment:i;
     const rows=segments.map((seg,n)=>{
-      const lap=s.laps[n],active=n===i,expanded=expandedSegment===null?active:expandedSegment===n;
-      return '<div class="clp-rundown-row '+(active?'current':'')+'"><button class="clp-rundown-toggle" aria-expanded="'+expanded+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><span>'+(lap?clock(lap.durationMs):active?'<span id="clp-inline-seg">'+clock(segTime)+'</span>':'Target '+seg.target+':00')+' '+(expanded?'▴':'▾')+'</span></button>'+(expanded?'<div class="clp-rundown-detail">'+rundownSection(n,s)+'</div>':'')+'</div>';
+      const lap=s.laps[n],active=n===i;
+      return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):'Target '+seg.target+':00')+'</small></button>';
     }).join('');
-    return '<div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-two-clocks"><div><small>TOTAL TIME</small><strong id="clp-total">'+clock(total)+'</strong><small>Target 45:00</small></div><div><small>CURRENT SEGMENT</small><strong id="clp-segtime">'+clock(segTime)+'</strong><small>'+escapeHtml(segments[i].name)+'</small></div></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div><h2>Episode rundown</h2><div class="clp-rundown">'+rows+'</div><div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Refresh rundown snapshot','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div></aside></div>';
+    return '<div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
+      '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(segments[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
+      '<div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+recordingNotes(s)+
+      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
   function editHtml(){
     const s=getSession();return '<h2>Editing sheet</h2><p>All timestamps are relative to when you started the HQ timer. Start the RØDECaster recording at the same moment for accurate alignment.</p>'
