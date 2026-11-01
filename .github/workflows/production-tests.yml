@@ -24,6 +24,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Check the assembled HQ interface using mocked authentication and data
         run: node scripts/hq-browser-smoke.mjs
+      - name: Check cocktail ranking, details and fresh variations on mobile and desktop
+        run: node scripts/cocktail-browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -223,6 +223,7 @@
   };
 
   function stMovieText(movie){
+    movie=clMatchingMovieContext(movie);
     return [movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)]
       .filter(Boolean).join(' ').toLowerCase();
   }

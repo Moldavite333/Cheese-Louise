@@ -10,7 +10,7 @@
     'my','your','our','their','his','her','this','that','these','those','one','two','three','movie','story','tale'
   ]);
   const TITLE_WEAK = new Set([
-    'love','romance','romantic','christmas','holiday','winter','spring','summer','fall','autumn','wedding','heart','hearts','home','hometown'
+    'love','romance','romantic','christmas','holiday','winter','spring','summer','fall','autumn','wedding','heart','hearts','home','hometown','island','season','promise','day','night','year','new','life','time','town'
   ]);
 
   const MM_SYMBOLS = [
@@ -66,6 +66,7 @@
   function mmCleanWord(word){
     let w=String(word||'').toLowerCase().trim();
     if(!w || w==='s') return '';
+    if(w==='christmas')return w;
     if(w.length>4 && w.endsWith('ies')) w=w.slice(0,-3)+'y';
     else if(w.length>3 && w.endsWith('s') && !w.endsWith('ss')) w=w.slice(0,-1);
     return w;
@@ -76,6 +77,7 @@
   function mmSet(map){ return new Set(map instanceof Map?[...map.keys()]:(Array.isArray(map)?map:[])); }
   function mmHasAny(set,values){ return (values||[]).some(v=>set.has(clCleanTag(v))); }
   function mmMovieText(movie){
+    movie=clMatchingMovieContext(movie);
     return [movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)].filter(Boolean).join(' ');
   }
 
@@ -89,8 +91,8 @@
     const mw=new Set(mmWeakWords(mt)), cw=new Set(mmWeakWords(cn));
     const sharedWeak=[...mw].filter(w=>cw.has(w));
     let score=0,type=null;
-    if(mn===cnorm){score=25;type='exact title/name chemistry';}
-    else if(cnorm.length>=4 && (` ${mn} `.includes(` ${cnorm} `)||` ${cnorm} `.includes(` ${mn} `))){score=22;type='title/name phrase chemistry';}
+    if(mn===cnorm&&shared.length){score=25;type='exact title/name chemistry';}
+    else if(shared.length&&cnorm.length>=4 && (` ${mn} `.includes(` ${cnorm} `)||` ${cnorm} `.includes(` ${mn} `))){score=22;type='title/name phrase chemistry';}
     else if(shared.length){score=Math.min(22,14+(shared[0]?.length>=6?4:2)+Math.max(0,shared.length-1)*3);type='title/name word chemistry';}
     if(sharedWeak.length){score=Math.min(25,score+(score?2:Math.min(4,2+sharedWeak.length)));if(!type)type='title/name theme chemistry';}
     const tokens=[...shared,...sharedWeak];

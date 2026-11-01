@@ -7,6 +7,7 @@ state.onlineCocktails = state.onlineCocktails || [];
 let clOnlineCatalogStatus = { loaded:false, loading:false, error:'', updatedAt:null };
 let clGeneratedVersions = [];
 let clGeneratedForMovieId = '';
+let clGeneratedSignature = '';
 let clGeneratedContext = 'bar';
 let clGenerationRequest = 0;
 
@@ -32,6 +33,10 @@ function clNormName(value){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .toLowerCase().replace(/[’‘]/g,"'")
     .replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+function clMatchingMovieContext(movie={}){
+  return {...movie,summary:[...new Set([movie.summary,movie.synopsis,movie.overview,movie.description].filter(x=>typeof x==='string'&&x.trim()))].join(' ')};
 }
 
 const CL_IBA_NAME_MAP = (()=>{
@@ -96,9 +101,9 @@ const CL_INGREDIENT_TAG_RULES = [
   [/lemon|lime|grapefruit|orange|citrus/i,['citrus','bright','refreshing']],
   [/cranberry|raspberry|blackberry|strawberry|berry/i,['berry','fruity','romantic']],
   [/pineapple|passion fruit|mango|coconut/i,['tropical','fruity','summer']],
-  [/apple|cider/i,['apple','orchard','fall']], [/pear/i,['pear','orchard','elegant']],
+  [/\bapples?\b|\bcider\b/i,['apple','orchard','fall']], [/\bpears?\b/i,['pear','orchard','elegant']],
   [/coffee|espresso|kahlua/i,['coffee','dark','after-dinner','rich']],
-  [/chocolate|cacao|creme de cacao|crème de cacao/i,['chocolate','dessert','rich']],
+  [/chocolate|cacao|cocoa|creme de cacao|crème de cacao/i,['chocolate','dessert','rich']],
   [/cream|milk|half-and-half/i,['creamy','rich','dessert']], [/egg|egg white/i,['foamy','silky','sour']],
   [/ginger/i,['ginger','spicy','warming']], [/mint/i,['mint','fresh','herbal']],
   [/basil|rosemary|thyme|sage/i,['herbal','fresh','craft']],
@@ -112,6 +117,7 @@ const CL_INGREDIENT_TAG_RULES = [
 ];
 
 const CL_MOVIE_FINGERPRINT_RULES = [
+  [/florist|flowers?|garden|lavender|roses?/i,['floral','fresh','herbal']],
   [/bakery|baker|pastry|cupcake|cake shop/i,['bakery','dessert','sweet','vanilla','baking-spice','cozy']],
   [/christmas tree farm|tree farm/i,['tree-farm','herbal','rosemary','juniper','rustic','winter','holiday']],
   [/farm|ranch|country/i,['rustic','country','warming','bourbon']],
@@ -340,6 +346,7 @@ function clFingerprintAdd(map,tag,weight=1){
 }
 
 function clMovieFingerprint(movie){
+  movie=clMatchingMovieContext(movie);
   const ids=new Set((movie?.selectedTraitIds||[]).map(String));
   const traits=new Map((movie?.selectedTraits||[]).map(t=>[String(t.id||t.name),t]));
   for(const trait of state.traits||[]) if(ids.has(String(trait.id))) traits.set(String(trait.id),trait);
@@ -420,11 +427,13 @@ function clRecentUseRows(){
   });
   return rows.map(e=>{
     const local=clCocktailById(e.cocktail_id);
+    const parent=clParentCocktail(local);
     return {
       name:local?.name||e.cocktail||'',
-      base_spirit:local?.base_spirit||'',
+      original_name:parent?.name||local?.name||e.cocktail||'',
+      base_spirit:local?.base_spirit||parent?.base_spirit||'',
       style:local?.style||'',
-      family:local?clInferFamily(local):'',
+      family:parent?clInferFamily(parent):local?clInferFamily(local):'',
       id:local?.id||null
     };
   }).filter(x=>x.name);
@@ -438,7 +447,7 @@ function clDiversityPenalty(candidate){
   const base=clCleanTag(candidate?.base_spirit);
   const family=clCleanTag(clInferFamily(candidate));
   history.slice(0,5).forEach((h,index)=>{
-    if(clNormName(h.name)===name){ const p=index<3?24:12; penalty+=p; notes.push(`-${p} recent repeat`); }
+    if(clNormName(h.name)===name||clNormName(h.original_name)===name){ const p=index<3?24:12; penalty+=p; notes.push(`-${p} recent repeat`); }
   });
   history.slice(0,3).forEach(h=>{
     if(base && clCleanTag(h.base_spirit)===base){ penalty+=5; notes.push('-5 recent base spirit'); }
@@ -683,6 +692,10 @@ function clBuildGeneratedVariant(movie,selection,index){
   };
 }
 
+function clGenerationSignature(movie){
+  const m=clMatchingMovieContext(movie);
+  return JSON.stringify({movie:[m.id,m.title,m.summary,m.season,m.holiday],signals:[...clMovieFingerprint(m).weights],recipes:(state.cocktails||[]).map(c=>[c.id,c.name,c.ingredients,c.flavor_tags,c.base_spirit,c.style,c.season,c.holiday]),online:clOnlineCatalogStatus.updatedAt,recent:clRecentUseRows().slice(0,5)});
+}
 async function clGenerateThree(movieId,context='bar'){
   const request=++clGenerationRequest;
   const movie=(state.movies||[]).find(m=>m.id===movieId);
@@ -697,6 +710,7 @@ async function clGenerateThree(movieId,context='bar'){
     });
     return;
   }
+  const signature=clGenerationSignature(movie);
   const previous=clGeneratedForMovieId===movieId ? clGeneratedVersions.map(v=>v.base.name) : [];
   const picks=clPickThreeBases(movie,previous);
   if(typeof clHydrateCatalogRecipe==='function'){
@@ -704,6 +718,7 @@ async function clGenerateThree(movieId,context='bar'){
     if(request!==clGenerationRequest) return;
   }
   clGeneratedVersions=picks.map((p,i)=>clBuildGeneratedVariant(movie,p,i));
+  clGeneratedSignature=signature;
   clGeneratedForMovieId=movieId;
   clGeneratedContext=context;
   if(context==='bar') render();
@@ -862,6 +877,8 @@ function clSmartOriginalResultCard(result,index,episode=false){
 }
 
 function clGeneratedVersionsHtml(movieId,context='bar'){
+  const movie=(state.movies||[]).find(m=>m.id===movieId);
+  if(movie&&clGeneratedVersions.length&&clGeneratedForMovieId===movieId&&clGeneratedSignature!==clGenerationSignature(movie))return '<div class="subtle" role="status">Movie details or the cocktail library changed. Generate three fresh versions to use the current season, holiday and story.</div>';
   if(clOnlineCatalogStatus.loading && !clGeneratedVersions.length) return '<div class="empty">Loading hundreds of originals, then building your three Cheese Louise versions…</div>';
   if(clOnlineCatalogStatus.error && !clGeneratedVersions.length) return `<div class="empty">Couldn’t reach the online cocktail catalog. ${esc(clOnlineCatalogStatus.error)}</div>`;
   if(clGeneratedForMovieId!==movieId || !clGeneratedVersions.length) return '<div class="subtle" style="margin-top:12px">Tap Cheese Louise Versions and I’ll build three deliberately different options: Familiar, Craft, and Wildcard.</div>';
@@ -919,7 +936,7 @@ async function clGenerateOneFromMatch(id,isExternal){
   if(!base) return;
   const match=clSmartMatch(movie,base);
   const variant=clBuildGeneratedVariant(movie,{role:'Familiar',match},0);
-  clGeneratedVersions=[variant]; clGeneratedForMovieId=movie.id; clGeneratedContext='bar';
+  clGeneratedVersions=[variant]; clGeneratedForMovieId=movie.id; clGeneratedContext='bar';clGeneratedSignature=clGenerationSignature(movie);
   await clEditGeneratedVariant(0);
 }
 
