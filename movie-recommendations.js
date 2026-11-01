@@ -28,7 +28,7 @@ discoverCheeseMovies=async function(force=false){
   if(error)throw error;if(data?.error)throw new Error(data.error);
   if(!Array.isArray(data?.results))throw new Error('Movie recommendations returned an incomplete response.');
   const known=new Set((state.movies||[]).map(m=>clRecNorm(m.title))),seen=new Set(history.ids.map(Number));
-  state.discoveryResults=data.results.filter(m=>!known.has(clRecNorm(m.title))&&!seen.has(Number(m.tmdb_id)));
+  state.discoveryResults=data.results.filter(m=>!clMovieIsHorror(m)&&!known.has(clRecNorm(m.title))&&!seen.has(Number(m.tmdb_id)));
   clRecommendationMeta=data;discoveryLoaded=true;
   const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),batch:(history.batch+1)%10000};
   clRecMemoryHistory.set(clRecStorageKey(),next);
@@ -108,3 +108,7 @@ async function clHydrateSavedPosters(){
 }
 const clRecMovieCard=movieCard;
 movieCard=function(movie){clQueueSavedPoster(movie);return clRecMovieCard(movie);};
+if(typeof movieMatchesCheeseFilters==='function'){
+ const previous=movieMatchesCheeseFilters;
+ movieMatchesCheeseFilters=movie=>!clMovieIsHorror(movie)&&previous(movie);
+}

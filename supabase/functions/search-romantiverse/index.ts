@@ -1,4 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import '../_shared/movie-content-policy.js'
+const isHorror=(globalThis as any).clMovieIsHorror
+const hasGenres=(globalThis as any).clMovieHasGenres
 
 const TMDB='https://api.themoviedb.org/3'
 const cors={
@@ -205,7 +208,7 @@ Deno.serve(async(req:Request)=>{
     const candidateMap=new Map<number,Movie>()
     const addMovies=(rows:any[])=>{
       for(const raw of rows||[]){
-        if(!raw?.id||raw.adult)continue
+        if(!raw?.id||raw.adult||isHorror(raw))continue
         const m=raw as Movie
         const old=candidateMap.get(m.id)
         if(!old||baseRomantiverseScore(m,terms)>baseRomantiverseScore(old,terms)) candidateMap.set(m.id,m)
@@ -281,6 +284,10 @@ Deno.serve(async(req:Request)=>{
         providerData=pair[1]||{}
       }catch(_){detail=entry.movie}
 
+      const genreIds=detail?.genres?.length?detail.genres.map((g:any)=>g.id):entry.movie.genre_ids||[]
+      const classified={...entry.movie,...detail,genre_ids:genreIds}
+      if(!hasGenres(classified)||isHorror(classified))return null
+
       const evidence=searchEvidence(detail,terms,query)
       const us=providerData?.results?.US||{}
       const all=[...(us.flatrate||[]),...(us.free||[]),...(us.ads||[])] as Provider[]
@@ -301,6 +308,7 @@ Deno.serve(async(req:Request)=>{
         tagline:detail?.tagline||null,
         keywords:evidence.keywords.slice(0,30),
         genres,
+        genre_ids:genreIds,
         production_companies:evidence.companies.slice(0,12),
         cast_characters:evidence.characters.slice(0,18),
         external_ids:detail?.external_ids||{},
@@ -324,8 +332,9 @@ Deno.serve(async(req:Request)=>{
       }
     })
 
-    enriched.sort((a,b)=>Number(norm(b.title)===norm(query))-Number(norm(a.title)===norm(query))||b.search_score-a.search_score||b.popularity-a.popularity)
-    const results=enriched.slice(0,maxResults)
+    const safe=enriched.filter((movie:any)=>movie&&!isHorror(movie))
+    safe.sort((a:any,b:any)=>Number(norm(b.title)===norm(query))-Number(norm(a.title)===norm(query))||b.search_score-a.search_score||b.popularity-a.popularity)
+    const results=safe.slice(0,maxResults)
 
     return new Response(JSON.stringify({
       query,

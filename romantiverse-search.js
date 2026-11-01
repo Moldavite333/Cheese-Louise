@@ -20,6 +20,7 @@ function romantiverseSearchCandidate(id){
 
 function romantiverseSearchMatchesFilters(c){
   if(!c) return false;
+  if(typeof clMovieIsHorror!=='function'||clMovieIsHorror(c))return false;
   if(['saved','mutual','yes'].includes(movieFilters?.mode)) return false;
   if(movieFilters?.status && movieFilters.status!=='needs_review') return false;
   if(!clMatchesSeasonHoliday(c)) return false;
@@ -237,6 +238,7 @@ function scheduleRomantiverseSearch(value){
 function ensureRomantiverseCandidateInDiscovery(id){
   const c=romantiverseSearchCandidate(id);
   if(!c) return null;
+  if(typeof clMovieIsHorror!=='function'||clMovieIsHorror(c))return null;
   const rest=(state.discoveryResults||[]).filter(x=>Number(x.tmdb_id)!==Number(id));
   state.discoveryResults=[c,...rest];
   return c;

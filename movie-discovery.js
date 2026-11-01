@@ -96,6 +96,7 @@ window.voteDiscoveredMovie=voteDiscoveredMovie;
 window.discoveryVoteControls=discoveryVoteControls;
 
 function discoveryMatchesCurrentView(c){
+  if(typeof clMovieIsHorror!=='function'||clMovieIsHorror(c))return false;
   const q=(searchText||'').trim().toLowerCase();
   if(q){
     const hay=[c.title,c.summary,c.network,c.holiday,c.season,c.director,...(c.providers||[]),...(c.why||[]),...(c.stars||[])].filter(Boolean).join(' ').toLowerCase();

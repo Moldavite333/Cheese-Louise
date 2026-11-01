@@ -1,4 +1,5 @@
 // Pure ranking logic, shared by the Edge Function and offline regression tests.
+import '../_shared/movie-content-policy.js';
 export const favorites=[
  {title:'Coupled Up for Christmas',year:2023}, {title:'A Christmas Movie Christmas',year:2019},
  {title:'Everything Christmas',year:2023}, {title:'A Biltmore Christmas',year:2023},
@@ -30,7 +31,7 @@ export const featureNames=movie=>{
 };
 export function eligible(movie){
  const g=ids(movie),body=text(movie);
- if(movie.adult||[...g].some(id=>excludedGenres.has(id)))return false;
+ if(movie.adult||globalThis.clMovieIsHorror(movie)||[...g].some(id=>excludedGenres.has(id)))return false;
  if(movie.runtime&&(movie.runtime<65||movie.runtime>135))return false;
  const quirky=featureNames(movie).some(x=>themes.slice(0,6).some(t=>t.name===x));
  const romance=g.has(10749)||/\b(romance|romantic|falls? in love|falling in love|finds? love|love interest|romantic connection)\b/i.test(body)||

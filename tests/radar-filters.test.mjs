@@ -12,9 +12,16 @@ function setup(){
  v16MatchesNetwork:()=>true,v16MatchesRelease:()=>true,discoveryEstimate:()=>({score:0,traits:[]}),discoveryCard:()=>'<div class="new-find-score"></div>',
  db:{functions:{invoke:async(name,{body})=>{requests.push(body);return respond(body.query)}},from:()=>({upsert:async payload=>{saved=payload;return {error:null}}})}};
  context.window=context;context.setSearch=value=>{context.searchText=value};
- vm.createContext(context);for(const file of ['holiday-season-filters.js','movie-taste.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
+ vm.createContext(context);for(const file of ['supabase/functions/_shared/movie-content-policy.js','holiday-season-filters.js','movie-taste.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
  return {context,requests,saved:()=>saved,respond:fn=>{respond=fn},flush:async()=>{for(const [id,timer] of [...timers])if(timer.ms===450){timers.delete(id);timer.fn()}await new Promise(setImmediate)}};
 }
+test('cached external search results cannot display mixed Horror/Romance or explicit horror metadata',()=>{
+ const {context:c}=setup();
+ assert.equal(c.romantiverseSearchMatchesFilters({title:'Mixed',genres:['Romance','Horror']}),false);
+ assert.equal(c.romantiverseSearchMatchesFilters({title:'Mixed',genre_ids:[10749,27]}),false);
+ assert.equal(c.romantiverseSearchMatchesFilters({title:'Unlabeled',keywords:['slasher']}),false);
+ assert.equal(c.romantiverseSearchMatchesFilters({title:'Friendly Christmas Ghost',genres:['Romance','TV Movie'],summary:'A woman falls in love with a friendly ghost.'}),true);
+});
 
 test('taste discovery merges five searches, deduplicates movies and retains more than 36 finds',async()=>{
  const h=setup(),c=h.context;let n=0;

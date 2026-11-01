@@ -79,3 +79,9 @@ Remaining work stays explicit: improve catalog acquisition and metadata classifi
 - A live exclusion test returned 18 additional films with zero overlap with the 22 earlier checked records, including Snowmance, A Kiss Before Christmas, Love Strikes Twice, and A Timeless Christmas. TV romances receive preference; strongly related fantastical theatrical romances can also appear. Sparse genre/keyword tags are handled using explicit synopsis evidence and Fantasy genre metadata, without treating ordinary "Christmas spirit" as a ghost story.
 
 Limits: discovery remains bounded, provider tagging may omit films, and poster lookup may leave an ambiguous movie unresolved. Seen-history is device-local; shared votes still come from the existing workspace. No new database schema or auth policy was introduced.
+
+## Permanent no-horror policy and hourly review
+
+Search and recommendations share `supabase/functions/_shared/movie-content-policy.js` with the browser. It excludes genre ID 27, mixed Horror/Romance, named horror genres, explicit horror keywords and clear horror descriptions. Search applies the rule before and after enrichment and drops unknown genre classifications; browser checks also block cached horror results. Existing saved records are retained but known horror is filtered from Radar. Friendly-ghost romance and magical wishes remain allowed.
+
+The hourly chat monitor is active for read-only health checks and reviewable production improvement proposals. Automatic approval review rejected broad unattended hourly publishing; the accepted monitor does not deploy or mutate production/user records. `HQ-MAINTENANCE.md` documents the check sequence, limits and production backlog, and `scripts/hq-health.mjs` checks the live page, assets and workflow status. Local checks require the desktop app and computer to be running.
