@@ -355,17 +355,17 @@
   clSmartOriginalMatches=function(movie){
     const catalog=clMergedOriginalCatalog()||[];
     const prepared=window.clPrepareCocktailMovie?.(movie);
-    return catalog.map(c=>stTuneResult(movie,baseCompatibility(movie,c,prepared))).sort((a,b)=>
+    const ranked=catalog.map(c=>stTuneResult(movie,baseCompatibility(movie,c,prepared))).sort((a,b)=>
       Number(b.score||0)-Number(a.score||0) ||
       Number(b.rawScore||0)-Number(a.rawScore||0) ||
       Number(b.titleNameMatch?.score||0)-Number(a.titleNameMatch?.score||0) ||
       Number(b.symbolism?.score||0)-Number(a.symbolism?.score||0) ||
       String(a.cocktail?.name||'').localeCompare(String(b.cocktail?.name||''))
     );
+    return clDiversifyCocktailMatches(ranked);
   };
 
   window.clSmartMatch=clSmartMatch;
   window.clSmartOriginalMatches=clSmartOriginalMatches;
   window.clCocktailSeasonAuthenticity=stSeasonScore;
 })();
-

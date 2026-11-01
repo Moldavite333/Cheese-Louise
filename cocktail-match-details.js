@@ -27,7 +27,7 @@ function clMatchContextFromCard(card){
   const cards=scope ? [...scope.querySelectorAll('.cl-smart-match-card')] : [];
   const index=cards.indexOf(card);
   if(index<0) return null;
-  const result=clSmartOriginalMatches(movie)[index];
+  const result=clCocktailRecommendations(movie,episode?4:6)[index];
   if(!result) return null;
   return {episode,movie,result,index};
 }
@@ -233,4 +233,3 @@ window.clSaveDetailOriginal=clSaveDetailOriginal;
 window.clUseDetailForEpisode=clUseDetailForEpisode;
 window.clMakeDetailVariation=clMakeDetailVariation;
 window.clEditSavedDetailCocktail=clEditSavedDetailCocktail;
-

@@ -77,6 +77,19 @@ test('three-way generator does not duplicate bases when the catalog is small',()
   const e=engine(); e.state.cocktails=[drink('Only Cup','Vodka\nLime')];
   assert.equal(e.clPickThreeBases({title:'Our Story'}).length,1);
 });
+test('renamed Manhattan recipes remain one family for shortlist diversity',()=>{
+  const e=engine();
+  assert.equal(e.clCocktailDiversityProfile(drink('WoManhattan','Rum\nSweet vermouth\nCampari')).family,'Manhattan');
+  assert.equal(e.clCocktailDiversityProfile(drink('Red Hook','Rye whiskey\nSweet vermouth\nMaraschino liqueur')).family,'Manhattan');
+  assert.notEqual(e.clCocktailDiversityProfile(drink('Espresso Martini','Vodka\nEspresso\nCoffee liqueur')).family,'Manhattan');
+});
+test('a limited catalog shows fewer distinct options rather than filling the screen with riffs',()=>{
+  const e=engine();e.state.cocktails=Array.from({length:8},(_,i)=>drink('Manhattan '+i,'Rye whiskey\nSweet vermouth\nBitters'));
+  const movie={title:'New York Christmas',holiday:'Christmas',season:'Winter'};
+  assert.equal(e.clSmartOriginalMatches(movie).length,8);
+  assert.equal(e.clCocktailRecommendations(movie,6).length,2);
+  assert.equal(e.clPickThreeBases(movie).length,1);
+});
 test('movie trait IDs contribute to matching, not just hydrated trait objects',()=>{
   const e=engine();e.state.traits=[{id:'bakery',name:'Bakery owner',category:'Setting'}];
   const fp=e.clMovieFingerprint({title:'Our Story',selectedTraitIds:['bakery']});
@@ -90,7 +103,11 @@ test('different movie stories in the same season find different cocktails',()=>{
 });
 test('fresh versions rotate among suitable alternatives without shuffling on render',()=>{
   const e=engine();
-  e.state.cocktails=Array.from({length:8},(_,i)=>drink('Orchard Cup '+i,'Brandy\nApple cider\nMaple syrup\nCinnamon'));
+  e.state.cocktails=Array.from({length:4},(_,i)=>[
+    drink('Orchard Cup '+i,'Brandy\nApple cider\nMaple syrup\nCinnamon'),
+    drink('Orchard Sour '+i,'Brandy\nApple cider\nMaple syrup\nCinnamon\nLemon juice'),
+    drink('Orchard Fizz '+i,'Brandy\nApple cider\nMaple syrup\nCinnamon\nSoda')
+  ]).flat();
   const movie={id:'movie',title:'Harvest Weekend',season:'Fall'};
   const first=e.clPickThreeBases(movie).map(p=>p.match.cocktail.name);
   const next=e.clPickThreeBases(movie,first).map(p=>p.match.cocktail.name);
