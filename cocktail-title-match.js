@@ -33,14 +33,14 @@
     {movie:/\blady\b/i,cocktail:/white lady/i,label:'lady ↔ White Lady',points:8},
     {movie:/dark|storm|stormy|thunder/i,cocktail:/dark .?n.? stormy/i,label:'storm ↔ Dark ’N’ Stormy',points:9},
     {movie:/sunrise|dawn/i,cocktail:/tequila sunrise/i,label:'sunrise ↔ Tequila Sunrise',points:9},
-    {movie:/sea|seaside|ocean|coast|beach/i,cocktail:/sea breeze/i,label:'seaside ↔ Sea Breeze',points:8},
+    {movie:/\b(?:sea|seaside|ocean|coast|beach)\b/i,cocktail:/sea breeze/i,label:'seaside ↔ Sea Breeze',points:8},
     {movie:/paris|france|french/i,cocktail:/french 75|french martini|french connection/i,label:'French setting ↔ French cocktail',points:8},
     {movie:/russia|russian/i,cocktail:/black russian|russian spring punch/i,label:'Russian theme ↔ Russian cocktail',points:9},
     {movie:/cuba|cuban/i,cocktail:/cuba libre|old cuban/i,label:'Cuba ↔ Cuban cocktail',points:9},
     {movie:/singapore/i,cocktail:/singapore sling/i,label:'Singapore ↔ Singapore Sling',points:10},
     {movie:/ireland|irish/i,cocktail:/irish coffee/i,label:'Irish theme ↔ Irish Coffee',points:9},
     {movie:/island|tropical|caribbean|hawaii|beach/i,cocktail:/mai.?tai|pina colada|jungle bird/i,label:'island / tropical ↔ tiki classic',points:7},
-    {movie:/royal|prince|princess|queen|king|duke|duchess/i,cocktail:/royal|queen|king/i,label:'royalty ↔ royal-name cocktail',points:8}
+    {movie:/\b(?:royal|prince|princess|queen|king|duke|duchess)\b/i,cocktail:/\b(?:royal|queen|king)\b/i,label:'royalty ↔ royal-name cocktail',points:8}
   ];
 
   const MM_PERSONALITY = [

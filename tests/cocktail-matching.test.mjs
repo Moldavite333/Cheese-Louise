@@ -154,6 +154,13 @@ test('old saved imports cannot shadow cleaner online versions of the same recipe
   assert.equal(candidates.filter(c=>c.name==='Spice 75').length,1);
   assert.ok(!candidates.find(c=>c.name==='Spice 75').flavor_tags.includes('coffee'));
 });
+test('story symbols do not invent a seaside from research or royalty from baking',()=>{
+  const e=engine();
+  const sea=e.clSmartMatch({title:'Research Partners',summary:'Researchers find a reason to stay.'},drink('Sea Breeze','Vodka\nCranberry\nGrapefruit'));
+  const king=e.clSmartMatch({title:'Baking Together'},drink('Royal Cup','Gin\nLemon'));
+  assert.equal(sea.symbolism.score,0);
+  assert.equal(king.symbolism.score,0);
+});
 test('distinctive movie ingredients and symbols beat generic cozy tags across the shortlist',()=>{
   const e=engine();
   e.state.cocktails=[...oldImports(),drink('Espresso Martini','Vodka\nEspresso\nCoffee liqueur'),drink('Mai Tai','Rum\nLime\nOrgeat\nOrange curacao',{style:'Tiki',flavor_tags:['summer','tropical']}),drink('French 75','Gin\nLemon\nChampagne'),drink('Manhattan','Rye whiskey\nSweet vermouth\nBitters')];
