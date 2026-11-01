@@ -356,6 +356,7 @@
     const catalog=clMergedOriginalCatalog()||[];
     return catalog.map(c=>stTuneResult(movie,baseCompatibility(movie,c))).sort((a,b)=>
       Number(b.score||0)-Number(a.score||0) ||
+      Number(b.rawScore||0)-Number(a.rawScore||0) ||
       Number(b.titleNameMatch?.score||0)-Number(a.titleNameMatch?.score||0) ||
       Number(b.symbolism?.score||0)-Number(a.symbolism?.score||0) ||
       String(a.cocktail?.name||'').localeCompare(String(b.cocktail?.name||''))
