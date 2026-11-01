@@ -28,15 +28,18 @@
     let draft={},hasDraft=false;try{const raw=localStorage.getItem(wk),parsed=JSON.parse(raw||'{}');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed)){draft=parsed;hasDraft=Boolean(raw)}}catch{}
     const traits=(typeof state!=='undefined'?state.traits:[])||[];
     const byId=new Map(traits.map(t=>[t.id,t]));
-    const selected=(draft.traitIds||movie.selectedTraitIds||[]).map(id=>byId.get(id)).filter(Boolean);
+    const selectedIds=window.clMovieTraits?.orderedIds(movie,draft)||(draft.traitIds||movie.selectedTraitIds||[]);
+    const selected=selectedIds.map(id=>byId.get(id)).filter(Boolean);
     const confirmed=(movie.selectedTraitIds||[]).map(id=>byId.get(id)).filter(Boolean);
     const outlineItems=(Array.isArray(draft.outlineItems)?draft.outlineItems:[]).flatMap(item=>{
       if(!item)return [];
+      if(window.clMovieTraits&&item.type==='trait'&&!selectedIds.includes(item.traitId))return [];
       const trait=item.type==='trait'?byId.get(item.traitId):null;
       const text=trait?.name||String(item.text||'');
       return text.trim()?[{type:trait?'trait':'note',text,category:trait?.category||''}]:[];
     });
     if(!outlineItems.length&&String(draft.outline||'').trim())outlineItems.push({type:'note',text:String(draft.outline),category:''});
+    if(window.clMovieTraits&&outlineItems.length){const named=new Set(outlineItems.filter(i=>i.type==='trait').map(i=>i.text));for(const trait of selected)if(!named.has(trait.name))outlineItems.push({type:'trait',text:trait.name,category:trait.category||''});}
     return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
@@ -87,7 +90,13 @@
     return '<li class="clp-cue clp-cue-'+type+'"><span class="clp-cue-number" aria-hidden="true">'+(index+1)+'</span><div><span class="clp-cue-label">'+escapeHtml(label)+'</span><p>'+escapeHtml(text)+'</p></div></li>';
   }
   function recordingNotes(s){
-    const latest=rundown(currentMovie()),saved=s.snapshot||{},snap=latest.hasDraft?latest:saved;
+    const latest=rundown(currentMovie()),saved=s.snapshot||{},knownTraits=new Set((state.traits||[]).map(t=>t.name));
+    const snap=latest.hasDraft?latest:{...saved,talkingPoints:window.clMovieTraits?[...new Set([...(saved.talkingPoints||[]).filter(text=>!knownTraits.has(text)),...latest.talkingPoints])]:(saved.talkingPoints||latest.talkingPoints),grating:latest.grating,confirmedCount:latest.confirmedCount};
+    if(window.clMovieTraits&&!latest.hasDraft&&Array.isArray(snap.outlineItems)){
+      snap.outlineItems=snap.outlineItems.filter(i=>i.type!=='trait'||latest.talkingPoints.includes(i.text));
+      const named=new Set(snap.outlineItems.filter(i=>i.type==='trait').map(i=>i.text));
+      for(const text of latest.talkingPoints)if(!named.has(text))snap.outlineItems.push({type:'trait',text,category:''});
+    }
     const ordered=Array.isArray(snap.outlineItems)&&snap.outlineItems.length?snap.outlineItems:(snap.talkingPoints||[]).map(text=>({type:'trait',text}));
     const observations=noteBlocks(snap.notes);
     const earlier=latest.hasDraft&&saved.notes&&saved.notes!==latest.notes?noteBlocks(saved.notes):[];
@@ -119,7 +128,7 @@
   }
   function socialHtml(){
     const s=getSession(),m=currentMovie(),d=read(),done=d.socials?.[m.id]||{},tasks=['Teaser prepared','Cocktail post prepared','Episode release post prepared','Funny clip selected','Bingo link checked','Posts scheduled'];
-    return '<h2>Jenny’s Socials</h2><p>Prepare and approve posts here. Nothing is published automatically.</p><div class="clp-notes"><strong>'+escapeHtml(m.title)+'</strong><p>Network: '+escapeHtml(m.network||'Not recorded')+' · Season: '+escapeHtml(m.season||'Not recorded')+'</p><p>Cheese Grating: '+Number(s.snapshot?.grating||0)+' points</p><p>Clip candidates: '+s.markers.filter(x=>x.type==='Funny / Clip').length+'</p></div>'
+    return '<h2>Jenny’s Socials</h2><p>Prepare and approve posts here. Nothing is published automatically.</p><div class="clp-notes"><strong>'+escapeHtml(m.title)+'</strong><p>Network: '+escapeHtml(m.network||'Not recorded')+' · Season: '+escapeHtml(m.season||'Not recorded')+'</p><p>Cheese Grating: '+Number(rundown(m).grating||0)+' points</p><p>Clip candidates: '+s.markers.filter(x=>x.type==='Funny / Clip').length+'</p></div>'
       +'<h3>Promotion checklist</h3>'+tasks.map((t,i)=>'<label class="clp-check"><input type="checkbox" '+(done[i]?'checked':'')+' onchange="clProduction.social('+i+',this.checked)"> '+escapeHtml(t)+'</label>').join('')
       +'<div class="clp-actions">'+button('Copy episode starter','copySocial()')+'</div><p class="clp-hint">Use the episode title, confirmed details, and your selected clips as the starting point for captions. Add the verified cocktail and Bingo links before publishing.</p>';
   }
@@ -145,7 +154,8 @@
     social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
     exportCsv(){const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-editing-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     copyEdit(){copy(editingText());},
-    copySocial(){const m=currentMovie(),s=getSession();copy(['CHEESE LOUISE — EPISODE PROMOTION',m.title,'Network: '+(m.network||'Verify network'),'Cheese Grating: '+(s.snapshot?.grating||0),'Clip candidates:',...s.markers.filter(x=>x.type==='Funny / Clip').map(x=>clock(x.atMs)+' '+x.note),'Add verified cocktail recipe, release date, episode link and Bingo link before posting.'].join('\n'));}
+    copySocial(){const m=currentMovie(),s=getSession();copy(['CHEESE LOUISE — EPISODE PROMOTION',m.title,'Network: '+(m.network||'Verify network'),'Cheese Grating: '+(rundown(m).grating||0),'Clip candidates:',...s.markers.filter(x=>x.type==='Funny / Clip').map(x=>clock(x.atMs)+' '+x.note),'Add verified cocktail recipe, release date, episode link and Bingo link before posting.'].join('\n'));},
+    syncTraits(movieId){if(currentTab!=='recording'||currentMovie()?.id!==movieId)return;const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}}
   };
   const oldTabs=tabs;
   tabs=function(...args){const html=oldTabs.apply(this,args);if(html.includes("go('recording')"))return html;return html.replace('</nav>','<button class="'+(currentTab==='recording'?'active':'')+'" onclick="go(\'recording\')"><span class="tab-icon">🎙️</span>Recording</button></nav>');};
