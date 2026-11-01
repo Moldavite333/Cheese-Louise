@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 function engine(){
-  const ctx=vm.createContext({console,Map,Set,Date,Promise,AbortSignal,setTimeout:()=>0,clearTimeout(){},
+  const ctx=vm.createContext({console,Map,Set,Date,Promise,AbortSignal,URL,setTimeout:()=>0,clearTimeout(){},
     document:{head:{appendChild(){}},createElement:()=>({}),getElementById:()=>null},localStorage:{getItem:()=>null,setItem(){}},
     state:{cocktails:[],episodes:[],movies:[],traits:[]},session:null,workspace:null,selectedEpisode:null,selectedMovie:null,
     loadAll(){},episodes(){},home(){},modal(){},go(){},topbar:()=>'',render(){},esc:x=>String(x)});
