@@ -15,7 +15,7 @@ let channel = null;
 let reloadTimer = null;
 
 const esc = (s='') => String(s ?? '').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-const fmtDate = (value) => value ? new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : 'TBD';
+const fmtDate = (value) => value ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(value))?value+'T12:00:00':value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : 'TBD';
 const fmtDateTime = (value) => value ? new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'TBD';
 const me = () => session?.user?.id;
 const memberName = (id) => profiles[id]?.display_name || (id===me() ? profile?.display_name : 'Partner');

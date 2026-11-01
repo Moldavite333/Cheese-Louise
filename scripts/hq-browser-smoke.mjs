@@ -8,7 +8,7 @@ const server=createServer(async(req,res)=>{try{const pathname=new URL(req.url,'h
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch();await mkdir('artifacts',{recursive:true});
 try{
- for(const width of [360,768,1440]){
+ for(const width of [360,768,1024,1440]){
  const page=await browser.newPage({viewport:{width,height:960}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin===origin)return route.continue();return route.fulfill({status:200,contentType:'text/javascript',body:''})});
@@ -22,21 +22,63 @@ try{
   const movie={id:'fixture-movie',title:'Autumn at the Orchard',network:'Hallmark',summary:'A family orchard needs saving.',season:'Autumn',holiday:null,year:2025,tmdb_id:101,tmdb_type:'hallmark',selectedTraitIds:[],selectedTraits:[],comments:[],votes:{},bookmarks:{},tags:[],source_metadata:{production_companies:['Fixture Studio'],director:'Fixture Director'}};
   state=new Proxy({movies:[movie],episodes:[{id:'done',title:'Released episode',status:'published',release_date:'2026-01-01'},{id:'next',title:'Upcoming episode',status:'planning',release_date:'2026-11-02'}],schedule:[],ideas:[],activity:[],traits:[],filterPresets:[],discoveryResults:[],romantiverseSearchResults:[],cocktails:[]},{get(t,p){return p in t?t[p]:[]}});
   discoveryLoaded=true;discoveryLoading=false;discoveryError='';currentTab='home';render();
+  state.traits=Array.from({length:18},(_,i)=>({id:'trait-'+i,name:i%2?'An elaborate town festival with a very long name':'An unexpected magical romantic connection',category:'Romance',points:2,is_active:true}));
+  state.activity=[{user_id:'fixture-user',action:'added a movie to the shared Radar.'}];
+  state.schedule=[{id:'fixture-event',title:'Record the holiday episode and review the very long production checklist together',item_type:'record',starts_at:new Date().toISOString(),notes:'Fixture calendar item'}];
+  render();
  });
  await page.getByRole('heading',{name:'Make the next episode.',exact:true}).waitFor();
  assert.ok(await page.getByRole('heading',{name:'Upcoming episode',exact:true}).isVisible());
+ assert.ok(await page.locator('.hq-overview').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dashboard fits '+width);
  if(width<=900){
   assert.equal(await page.locator('.hq-mobile-nav button').count(),5);
   await page.getByRole('button',{name:'More',exact:true}).click();
   assert.ok(await page.locator('#hq-more-panel').isVisible());
+  assert.equal(await page.locator('#hq-main').evaluate(el=>el.inert),true,'Background is inert while tools menu is open');
+  await page.keyboard.press('Shift+Tab');
+  assert.ok(await page.locator('#hq-more-panel').evaluate(el=>el.contains(document.activeElement)),'Tools menu contains keyboard focus');
   await page.keyboard.press('Escape');assert.ok(!(await page.locator('#hq-more-panel').isVisible()));
+  assert.equal(await page.locator('#hq-main').evaluate(el=>el.inert),false);
+  await page.getByRole('button',{name:'More',exact:true}).click();
+  await page.setViewportSize({width:1024,height:960});
+  await page.waitForFunction(()=>!document.getElementById('hq-main').inert);
+  await page.setViewportSize({width,height:960});
+  assert.equal(await page.locator('#hq-more-button').getAttribute('aria-expanded'),'false','Desktop resize closes the mobile menu');
  }else assert.ok(await page.locator('.hq-sidebar').isVisible());
  await page.screenshot({path:'artifacts/hq-today-'+width+'.png',fullPage:true});
  for(const route of ['movies','watchalong','recording','episodes','schedule','cocktails','cheesetray','producer','lab','checklist']){
   await page.evaluate(id=>hqWorkspace.open(id),route);
   assert.ok((await page.locator('#hq-main').innerText()).length>30,'Route renders '+route);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Route fits '+width+': '+route);
+  assert.ok(await page.locator('#hq-main').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Workspace content fits '+width+': '+route);
+  if(route==='movies'){
+   const clipped=await page.locator('#radarModeToolbar').evaluate(el=>el.scrollWidth>el.clientWidth+1);
+   assert.equal(clipped,false,'Every Radar view control fits without hidden horizontal scrolling');
+  }
+  if(route==='watchalong'){
+   const preview=page.locator('#watchRundownPreview');
+   assert.ok(await preview.evaluate(el=>el.clientHeight<=480),'Rundown preview has bounded height');
+   assert.equal(await preview.getAttribute('tabindex'),'0','Scrollable preview is keyboard accessible');
+   await page.locator('.watch-trait-tools').scrollIntoViewIfNeeded();
+   assert.ok(await page.evaluate(()=>document.querySelector('.watch-trait-tools').getBoundingClientRect().top>=document.querySelector('.hq-topbar').getBoundingClientRect().bottom-1),'Trait tools remain below the header');
+   if(width<=1320){
+    await page.getByRole('link',{name:'Notes',exact:true}).click();
+    assert.ok(await page.locator('#watchNotesPanel').evaluate(el=>el.getBoundingClientRect().top>=document.querySelector('.watch-jump-links').getBoundingClientRect().bottom-1),'Notes jump clears sticky section navigation');
+   }
+  }
+  if(route==='schedule'&&width<=600){
+   const agenda=page.locator('.hq-calendar-agenda');
+   assert.ok(await agenda.isVisible(),'Phone calendar includes a readable agenda');
+   assert.ok((await agenda.innerText()).includes('very long production checklist'),'Agenda preserves complete event names');
+  }
+  if(route==='recording'){
+   assert.ok(await page.locator('.hq-topbar').evaluate(el=>el.getBoundingClientRect().height<100),'Recording gets a compact header');
+   await page.locator('.clp-sticky-actions').scrollIntoViewIfNeeded();
+   if(width<=900)assert.ok(await page.evaluate(()=>document.querySelector('.clp-sticky-actions').getBoundingClientRect().bottom<=document.querySelector('.hq-mobile-nav').getBoundingClientRect().top+1),'Recording actions clear mobile navigation');
+  }
+  await page.evaluate(()=>window.scrollTo(0,0));
+  if(['movies','watchalong','recording','schedule'].includes(route))await page.screenshot({path:'artifacts/hq-layout-'+route+'-'+width+'.png',fullPage:true});
  }
  await page.evaluate(()=>hqWorkspace.open('movies'));
  const search=page.getByRole('searchbox',{name:'Search Movie Radar',exact:true});
@@ -60,5 +102,5 @@ try{
  assert.deepEqual(errors,[],'No JavaScript errors at '+width);
  await page.close();
  }
- console.log('HQ real-browser fixtures passed at phone, tablet, and desktop widths. No live user data was accessed.');
+ console.log('HQ real-browser fixtures passed at phone, tablet, small laptop, and desktop widths. No live user data was accessed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}

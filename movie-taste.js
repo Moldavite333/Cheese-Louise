@@ -63,10 +63,9 @@ function clTastePanel(){
   const filters=Object.entries(clFinderFilterLabels).filter(([key])=>{
     const v=movieFilters[key];return Array.isArray(v)?v.length:v&&v!=='all';
   }).map(([key,label])=>'<button class="filter" onclick="clRemoveFinderFilter(\''+key+'\')">'+esc(label)+': '+esc(Array.isArray(movieFilters[key])?movieFilters[key].length:movieFilters[key])+' ×</button>').join('');
-  return '<div class="card card-pad" style="margin-bottom:14px"><div class="kicker">Your shared taste</div>'+
-    '<p>Starting favorites: '+clTasteFavorites.map(esc).join(' · ')+'.</p>'+
+  return '<div class="card card-pad cl-taste-profile"><div class="kicker">Your shared taste</div>'+
     '<div class="pills">'+clTasteWeights().filter(t=>t.weight>0).map(t=>'<span class="pill">'+esc(t.name)+'</span>').join('')+'</div>'+
-    '<p class="subtle">A starting profile inferred from your favorites. Learns from both people’s shared Yes and No votes ('+votes+' so far). Match reasons come from movie metadata, not verified scenes. Cheese Rating stays separate.</p>'+
+    '<details><summary>Your favorites & how matching works · '+votes+' shared votes</summary><p>Starting favorites: '+clTasteFavorites.map(esc).join(' · ')+'.</p><p>A starting profile inferred from your favorites. Learns from both people’s shared Yes and No votes. Match reasons come from movie metadata, not verified scenes. Cheese Rating stays separate.</p></details>'+
     '<div class="cl-taste-actions"><button class="primary" onclick="clFindForUs()">Find movies for us</button><button class="secondary" onclick="clBroadenFinder()">Clear filters & search wider</button>'+
     '<label>Sort finds <select onchange="clSetTasteSort(this.value)"><option value="taste" '+(clTasteSort==='taste'?'selected':'')+'>Our taste</option><option value="relevance" '+(clTasteSort==='relevance'?'selected':'')+'>Search relevance</option><option value="newest" '+(clTasteSort==='newest'?'selected':'')+'>Newest</option></select></label></div>'+
     (filters?'<div class="subtle" style="margin-top:12px">Active filters — tap one to remove it:</div><div class="cl-taste-actions">'+filters+'</div>':'')+'</div>';

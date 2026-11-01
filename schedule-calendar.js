@@ -79,16 +79,17 @@ function clCalendarMonthHtml(){
     </div>`);
   }
 
+  const agenda=(state.schedule||[]).filter(item=>{const date=new Date(item.starts_at);return date.getFullYear()===year&&date.getMonth()===month}).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
   return `<div class="cl-calendar-shell">
     <div class="cl-calendar-toolbar">
-      <button class="secondary" onclick="clScheduleMoveMonth(-1)">‹</button>
+      <button class="secondary" aria-label="Previous month" onclick="clScheduleMoveMonth(-1)">‹</button>
       <button class="secondary" onclick="clScheduleToday()">Today</button>
       <div class="cl-calendar-title">${esc(clScheduleMonthTitle())}</div>
-      <button class="secondary" onclick="clScheduleMoveMonth(1)">›</button>
+      <button class="secondary" aria-label="Next month" onclick="clScheduleMoveMonth(1)">›</button>
     </div>
     <div class="cl-calendar-weekdays">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div>${d}</div>`).join('')}</div>
     <div class="cl-calendar-grid">${cells.join('')}</div>
-  </div>`;
+  </div><div class="hq-calendar-agenda"><h2>This month’s schedule</h2><div class="list">${agenda.map(item=>clScheduleItemButton(item)).join('')||'<div class="empty">No items scheduled this month.</div>'}</div></div>`;
 }
 
 function clScheduleListHtml(){

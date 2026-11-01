@@ -313,8 +313,9 @@
         </div>
       </section>
 
+      <nav class="watch-jump-links" aria-label="Watch Along sections"><a href="#watchTraitsPanel">Traits</a><a href="#watchNotesPanel">Notes</a><a href="#watchRundownPanel">Rundown</a></nav>
       <section class="section watch-desk-grid">
-        <div class="card card-pad watch-traits-panel">
+        <div id="watchTraitsPanel" tabindex="-1" class="card card-pad watch-traits-panel">
           <div class="watch-panel-head">
             <div>
               <div class="kicker">Cheese Traits</div>
@@ -331,19 +332,19 @@
         </div>
 
         <div class="watch-writing-stack">
-          <div class="card card-pad watch-writing-card">
+          <div id="watchNotesPanel" tabindex="-1" class="card card-pad watch-writing-card">
             <div class="watch-panel-head"><div><div class="kicker">Watch Notes</div><h2>Stuff we noticed</h2></div></div>
-            <textarea class="watch-textarea watch-notes" placeholder="The marina has no boat stuff. Just croissants and a cappuccino machine…" oninput="watchAlongSaveText('notes', this.value)">${esc(draft.notes)}</textarea>
+            <textarea class="watch-textarea watch-notes" aria-label="Watch notes" placeholder="The marina has no boat stuff. Just croissants and a cappuccino machine…" oninput="watchAlongSaveText('notes', this.value)">${esc(draft.notes)}</textarea>
           </div>
 
-          <div class="card card-pad watch-writing-card">
+          <div id="watchRundownPanel" tabindex="-1" class="card card-pad watch-writing-card">
             <div class="watch-panel-head"><div><div class="kicker">Recording prep</div><h2>Episode Rundown</h2></div></div>
             <div class="subtle">A condensed guide using your existing talk order and Watch Notes.</div>
             <div class="watch-outline-tools">
               <button class="primary" type="button" onclick="watchAlongGenerateRundown()">Refresh Rundown</button>
               <button class="secondary" type="button" onclick="watchAlongCopyRundown()">Copy to Samsung Notes</button>
             </div>
-            <pre id="watchRundownPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.5">${esc(watchRundownText(movie,draft))}</pre>
+            <pre id="watchRundownPreview" class="watch-rundown-preview" tabindex="0" aria-label="Episode rundown preview" style="font:inherit;line-height:1.5">${esc(watchRundownText(movie,draft))}</pre>
           </div>
         </div>
       </section>

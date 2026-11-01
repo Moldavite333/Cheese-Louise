@@ -35,7 +35,32 @@ No features or stored user content deleted.
 - Legacy global overrides and many synchronous scripts remain. This pass adds a cohesive interface without risking a wholesale data-layer rewrite; modularizing the app is still warranted.
 - Authenticated cross-device saving, publishing, and email recovery require a separate live integration check.
 - Draft safeguards defer realtime updates; they do not provide full offline/shared draft synchronization.
-- No local preview was available in this environment. Remote browser regression tests exercise actual assembled scripts with mocked authentication/data.
+- Browser regression tests exercise assembled scripts locally with fixture authentication/data; live authenticated records and saving remain outside those checks.
 
 ## Validation
 Node syntax checks, production/credits/filter regressions, and Chromium phone/tablet/desktop workflow tests with fixtures. Tests do not write real user records.
+
+## Layout follow-up — October 31, 2026
+
+Reviewed the original findings and remaining limitations against the current source. This pass addresses layout and navigation; backend coverage, shared draft storage, and recording-to-episode binding remain open above.
+
+| Finding | Repair | Verification |
+| --- | --- | --- |
+| Mobile Radar view buttons disappeared into a horizontal strip | All/Mutual/Yes/Saved/Unreviewed/Needs Review now wrap visibly | Browser checks toolbar scroll width |
+| Global search consumed recording and watching space | Contextual compact header on production screens, with desktop movie-search shortcut | Recording header height checked |
+| Sticky trait controls could sit behind the header | Header height is measured and used as the sticky offset | Browser checks trait tools against header bounds |
+| Small laptops used grids sized for a full-width desktop | Watch Along, movie cards, Producer Desk and Recording adapt to sidebar space | 1024px laptop added to route checks |
+| Long rundown made the notes column extremely tall | Bounded preview with keyboard focus and vertical scrolling | Preview height and keyboard accessibility checked |
+| Long trait libraries pushed Watch Notes far down the phone screen | Sticky Traits / Notes / Rundown jump links with clear header offsets | Notes jump geometry checked |
+| Phone calendar reduced event titles to a few letters | Full readable agenda below the month grid | Complete long event title checked |
+| Recording controls used unstyled browser buttons | Consistent surfaces, disabled states and primary timer action | Screenshots at four widths |
+| Recording actions competed with bottom navigation | Navigation height is measured for action offset and page clearance | Browser checks the two rectangles do not overlap |
+| More menu allowed focus into the page behind it | Backdrop, inert content, focus containment, Escape and responsive dismissal | Keyboard and resize checks |
+| Movie taste explanation crowded out discovery | Favorites and matching explanation moved into an expandable disclosure | Phone screenshot review |
+| Skip link could leak over content during focus changes | Explicit offscreen clipping, revealed on keyboard focus | Screenshot review |
+| Empty recent activity left an unexplained blank section | Helpful empty state | Dashboard fixture review |
+| Date-only release labels shifted a day in western time zones | Format date-only values as local calendar dates | Browser asserts November 2 stays November 2 |
+
+Current checks use phone (360px), tablet (768px), small laptop (1024px), and desktop (1440px). Fixtures include populated traits, activity and a long calendar event. Screenshots are written to the local `artifacts/` folder, not published as user content.
+
+Remaining work stays explicit: improve catalog acquisition and metadata classification; design shared Watch Along/recording persistence and episode binding; reduce legacy global overrides; verify authenticated cross-device saving and recovery. The layout checks do not establish that those backend workflows are complete.
