@@ -510,6 +510,67 @@ function clTrendBonus(candidate){
   return {bonus:Math.min(18,bonus),hits:clUnique(hits).slice(0,4)};
 }
 
+function clCocktailDiversityProfile(candidate){
+  const name=clNormName(candidate?.name),recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ').toLowerCase();
+  let family=clInferFamily(candidate);
+  const spirit=clCleanTag(candidate?.base_spirit||clInferBaseSpirit(recipe));
+  // Detect structure too: renaming a Manhattan riff does not make a new family.
+  if(/manhattan|martinez/.test(name)||family==='Manhattan')family='Manhattan';
+  else if(/\bcoffee\b|espresso|kahlua/.test(recipe))family='Coffee';
+  else if(/campari|aperol|\bamaro\b|fernet/.test(recipe)&&/vermouth/.test(recipe))family='Bitter Aperitivo';
+  else if(/whisk(?:e)?y|bourbon|\brye\b|\bcognac\b|\bbrandy\b/.test(recipe)&&/vermouth/.test(recipe)&&!/\b(?:lemon|lime|grapefruit) juice\b/.test(recipe))family='Manhattan';
+  else if(/cream|milk|cacao|chocolate/.test(recipe))family='Rich / Flip';
+  else if(/champagne|prosecco|sparkling wine|\bcava\b/.test(recipe))family='Sparkling';
+  else if(/ginger beer|ginger ale/.test(recipe))family='Mule';
+  else if(/\bsoda\b|\btonic\b/.test(recipe)&&family==='Cocktail')family='Highball';
+  const ingredientRules=[
+    [/whisk(?:e)?y|bourbon|\brye\b/,'whiskey'],[/\bcognac\b|\bbrandy\b/,'brandy'],[/\bgin\b/,'gin'],[/\brum\b/,'rum'],[/vodka/,'vodka'],[/tequila|mezcal/,'agave'],
+    [/sweet vermouth|vermouth rosso|rosso.*vermouth/,'sweet-vermouth'],[/dry vermouth|vermouth.*dry/,'dry-vermouth'],[/campari/,'campari'],[/aperol/,'aperol'],[/\bamaro\b|fernet/,'amaro'],
+    [/\blemon\b/,'lemon'],[/\blime\b/,'lime'],[/grapefruit/,'grapefruit'],[/orange|cura[cç]ao|triple sec|cointreau/,'orange'],[/\bbitters\b/,'bitters'],
+    [/\bmaple\b/,'maple'],[/\bhoney\b/,'honey'],[/sugar|simple syrup|demerara/,'sugar'],[/cranberry/,'cranberry'],[/apple|cider|calvados/,'apple'],[/pineapple|coconut|passion fruit/,'tropical'],
+    [/coffee|espresso|kahlua/,'coffee'],[/chocolate|cacao/,'chocolate'],[/cream|milk/,'cream'],[/champagne|prosecco|sparkling wine/,'sparkling-wine'],[/cinnamon|nutmeg|allspice|clove/,'baking-spice']
+  ];
+  return {family,spirit,ingredients:new Set(ingredientRules.filter(([re])=>re.test(recipe)).map(([,tag])=>tag))};
+}
+
+function clSelectCocktailShortlist(ranked,count=6){
+  if(!ranked.length)return [];
+  const floor=Math.max(0,ranked[0].score-25);
+  const pool=ranked.filter(r=>r.score>=floor).map(r=>({r,p:clCocktailDiversityProfile(r.cocktail)}));
+  const chosen=[],names=new Set(),familyCounts=new Map();
+  const cap=count<=3?1:2;
+  while(chosen.length<count){
+    let available=pool.filter(x=>!names.has(clNormName(x.r.cocktail.name))&&(familyCounts.get(x.p.family)||0)<cap);
+    // Establish distinct options before allowing a second drink from any family.
+    if(chosen.length>0&&chosen.length<3){const newFamilies=available.filter(x=>!familyCounts.has(x.p.family));if(newFamilies.length)available=newFamilies;}
+    if(!available.length)break;
+    let best=available[0],bestValue=-Infinity;
+    for(const row of available){
+      let penalty=0;
+      for(const prior of chosen){
+        if(row.p.family===prior.p.family)penalty+=10;
+        if(row.p.spirit&&row.p.spirit===prior.p.spirit)penalty+=2;
+        let shared=0;for(const ingredient of row.p.ingredients)if(prior.p.ingredients.has(ingredient))shared++;
+        const union=row.p.ingredients.size+prior.p.ingredients.size-shared;
+        if(union)penalty+=6*shared/union;
+      }
+      const value=row.r.score-penalty;
+      if(value>bestValue){best=row;bestValue=value;}
+    }
+    chosen.push(best);names.add(clNormName(best.r.cocktail.name));familyCounts.set(best.p.family,(familyCounts.get(best.p.family)||0)+1);
+  }
+  return chosen.map(x=>x.r);
+}
+
+function clDiversifyCocktailMatches(ranked){
+  const shortlist=clSelectCocktailShortlist(ranked,6),chosen=new Set(shortlist);
+  return [...shortlist,...ranked.filter(r=>!chosen.has(r))];
+}
+
+function clCocktailRecommendations(movie,count=6){
+  return clSelectCocktailShortlist(clSmartOriginalMatches(movie),count);
+}
+
 function clDifferenceScore(candidate,chosen){
   if(!chosen?.length) return 0;
   let score=0;
@@ -788,7 +849,7 @@ function clSmartOriginalResultCard(result,index,episode=false){
   const saved=!c.external || (state.cocktails||[]).some(x=>clNormName(x.name)===clNormName(c.name));
   return `<div class="card card-pad cl-match-card cl-smart-match-card">
     <div class="cl-match-score"><strong>#${index+1} ${esc(c.name)}</strong><span class="cheese-score">${result.score}%</span></div>
-    <div class="subtle">${esc([c.base_spirit,c.style].filter(Boolean).join(' · '))}</div>
+    <div class="subtle">${esc([c.base_spirit,clCocktailDiversityProfile(c).family].filter(Boolean).join(' · '))}</div>
     <div class="pills" style="margin-top:8px">${clSourceBadge(c)}${result.overlaps.slice(0,6).map(t=>`<span class="pill">${esc(clTagLabel(t))}</span>`).join('')}</div>
     <div class="subtle" style="margin-top:8px">${esc(result.reasons.join(' · '))}</div>
     <div class="cl-result-actions">
@@ -824,7 +885,7 @@ function clTrendLensHtml(){
 function clEnhancedBarMatchPanel(){
   clWarmOnlineCatalog();
   const movie=(state.movies||[]).find(m=>m.id===cocktailMatchMovieId);
-  const originalResults=movie&&clOnlineCatalogStatus.loaded?clSmartOriginalMatches(movie).slice(0,6):[];
+  const originalResults=movie&&clOnlineCatalogStatus.loaded?clCocktailRecommendations(movie,6):[];
   const fingerprint=movie?clMovieFingerprint(movie):null;
   return `<div class="card card-pad cl-match-panel cl-intelligence-panel">
     <div class="kicker">Movie ↔ Cocktail Intelligence</div>
@@ -873,7 +934,7 @@ clEpisodeMatchHtml = function(movieId,type){
     if(clGeneratedForMovieId!==movieId || clGeneratedContext!=='episode') setTimeout(()=>clGenerateThree(movieId,'episode'),0);
     return `<div class="cl-generate-actions"><button type="button" class="primary" onclick="clGenerateThree('${movieId}','episode')">✨ Generate 3 fresh versions</button><span class="subtle">Familiar · Craft · Wildcard</span></div>${clGeneratedVersionsHtml(movieId,'episode')}`;
   }
-  const results=clSmartOriginalMatches(movie).slice(0,4);
+  const results=clCocktailRecommendations(movie,4);
   if(!results.length) return '<div class="subtle" style="margin-top:8px">Loading the online original-cocktail catalog…</div>';
   return `<div class="cl-episode-match-list cl-smart-episode-list">${results.map((r,i)=>clSmartOriginalResultCard(r,i,true)).join('')}</div>`;
 };
@@ -936,4 +997,3 @@ let clIntWarmAttempts=0;
   if(session && workspace){ clWarmOnlineCatalog(); return; }
   if(clIntWarmAttempts++<20) setTimeout(clIntWaitForWorkspace,350);
 })();
-

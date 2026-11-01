@@ -300,8 +300,7 @@
     return catalog.map(c=>mmCompatibility(movie,c,prepared)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
   };
 
-  // Three distinct recommendations: overall best, strongest chemistry/symbolism,
-  // and a high-quality wildcard that differs in family/base spirit.
+  // Keep the strongest movie match, then choose genuinely different recipe families.
   if(typeof clPickThreeBases==='function'){
     clPickThreeBases=function(movie,excludeNames=[]){
       let ranked=clSmartOriginalMatches(movie);
@@ -312,30 +311,10 @@
         if(fresh.length>=3) ranked=fresh;
       }
       if(!ranked.length) return [];
-      const best=ranked[0];
-      const notBest=ranked.filter(r=>clNormName(r.cocktail.name)!==clNormName(best.cocktail.name));
-      const chemistry=(notBest.length?notBest:ranked).slice().sort((a,b)=>
-        ((b.titleNameMatch?.score||0)*2+(b.symbolism?.score||0)*2+b.score*.35)-((a.titleNameMatch?.score||0)*2+(a.symbolism?.score||0)*2+a.score*.35)
-      )[0]||best;
-      const chosen=[best,chemistry];
-      const wildcardPool=ranked.slice(0,80).filter(r=>!chosen.some(x=>clNormName(x.cocktail.name)===clNormName(r.cocktail.name)));
-      const difference=(r)=>{
-        let d=0;
-        const family=clCleanTag(clInferFamily(r.cocktail));
-        const base=clCleanTag(r.cocktail.base_spirit||'');
-        for(const x of chosen){
-          if(family&&family!==clCleanTag(clInferFamily(x.cocktail))) d+=9;
-          if(base&&base!==clCleanTag(x.cocktail.base_spirit||'')) d+=7;
-        }
-        return d;
-      };
-      const wildcard=(wildcardPool.length?wildcardPool:notBest).slice().sort((a,b)=>(b.score+difference(b))-(a.score+difference(a)))[0]||best;
-      const unique=new Set();
-      return [
-        {role:'Familiar',match:best,matchmakerLabel:'Best Match'},
-        {role:'Craft',match:chemistry,matchmakerLabel:'Chemistry Pick'},
-        {role:'Wildcard',match:wildcard,matchmakerLabel:'Wildcard'}
-      ].filter(pick=>{const key=clNormName(pick.match.cocktail.name);if(unique.has(key)) return false;unique.add(key);return true;});
+      const labels=['Best Match','Different Style','Wildcard'];
+      return clSelectCocktailShortlist(ranked,3).map((match,index)=>({
+        role:['Familiar','Craft','Wildcard'][index],match,matchmakerLabel:labels[index]
+      }));
     };
   }
 
@@ -371,4 +350,3 @@
   window.clPrepareCocktailMovie=mmPrepareMovie;
   window.clCocktailMatchmakerRetrieveScore=mmRetrieveScore;
 })();
-

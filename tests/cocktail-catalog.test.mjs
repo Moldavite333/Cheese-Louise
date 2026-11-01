@@ -9,7 +9,7 @@ function engine(){
     state:{cocktails:[],episodes:[],movies:[],traits:[]},session:null,workspace:null,selectedEpisode:null,selectedMovie:null,
     loadAll(){},episodes(){},home(){},modal(){},go(){},topbar:()=>'',render(){},esc:x=>String(x)});
   ctx.window=ctx;
-  for(const file of ['cocktail-bar.js','cocktail-intelligence.js','cocktail-intelligence-source-fix.js']) vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
+  for(const file of ['romantiverse-inference.js','cocktail-bar.js','cocktail-intelligence.js','cocktail-intelligence-source-fix.js']) vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
   vm.runInContext("clLoadOnlineCatalog=async function(){state.onlineCocktails=[];clOnlineCatalogStatus={loaded:true,loading:false,error:''};}",ctx);
   for(const file of ['cocktail-catalog.js','cocktail-title-match.js','cocktail-season-tuning.js']) vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
   return ctx;
@@ -44,4 +44,21 @@ test('source identity, measures and preparation completeness survive normalizati
   const recipe=await e.clHydrateCatalogRecipe(candidate);
   assert.equal(recipe.needs_recipe_detail,false);assert.match(recipe.method,/Strain/);
   assert.equal(recipe.source_url,smallRow.url);
+});
+
+test('Christmas at the Catnip Café gets a varied shortlist from the real full catalog',async()=>{
+  const data=JSON.parse(readFileSync(new URL('../data/cocktail-catalog.json',import.meta.url),'utf8'));
+  const e=engine();e.fetch=async()=>({ok:true,json:async()=>data});await e.clLoadOnlineCatalog();
+  const movie={title:'Christmas at the Catnip Café',summary:'When a marketing executive learns she’s short on the down payment for her dream condo, she’s informed that her great aunt left her half of a cat café in upstate New York. Hoping to sell it before the holidays, she then meets Dr. Ben Kane, the veterinarian who owns the other half, and has no intention of closing.',holiday:'Christmas',season:'Winter'};
+  const top=e.clCocktailRecommendations(movie,6);
+  const family=r=>e.clCocktailDiversityProfile?e.clCocktailDiversityProfile(r.cocktail).family:e.clInferFamily(r.cocktail);
+  console.log('Catnip shortlist:',top.map(r=>`${r.cocktail.name} (${family(r)}, ${r.score})`).join(' | '));
+  assert.ok(new Set(top.map(family)).size>=3,'The first six cannot all be Manhattan variations');
+  const counts=new Map();for(const r of top)counts.set(family(r),(counts.get(family(r))||0)+1);
+  assert.ok([...counts.values()].every(n=>n<=2),'No cocktail family can occupy more than two of the six cards');
+  assert.ok(top.every(r=>r.score>=top[0].score-25),'Variety cannot come from unrelated low-fit drinks');
+  const generated=e.clPickThreeBases(movie);
+  console.log('Catnip generated bases:',generated.map(p=>p.match.cocktail.name).join(' | '));
+  assert.equal(generated.length,3);assert.equal(new Set(generated.map(p=>family(p.match))).size,3);
+  assert.ok(generated.filter(p=>/manhattan/i.test(p.match.cocktail.name)).length<=1,'A renamed Manhattan riff is still a Manhattan');
 });
