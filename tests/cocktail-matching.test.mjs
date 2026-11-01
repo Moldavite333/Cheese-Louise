@@ -117,11 +117,12 @@ test('catalog loading is shared, retries failed buckets, and keeps partial recip
   assert.equal(cached,false,'a partial outage must not poison the cache');
   assert.match(e.clOnlineStatusHtml(),/incomplete/);
 });
-test('saved recipes can generate versions while the online catalog is unavailable',()=>{
+test('saved recipes can generate versions while the online catalog is unavailable',async()=>{
   const e=engine();
   e.state.movies=[{id:'movie',title:'Harvest Weekend',season:'Fall'}];
   e.state.cocktails=[drink('Orchard Cup','Brandy\nApple cider\nCinnamon')];
-  e.clGenerateThree('movie');
+  vm.runInContext("clOnlineCatalogStatus={loaded:true,loading:false,error:'Offline'}",e);
+  await e.clGenerateThree('movie');
   assert.match(e.clGeneratedVersionsHtml('movie'),/Orchard Cup/);
 });
 

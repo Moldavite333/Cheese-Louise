@@ -188,12 +188,17 @@
     return {penalty:Math.min(18,penalty),reasons};
   }
 
-  function mmCompatibility(movie,candidate){
+  function mmPrepareMovie(movie){
+    return {movieFingerprint:clMovieFingerprint(movie),storyFingerprint:clMovieFingerprint({...movie,season:'',holiday:''})};
+  }
+
+  function mmCompatibility(movie,candidate,prepared){
     candidate=clMatchingCandidate(candidate);
-    const movieFingerprint=clMovieFingerprint(movie);
+    prepared=prepared||mmPrepareMovie(movie);
+    const movieFingerprint=prepared.movieFingerprint;
     // Season already has its own dimension. Do not count its inferred tags again
     // as movie personality and mood, which made every autumn film taste alike.
-    const storyFingerprint=clMovieFingerprint({...movie,season:'',holiday:''});
+    const storyFingerprint=prepared.storyFingerprint;
     const storySet=mmSet(storyFingerprint.weights);
     const cocktailFingerprint=clCandidateFingerprint(candidate);
     const movieSet=mmSet(movieFingerprint.weights);
@@ -290,8 +295,9 @@
   clSmartOriginalMatches=function(movie){
     const catalog=clMergedOriginalCatalog();
     if(!catalog.length) return [];
+    const prepared=mmPrepareMovie(movie);
     // Score the full catalog so seasonal ingredients cannot be cut before scoring.
-    return catalog.map(c=>mmCompatibility(movie,c)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
+    return catalog.map(c=>mmCompatibility(movie,c,prepared)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
   };
 
   // Three distinct recommendations: overall best, strongest chemistry/symbolism,
@@ -362,6 +368,7 @@
   window.clSmartOriginalMatches=clSmartOriginalMatches;
   window.clTitleCocktailNameMatch=clTitleCocktailNameMatch;
   window.clCocktailMatchmakerCompatibility=mmCompatibility;
+  window.clPrepareCocktailMovie=mmPrepareMovie;
   window.clCocktailMatchmakerRetrieveScore=mmRetrieveScore;
 })();
 

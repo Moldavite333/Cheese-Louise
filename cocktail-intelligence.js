@@ -8,6 +8,7 @@ let clOnlineCatalogStatus = { loaded:false, loading:false, error:'', updatedAt:n
 let clGeneratedVersions = [];
 let clGeneratedForMovieId = '';
 let clGeneratedContext = 'bar';
+let clGenerationRequest = 0;
 
 const CL_COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
 const CL_COCKTAILDB_CACHE_KEY = 'cheeseLouiseCocktailDB_v114';
@@ -385,7 +386,7 @@ function clMatchingCandidate(candidate){
   // Saved imports predate the ingredient-only parser. Never let their persisted
   // machine-generated tags (e.g. "coffee filter" -> coffee) bypass that repair.
   // Keep the saved recipe, rating, notes and manually curated house drinks intact.
-  if(!candidate || !(candidate.external || candidate.source_name==='TheCocktailDB')) return candidate;
+  if(!candidate || !(candidate.source_name==='TheCocktailDB'||candidate.external&&!candidate.source_name)) return candidate;
   const ingredientRows=clRecipeRows(candidate);
   if(!ingredientRows.length) return candidate;
   const ingredients=ingredientRows.map(r=>r.ingredient).join(' ');
@@ -621,14 +622,15 @@ function clBuildGeneratedVariant(movie,selection,index){
   };
 }
 
-function clGenerateThree(movieId,context='bar'){
+async function clGenerateThree(movieId,context='bar'){
+  const request=++clGenerationRequest;
   const movie=(state.movies||[]).find(m=>m.id===movieId);
   if(!movie) return;
-  if(!clOnlineCatalogStatus.loaded && !clMergedOriginalCatalog().length){
+  if(!clOnlineCatalogStatus.loaded){
     clGeneratedVersions=[];
     clGeneratedForMovieId=movieId;
     clGeneratedContext=context;
-    clLoadOnlineCatalog(false).then(()=>{
+    return clLoadOnlineCatalog(false).then(()=>{
       // A request for an old movie must not overwrite a newer selection.
       if(clGeneratedForMovieId===movieId && clGeneratedContext===context && clMergedOriginalCatalog().length) clGenerateThree(movieId,context);
     });
@@ -636,6 +638,10 @@ function clGenerateThree(movieId,context='bar'){
   }
   const previous=clGeneratedForMovieId===movieId ? clGeneratedVersions.map(v=>v.base.name) : [];
   const picks=clPickThreeBases(movie,previous);
+  if(typeof clHydrateCatalogRecipe==='function'){
+    await Promise.all(picks.map(async pick=>{pick.match.cocktail=await clHydrateCatalogRecipe(pick.match.cocktail);}));
+    if(request!==clGenerationRequest) return;
+  }
   clGeneratedVersions=picks.map((p,i)=>clBuildGeneratedVariant(movie,p,i));
   clGeneratedForMovieId=movieId;
   clGeneratedContext=context;
@@ -648,6 +654,7 @@ function clGenerateThree(movieId,context='bar'){
 
 async function clEnsureLocalOriginal(candidate){
   if(!candidate) return null;
+  if(typeof clHydrateCatalogRecipe==='function') candidate=await clHydrateCatalogRecipe(candidate);
   const bySource=candidate.source_id ? (state.cocktails||[]).find(c=>c.source_name===candidate.source_name && String(c.source_id||'')===String(candidate.source_id)) : null;
   const byName=(state.cocktails||[]).find(c=>c.cocktail_type==='original' && clNormName(c.name)===clNormName(candidate.name));
   if(bySource||byName) return bySource||byName;
@@ -765,6 +772,11 @@ function clSourceBadge(c){
 }
 
 function clOnlineStatusHtml(){
+  if(typeof clCatalogStats==='function'){
+    const stats=clCatalogStats();
+    if(!clOnlineCatalogStatus.loaded||clOnlineCatalogStatus.loading) return '<div class="subtle cl-online-status" role="status">Loading the full recipe library before matching…</div>';
+    return `<div class="subtle cl-online-status" role="status"><strong>${stats.total.toLocaleString()}</strong> unique recipes searched · ${stats.catalog.toLocaleString()} catalog recipes · ${stats.saved} saved originals${clOnlineCatalogStatus.error?`<div>${esc(clOnlineCatalogStatus.error)}</div>`:''} <button class="link-button" onclick="clLoadOnlineCatalog(true)">Refresh library</button></div>`;
+  }
   if(clOnlineCatalogStatus.loading) return '<div class="subtle cl-online-status">↻ Loading the live cocktail catalog…</div>';
   if(clOnlineCatalogStatus.error) return `<div class="subtle cl-online-status">Online catalog failed: ${esc(clOnlineCatalogStatus.error)} <button class="secondary" onclick="clLoadOnlineCatalog(true)">Retry</button></div>`;
   if(clOnlineCatalogStatus.loaded) return `<div class="subtle cl-online-status"><strong>${(state.onlineCocktails||[]).length}</strong> online cocktails loaded · IBA official list recognized · <button class="link-button" onclick="clLoadOnlineCatalog(true)">refresh</button></div>`;
@@ -812,11 +824,11 @@ function clTrendLensHtml(){
 function clEnhancedBarMatchPanel(){
   clWarmOnlineCatalog();
   const movie=(state.movies||[]).find(m=>m.id===cocktailMatchMovieId);
-  const originalResults=movie?clSmartOriginalMatches(movie).slice(0,6):[];
+  const originalResults=movie&&clOnlineCatalogStatus.loaded?clSmartOriginalMatches(movie).slice(0,6):[];
   const fingerprint=movie?clMovieFingerprint(movie):null;
   return `<div class="card card-pad cl-match-panel cl-intelligence-panel">
     <div class="kicker">Movie ↔ Cocktail Intelligence</div>
-    <h3 style="margin:6px 0">Match every movie signal against hundreds of drinks</h3>
+    <h3 style="margin:6px 0">Match your movie against the full recipe library</h3>
     ${clOnlineStatusHtml()}
     <select class="search" style="width:100%;margin-top:10px" onchange="setCocktailMatchMovie(this.value)">
       <option value="">Choose a movie…</option>
@@ -856,6 +868,7 @@ clEpisodeMatchHtml = function(movieId,type){
   const movie=(state.movies||[]).find(m=>m.id===movieId);
   if(!movie) return '<div class="subtle" style="margin-top:8px">Link a movie first so the matchmaker has something to work with.</div>';
   clWarmOnlineCatalog();
+  if(!clOnlineCatalogStatus.loaded) return '<div class="subtle" role="status">Loading the full recipe library before matching…</div>';
   if(type==='cheese_louise'){
     if(clGeneratedForMovieId!==movieId || clGeneratedContext!=='episode') setTimeout(()=>clGenerateThree(movieId,'episode'),0);
     return `<div class="cl-generate-actions"><button type="button" class="primary" onclick="clGenerateThree('${movieId}','episode')">✨ Generate 3 fresh versions</button><span class="subtle">Familiar · Craft · Wildcard</span></div>${clGeneratedVersionsHtml(movieId,'episode')}`;
@@ -873,6 +886,7 @@ window.showEpisodeCocktailMatches=function(type){
 };
 
 setCocktailMatchMovie = function(id){
+  clGenerationRequest++;
   cocktailMatchMovieId=id||'';
   clGeneratedVersions=[]; clGeneratedForMovieId='';
   if(cocktailMatchMovieId) clWarmOnlineCatalog();

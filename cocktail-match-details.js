@@ -42,6 +42,12 @@ function clOpenCocktailMatchDetails(card){
     episode:ctx.episode
   };
   render();
+  const detail=clCocktailDetail;
+  if(typeof clHydrateCatalogRecipe==='function') clHydrateCatalogRecipe(detail.cocktail).then(recipe=>{
+    if(clCocktailDetail!==detail) return;
+    clCocktailDetail={...detail,cocktail:recipe};
+    render();
+  });
 }
 
 function clCloseCocktailDetails(event){
@@ -227,3 +233,4 @@ window.clSaveDetailOriginal=clSaveDetailOriginal;
 window.clUseDetailForEpisode=clUseDetailForEpisode;
 window.clMakeDetailVariation=clMakeDetailVariation;
 window.clEditSavedDetailCocktail=clEditSavedDetailCocktail;
+
