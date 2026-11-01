@@ -367,7 +367,7 @@ function clMovieFingerprint(movie){
     }catch(err){ console.warn('Romantiverse cocktail fingerprint skipped',err); }
   }
 
-  const text=[movie?.title,movie?.summary,movie?.notes,movie?.network,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.providers||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)].filter(Boolean).join(' ');
+  const text=[movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>t.name)].filter(Boolean).join(' ');
   for(const [re,tags] of CL_MOVIE_FINGERPRINT_RULES){
     const hit=text.match(re);
     if(hit) add(tags,3,`movie clue: ${hit[0]}`);
@@ -381,7 +381,22 @@ function clMovieFingerprint(movie){
   return {weights,evidence:clUnique(evidence)};
 }
 
+function clMatchingCandidate(candidate){
+  // Saved imports predate the ingredient-only parser. Never let their persisted
+  // machine-generated tags (e.g. "coffee filter" -> coffee) bypass that repair.
+  // Keep the saved recipe, rating, notes and manually curated house drinks intact.
+  if(!candidate || !(candidate.external || candidate.source_name==='TheCocktailDB')) return candidate;
+  const ingredientRows=clRecipeRows(candidate);
+  if(!ingredientRows.length) return candidate;
+  const ingredients=ingredientRows.map(r=>r.ingredient).join(' ');
+  return {...candidate,ingredientRows,
+    base_spirit:clInferBaseSpirit(ingredients),
+    style:clInferFamily({...candidate,ingredientText:ingredients}),
+    flavor_tags:clDeriveCocktailTags({...candidate,ingredientRows})};
+}
+
 function clCandidateFingerprint(candidate){
+  candidate=clMatchingCandidate(candidate);
   const weights=new Map();
   const add=(tags,w=1)=>{ for(const t of tags||[]) clFingerprintAdd(weights,t,w); };
   add(candidate?.flavor_tags||[],3);
@@ -461,13 +476,13 @@ function clSmartMatch(movie,candidate){
 function clMergedOriginalCatalog(){
   const byName=new Map();
   for(const c of (state.cocktails||[]).filter(x=>x.cocktail_type==='original')){
-    const enriched={...c,external:false,iba_category:c.iba_category||CL_IBA_NAME_MAP.get(clNormName(c.name))||null};
+    const enriched={...clMatchingCandidate(c),external:false,iba_category:c.iba_category||CL_IBA_NAME_MAP.get(clNormName(c.name))||null};
     enriched.iba_official=!!(c.iba_official||enriched.iba_category);
     byName.set(clNormName(c.name),enriched);
   }
   for(const c of state.onlineCocktails||[]){
     const key=clNormName(c.name);
-    if(!byName.has(key)) byName.set(key,c);
+    if(!byName.has(key)) byName.set(key,clMatchingCandidate(c));
   }
   return [...byName.values()];
 }

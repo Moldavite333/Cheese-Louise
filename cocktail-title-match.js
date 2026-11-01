@@ -102,8 +102,32 @@
     const name=String(candidate?.name||'');
     const hits=MM_SYMBOLS.filter(rule=>rule.movie.test(text)&&rule.cocktail.test(name));
     if(!hits.length) return {score:0,hits:[],reason:null};
-    const score=Math.min(10,Math.max(...hits.map(h=>h.points)));
+    // A specific movie connection must be able to beat a generic seasonal fit.
+    const score=Math.min(35,Math.max(...hits.map(h=>h.points))*3.5);
     return {score,hits:hits.map(h=>h.label),reason:`story-symbol connection: ${hits.map(h=>h.label).join(' · ')}`};
+  }
+
+  function mmRecipeStoryMatch(movie,candidate){
+    // Match distinctive ingredients actually named in the story, not ingredients
+    // inferred from a generic "cozy / romantic" mood shared by most of the library.
+    const text=[movie?.title,movie?.summary,...(movie?.selectedTraits||[]).map(t=>t.name)].filter(Boolean).join(' ');
+    const recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ');
+    const clues=[
+      [/\bmaple\b/i,/\bmaple\b/i,'maple',18],
+      [/\bpumpkin\b/i,/\bpumpkin\b/i,'pumpkin',18],
+      [/\bapple\b|\bcider\b|\borchard\b/i,/\bapple\b|\bcider\b|calvados|applejack/i,'apple / orchard',16],
+      [/\bpear\b/i,/\bpear\b/i,'pear',16],
+      [/\bcoffee\b|\bcaf[eé]\b|\bbarista\b|\bespresso\b/i,/\bcoffee\b|espresso|kahlua/i,'coffee',16],
+      [/\bchocolate\b|\bcocoa\b/i,/chocolate|cacao|cocoa/i,'chocolate',16],
+      [/\btea\b/i,/\btea\b/i,'tea',16],
+      [/\bhoney\b|\bbees?\b|\bbeekeeper\b/i,/\bhoney\b/i,'honey',16],
+      [/\bcranberry\b/i,/\bcranberry\b/i,'cranberry',16],
+      [/\bstrawberr(?:y|ies)\b/i,/\bstrawberr(?:y|ies)\b/i,'strawberry',16],
+      [/\bpeach(?:es)?\b/i,/\bpeach(?:es)?\b/i,'peach',16],
+      [/\bwine\b|\bwinery\b|\bvineyard\b|\bvintner\b/i,/\bwine\b|champagne|prosecco|vermouth|sherry/i,'wine / vineyard',16]
+    ];
+    const hits=clues.filter(([story,ingredient])=>story.test(text)&&ingredient.test(recipe));
+    return {score:Math.min(25,hits.reduce((sum,row)=>sum+row[3],0)),hits:hits.map(row=>row[2])};
   }
 
   function mmRuleScore(movieSet,cocktailSet,rules,max){
@@ -165,6 +189,7 @@
   }
 
   function mmCompatibility(movie,candidate){
+    candidate=clMatchingCandidate(candidate);
     const movieFingerprint=clMovieFingerprint(movie);
     // Season already has its own dimension. Do not count its inferred tags again
     // as movie personality and mood, which made every autumn film taste alike.
@@ -176,6 +201,7 @@
 
     const chemistry=clTitleCocktailNameMatch(movie,candidate);
     const symbolism=mmSymbolism(movie,candidate);
+    const recipeStory=mmRecipeStoryMatch(movie,candidate);
 
     const personalityBase=mmRuleScore(storySet,cocktailSet,MM_PERSONALITY,25);
     const pDirect=mmDirectOverlap(storySet,cocktailSet,null,7);
@@ -197,7 +223,7 @@
     const novelty=mmNovelty(candidate);
     const dealbreakers=mmDealbreakers(movie,candidate,movieSet,cocktailSet,chemistry.score,symbolism.score);
 
-    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+5-dealbreakers.penalty-Number(novelty.diversity.penalty||0);
+    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+recipeStory.score+5-dealbreakers.penalty-Number(novelty.diversity.penalty||0);
     if(candidate?.iba_official) total+=1;
     if(candidate?.tested&&Number(candidate?.rating||0)>=4) total+=1;
     const rawScore=total+dealbreakers.penalty;
@@ -208,13 +234,15 @@
       personality:{score:personality.score,max:25,label:'Movie fit'},
       mood:{score:mood.score,max:20,label:'Mood'},
       season:{score:season.score,max:15,label:'Season'},
-      symbolism:{score:symbolism.score,max:10,label:'Story symbol'},
+      symbolism:{score:symbolism.score,max:35,label:'Story symbol'},
+      recipeStory:{score:recipeStory.score,max:25,label:'Story ingredient'},
       novelty:{score:novelty.score,max:5,label:'Novelty'}
     };
 
     const reasons=[];
     if(chemistry.reason) reasons.push(chemistry.reason);
     if(symbolism.reason) reasons.push(symbolism.reason);
+    if(recipeStory.hits.length) reasons.push(`story ingredient: ${recipeStory.hits.join(', ')}`);
     if(personality.hits.length) reasons.push(`personality fit: ${personality.hits.slice(0,3).join(', ')}`);
     if(mood.hits.length) reasons.push(`mood fit: ${mood.hits.slice(0,2).join(', ')}`);
     if(season.hits.length) reasons.push(`season fit: ${season.hits.slice(0,4).join(', ')}`);
@@ -312,7 +340,7 @@
       let html=originalResultCard(result,index,episode);
       if(!result?.compatibility) return html;
       const d=result.compatibility;
-      const chips=[d.chemistry,d.personality,d.mood,d.season,d.symbolism,d.novelty]
+      const chips=[d.chemistry,d.personality,d.mood,d.season,d.symbolism,d.recipeStory,d.novelty].filter(Boolean)
         .map(x=>`<span class="pill cl-mm-dim">${esc(x.label)} <strong>${Math.round(Number(x.score||0))}/${x.max}</strong></span>`).join('');
       const hook=(result.titleNameMatch?.score||0)>=12||(result.symbolism?.score||0)>=7
         ? `<div class="cl-mm-hook">💘 <strong>Chemistry hook:</strong> ${esc(result.titleNameMatch?.reason||result.symbolism?.reason||'strong thematic connection')}</div>`:'';
