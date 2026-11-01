@@ -30,6 +30,10 @@ html{scroll-padding-top:calc(var(--hq-header-height) + 16px)}
 .hq-signed-in #radarModeToolbar{display:flex;gap:8px}
 .hq-signed-in #radarModeToolbar>button{flex:1 1 100px}
 .movie-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.poster:has(.radar-poster-image){aspect-ratio:2/3;min-height:0;background:#101819}
+.radar-poster-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.poster:has(.radar-poster-image) .poster-title{background:#101819c9;padding:6px 8px;border-radius:8px;font-size:15px}
+.new-find-poster img{object-fit:contain}
 .new-find-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
 .new-find-card{grid-template-columns:100px minmax(0,1fr)}
 .movie-header-actions{display:flex;flex-wrap:wrap;gap:10px}

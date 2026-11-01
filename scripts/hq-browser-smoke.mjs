@@ -12,9 +12,10 @@ try{
  const page=await browser.newPage({viewport:{width,height:960}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin===origin)return route.continue();return route.fulfill({status:200,contentType:'text/javascript',body:''})});
+ await page.route('**/fixture-poster.svg',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#416c57"/><text x="20" y="140" fill="white">MOVIE POSTER</text></svg>'}));
  await page.addInitScript(()=>{
   const makeQuery=()=>{const query=new Proxy({then(resolve){return Promise.resolve(resolve({data:[],error:null}))}},{get(target,key){if(key in target)return target[key];if(key==='single'||key==='maybeSingle')return async()=>({data:null,error:null});return ()=>query}});return query};
-  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async()=>({data:{results:[],count:0}})},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
+  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'tmdb_recommendation',title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
  });
  await page.goto(origin,{waitUntil:'networkidle'});
  await page.evaluate(()=>{
@@ -23,6 +24,7 @@ try{
   state=new Proxy({movies:[movie],episodes:[{id:'done',title:'Released episode',status:'published',release_date:'2026-01-01'},{id:'next',title:'Upcoming episode',status:'planning',release_date:'2026-11-02'}],schedule:[],ideas:[],activity:[],traits:[],filterPresets:[],discoveryResults:[],romantiverseSearchResults:[],cocktails:[]},{get(t,p){return p in t?t[p]:[]}});
   discoveryLoaded=true;discoveryLoading=false;discoveryError='';currentTab='home';render();
   state.traits=Array.from({length:18},(_,i)=>({id:'trait-'+i,name:i%2?'An elaborate town festival with a very long name':'An unexpected magical romantic connection',category:'Romance',points:2,is_active:true}));
+  state.movies[0].poster_url='/fixture-poster.svg';
   state.activity=[{user_id:'fixture-user',action:'added a movie to the shared Radar.'}];
   state.schedule=[{id:'fixture-event',title:'Record the holiday episode and review the very long production checklist together',item_type:'record',starts_at:new Date().toISOString(),notes:'Fixture calendar item'}];
   render();
@@ -53,6 +55,8 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Route fits '+width+': '+route);
   assert.ok(await page.locator('#hq-main').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Workspace content fits '+width+': '+route);
   if(route==='movies'){
+   await page.waitForFunction(()=>document.querySelector('.radar-poster-image')?.naturalWidth>0);
+   assert.ok(await page.locator('.radar-poster-image').isVisible(),'Saved movie posters render and load');
    const clipped=await page.locator('#radarModeToolbar').evaluate(el=>el.scrollWidth>el.clientWidth+1);
    assert.equal(clipped,false,'Every Radar view control fits without hidden horizontal scrolling');
   }
@@ -88,8 +92,13 @@ try{
  await page.locator('#hq-season').selectOption('Fall');
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
  await page.getByRole('button',{name:'Find movies for us',exact:true}).click();
- await page.waitForFunction(()=>!romantiverseSearchLoading&&romantiverseSearchLoadedQuery==='__taste__');
+ await page.waitForFunction(()=>!discoveryLoading&&discoveryLoaded);
  assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
+ await page.waitForFunction(()=>document.querySelector('.new-find-poster img')?.naturalWidth>0);
+ assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
+ await page.getByRole('button',{name:'Find fresh picks',exact:true}).click();
+ await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1001);
+ assert.equal(await page.getByText('A magical new romance 0',{exact:true}).count(),0,'A fresh batch replaces earlier recommendations');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
  await page.screenshot({path:'artifacts/hq-taste-'+width+'.png',fullPage:true});
  await page.evaluate(()=>{clearMovieFilters();hqWorkspace.open('home');openMovie('fixture-movie')});

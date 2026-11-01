@@ -13,7 +13,7 @@
 
   function prYear(item){
     const meta=prMeta(item);
-    const raw=item?.premiere_date||item?.release_date||meta.year||meta.release_date||'';
+    const raw=item?.premiere_date||item?.release_date||item?.year||item?.release_year||meta.year||meta.release_date||'';
     const m=String(raw).match(/\b(19|20)\d{2}\b/);
     return m?Number(m[0]):null;
   }
@@ -47,10 +47,14 @@
   async function prResolve(items){
     const movies=(items||[]).filter(Boolean).map((item,index)=>prInput(item,item?.catalog_id??item?.id??index));
     if(!movies.length) return [];
-    const {data,error}=await db.functions.invoke('resolve-movie-poster',{body:{movies}});
-    if(error) throw error;
-    if(data?.error) throw new Error(data.error);
-    return Array.isArray(data?.results)?data.results:[];
+    const results=[];
+    for(let i=0;i<movies.length;i+=8){
+      const {data,error}=await db.functions.invoke('resolve-movie-poster',{body:{movies:movies.slice(i,i+8)}});
+      if(error) throw error;
+      if(data?.error) throw new Error(data.error);
+      results.push(...(Array.isArray(data?.results)?data.results:[]));
+    }
+    return results;
   }
 
   // Keep the existing New Finds architecture intact. We only replace the old
@@ -66,7 +70,7 @@
         network:row.network||'Hallmark Channel',
         providers:row.providers||[],
         source_url:row.official_source_url||row.source_url||null,
-        poster_url:null,
+        poster_url:row.poster_url||null,
         match_score:100,
         why:[row.collection?`Official Hallmark: ${row.collection}`:'Official Hallmark catalog',row.holiday,row.season].filter(Boolean)
       };
@@ -88,7 +92,7 @@
           if(!resolved) return c;
           return {
             ...c,
-            poster_url:resolved.verified?resolved.poster_url||null:null,
+            poster_url:resolved.verified&&resolved.poster_url?resolved.poster_url:c.poster_url||null,
             backdrop_url:resolved.backdrop_url||null,
             poster_source:resolved.poster_source||null,
             poster_source_id:resolved.poster_source_id||null,
@@ -112,9 +116,11 @@
   // Save Hallmark movies exactly as before, but keep poster identity metadata
   // separate from the Hallmark catalog identity.
   if(typeof addDiscoveredMovie==='function'){
+    const previousAddDiscoveredMovie=addDiscoveredMovie;
     addDiscoveredMovie=async function(id,applyTraits){
       const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
       if(!c||!workspace) return;
+      if(c.source_type!=='hallmark_official'&&c.tmdb_type!=='hallmark')return previousAddDiscoveredMovie(id,applyTraits);
       const existing=typeof discoverySavedMovie==='function'?discoverySavedMovie(c):null;
       if(existing){ selectedMovie=existing.id; render(); return; }
 
@@ -181,6 +187,7 @@
     };
     window.addDiscoveredMovie=addDiscoveredMovie;
   }
+  window.clPosterResolver={input:prInput,resolve:prResolve};
 
   function prPosterPanel(movie){
     const meta=prMeta(movie);

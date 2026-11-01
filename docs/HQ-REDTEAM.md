@@ -64,3 +64,18 @@ Reviewed the original findings and remaining limitations against the current sou
 Current checks use phone (360px), tablet (768px), small laptop (1024px), and desktop (1440px). Fixtures include populated traits, activity and a long calendar event. Screenshots are written to the local `artifacts/` folder, not published as user content.
 
 Remaining work stays explicit: improve catalog acquisition and metadata classification; design shared Watch Along/recording persistence and episode binding; reduce legacy global overrides; verify authenticated cross-device saving and recovery. The layout checks do not establish that those backend workflows are complete.
+
+## Recommendations and posters follow-up
+
+- Saved Radar cards ignored `poster_url` entirely. They now render the stored image; browser checks assert that the image actually loads.
+- Canonical poster requests omitted year-only catalog metadata. Year lookup now includes catalog `year` and `release_year`; requests are batched eight at a time and failed lookups preserve existing artwork.
+- Saved movies without artwork receive a verified, browser-cached poster lookup. Existing/manual locked images are preserved.
+- A late poster-resolver save override incorrectly treated external TMDB results as Hallmark records. External results now use the original provenance-aware save path.
+- Default recommendations now use the `recommend-romantiverse` Edge Function rather than the same finite Hallmark collection on every refresh. Exact title/year matching resolves the eight starting favorites before ranking; ambiguous matches are reported rather than guessed.
+- Discovery combines favorite-based TMDB recommendations, separate premise-keyword searches for TV romances, changing catalog pages, and identity-checked title probes for sparsely tagged movies. It prioritizes quirky/magical romance and rejects unrelated genres, shorts, and weak matches.
+- Fresh batches exclude supplied favorites, saved movies, passed/No-voted titles, and earlier batches. History is scoped to the workspace on the current browser; if browser storage fails, an in-memory history remains for the current page. “Include previously shown movies” is an explicit history reset.
+- All returned recommendation records include a TMDB poster. Candidate ranking explains the favorite and metadata relationship; fit scores are ranking signals, not calibrated probabilities or verified scene facts.
+- Live service checks resolved all eight starting favorites and checked actual poster URLs. Browser fixtures cover loaded saved/recommended posters and replacement of the first recommendation batch by a different second batch.
+- A live exclusion test returned 18 additional films with zero overlap with the 22 earlier checked records, including Snowmance, A Kiss Before Christmas, Love Strikes Twice, and A Timeless Christmas. TV romances receive preference; strongly related fantastical theatrical romances can also appear. Sparse genre/keyword tags are handled using explicit synopsis evidence and Fantasy genre metadata, without treating ordinary "Christmas spirit" as a ghost story.
+
+Limits: discovery remains bounded, provider tagging may omit films, and poster lookup may leave an ambiguous movie unresolved. Seen-history is device-local; shared votes still come from the existing workspace. No new database schema or auth policy was introduced.

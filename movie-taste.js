@@ -1,5 +1,5 @@
 // Shared taste is derived from shared Radar votes, never from Cheese scores.
-const clTasteFavorites = ['Coupled Up for Christmas','Christmas Movie Christmas','Everything Christmas','A Biltmore Christmas','A Very Nutty Christmas','The Pumpkin Regatta','The Spirit of Christmas',"Something’s Brewing"];
+const clTasteFavorites = ['Coupled Up for Christmas','A Christmas Movie Christmas','Everything Christmas','A Biltmore Christmas','A Very Nutty Christmas','Pumpkin Regatta Romance','The Spirit of Christmas',"Something’s Brewing"];
 const clTasteThemes = [
   {name:'Christmas romance',query:'christmas',pattern:/\b(christmas|mistletoe|yuletide|santa)\b/i,weight:3},
   {name:'A little magic',query:'magical romance',pattern:/\b(magic|magical|ghost|spirit|enchanted|time travel|time loop|nutcracker|wish)\b/i,weight:3},
