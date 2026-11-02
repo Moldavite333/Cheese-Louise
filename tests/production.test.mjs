@@ -72,7 +72,7 @@ test('new recordings follow the approved cold-open to five-minute Bingo plan wit
  const h=harness(recording),p=h.context.clProduction;h.context.render();
  assert.match(h.html(),/Cold open/);assert.match(h.html(),/Theme music/);
  assert.match(h.html(),/Welcome &amp; banter/);assert.match(h.html(),/Bingo &amp; Cheese Grating/);
- assert.match(h.html(),/Target 00:00:20/);assert.match(h.html(),/Target 00:05:00/);
+ assert.match(h.html(),/Target 00:00:20/);assert.match(h.html(),/Target 00:05:00/);assert.match(h.html(),/Target 00:30:00/);
  assert.ok(!h.html().includes('Horror-fied'));
  p.start();h.advance(20000);p.next();
  assert.equal(h.data().session.segmentPlan,'approved-v2');
