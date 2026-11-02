@@ -161,7 +161,8 @@
   function timelineLines(items){return items.map(i=>(i.time?i.time+' — ':'')+i.text).join('\n');}
   function timelineLabel(item){return (item?.time?'<time>'+escapeHtml(item.time)+'</time> ':'')+escapeHtml(item?.text||'');}
   function movieTimelineHtml(){
-    const advanced=window.clAutomaticTimeline?.html({movie:currentMovie(),workspace:workspaceId(),notes:rundown(currentMovie()).notes,confirmed:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)).map(t=>t.name),legacy:movieTimeline().items,redraw:draw});
+    const advanced=window.clAutomaticTimeline?.html({movie:currentMovie(),workspace:workspaceId(),notes:rundown(currentMovie()).notes,confirmed:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)).map(t=>t.name),legacy:movieTimeline().items,traits:((typeof state!=='undefined'?state.traits:[])||[]),recordingMarkers:getSession()?.markers||[],confirmedTraits:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)),redraw:draw});
+    if(advanced)return '<details class="cl-story-research-reference"><summary>Movie research & generation</summary>'+(window.clMovieResearch?.html(currentMovie())||'')+'</details>'+advanced;
     const m=currentMovie(),data=read(),timeline=movieTimeline(),{items,index}=timeline;
     const editing=timelineEditing.has(m.id),draft=data.timelineDrafts?.[m.id]??timelineLines(items);
     const current=items[index],next=items[index+1];
