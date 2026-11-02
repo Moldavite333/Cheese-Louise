@@ -65,5 +65,45 @@
     }return doc;
   }
   function exportText(doc,title,confirmed=[]){return [title,'CHEESE LOUISE · JENNY’S RUNDOWN',doc.mode,'Opening → Cocktail → Movie discussion → Cheese Grating & Bingo → Closing','',...doc.scenes.flatMap((s,i)=>[`${i+1}. ${stamp(s.start_time_ms)} · ${s.title}`,s.summary,`[${s.evidence_status}; ${s.timestamp_status}; ${s.review_status}]`,s.characters.length?'Characters: '+s.characters.join(', '):'',s.shared_notes,s.jenny_notes,'Additional notes: __________________','']), 'Confirmed movie tropes (not Bingo results):',...confirmed,'','Bingo: use the authoritative results panel.'].filter(x=>x!==undefined).join('\n');}
-  globalThis.clTimelineCore={time,stamp,captions,scene,create,ingest,validate,exportText,clone};
+  function mergeResearch(doc,report){
+    if(report?.schema_version!==1||report.movie_id!==doc.movie_id)throw Error('Research does not match this movie.');
+    const revision=report.generated_at;
+    if((doc.research_imports||[]).includes(revision))return clone(doc);
+    const next=clone(doc),refs=new Map();
+    for(const source of report.sources||[]){const ref=id();refs.set(source.id,ref);next.sources.push({id:ref,kind:'research',label:source.title,text:source.text,url:source.url,provenance:source.provenance,created_at:report.generated_at});}
+    for(const beat of report.story_beats||[]){
+      const sourceRefs=(beat.source_ids||[]).map(x=>refs.get(x)).filter(Boolean);if(!sourceRefs.length)continue;
+      const item=scene(doc.movie_id,beat.summary,sourceRefs[0]);item.title=beat.title;item.source_references=sourceRefs;
+      item.discussion_prompts=(report.discussion||[]).filter(d=>d.source_ids.some(ref=>beat.source_ids.includes(ref))).slice(0,3).map(d=>d.question);
+      item.trope_candidates=(report.trope_candidates||[]).filter(d=>d.source_ids.some(ref=>beat.source_ids.includes(ref))).map(t=>({trope_id:t.trope_id,state:'Source-supported candidate',why:t.why}));
+      item.research_origin={generated_at:revision,beat_id:beat.id};
+      const normalize=v=>String(v||'').toLocaleLowerCase().replace(/\s+/g,' ').trim();
+      const existing=next.scenes.find(s=>s.research_origin&&(s.research_origin.beat_id===beat.id||normalize(s.title)===normalize(beat.title)||normalize(s.summary)===normalize(beat.summary)));
+      if(existing){
+        const locked=existing.review_status==='User-confirmed',manual=new Set(existing.manual_fields||[]);
+        if(!locked&&!manual.has('summary'))existing.summary=item.summary;
+        if(!locked&&!manual.has('title'))existing.title=item.title;
+        if(!manual.has('discussion_prompts'))existing.discussion_prompts=item.discussion_prompts;
+        if(!manual.has('trope_candidates'))existing.trope_candidates=item.trope_candidates;
+        existing.source_references=[...new Set([...existing.source_references,...sourceRefs])];existing.research_origin=item.research_origin;existing.revision++;
+      }else next.scenes.push(item);
+    }
+    next.research_imports=[...(next.research_imports||[]),revision];next.research_brief={characters:clone(report.characters||[]),research_gaps:clone(report.research_gaps||[]),generated_at:revision};next.mode=next.mode==='Caption navigation draft'?next.mode:'Plot outline';next.scenes.forEach((s,i)=>s.sequence_index=i);next.selected=next.selected||next.scenes[0]?.scene_id;return validate(next);
+  }
+  const originalExport=exportText;
+  function exportWithResearch(doc,title,confirmed=[]){const base=originalExport(doc,title,confirmed);return base+'\n\n'+doc.scenes.flatMap((s,i)=>s.discussion_prompts.length?[`DISCUSSION · ${i+1}. ${s.title}`,...s.discussion_prompts,'']:[]).join('\n')+(doc.research_brief?'\nCHARACTER NOTES\n'+doc.research_brief.characters.map(c=>c.name+': '+c.motivation+'\n'+c.discussion_angle).join('\n\n')+'\n\nCHECK WHILE WATCHING\n'+doc.research_brief.research_gaps.join('\n'):'');}
+  function undoDelta(before,after){
+    const old=new Map(before.scenes.map(s=>[s.scene_id,s])),fresh=new Map(after.scenes.map(s=>[s.scene_id,s]));
+    const changed=before.scenes.filter(s=>JSON.stringify(s)!==JSON.stringify(fresh.get(s.scene_id)));
+    const added=after.scenes.filter(s=>!old.has(s.scene_id)).map(s=>s.scene_id);
+    const top={},missing=[];
+    for(const key of new Set([...Object.keys(before),...Object.keys(after)])){
+      if(['sources','research_brief','revision','scenes'].includes(key)||JSON.stringify(before[key])===JSON.stringify(after[key]))continue;
+      if(before[key]===undefined)missing.push(key);else top[key]=clone(before[key]);
+    }
+    const orderBefore=before.scenes.map(s=>s.scene_id),orderAfter=after.scenes.map(s=>s.scene_id);
+    return {undo_delta:1,changed:clone(changed),added,top,missing,...(JSON.stringify(orderBefore)!==JSON.stringify(orderAfter)?{order:orderBefore}:{})};
+  }
+  function applyUndoDelta(doc,delta){const next=clone(doc),map=new Map(next.scenes.map(s=>[s.scene_id,s]));for(const id of delta.added)map.delete(id);for(const s of delta.changed)map.set(s.scene_id,clone(s));next.scenes=(delta.order||next.scenes.map(s=>s.scene_id)).map(id=>map.get(id)).filter(Boolean);Object.assign(next,clone(delta.top));for(const key of delta.missing)delete next[key];return next;}
+  globalThis.clTimelineCore={time,stamp,captions,scene,create,ingest,validate,mergeResearch,undoDelta,applyUndoDelta,exportText:exportWithResearch,clone};
 })();
