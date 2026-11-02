@@ -70,3 +70,9 @@ During the final current-head comparison, `main` advanced to `1e63ffaf` with a r
 - No production deployment, merge to main, or database changes were made by this run.
 
 **Correction to the earlier sections of this log:** The temporary `cl-auto-scene-rail` implementation and its three-test file were replaced by the superior `cl-storyboard` implementation and the comprehensive mainline regression suite. Treat this integration correction as the authoritative final state for Run 18.
+
+### Codex-ready next change request — reconcile latest main before release
+1. Fetch latest `main`, merge into `lab/hq-six-pr-integration-20261102-run7` on a worktree, and resolve conflicts explicitly. Preserve Run 17 marker persistence, interrupted-timer recovery, recording history, the approved seven-section show format, and the newly adopted `cl-storyboard` component.
+2. Bring across `main`'s **on-demand-only** movie research changes together: `movie-research.js`, `supabase/functions/movie-research/handler.mjs`, both new migration files, the associated tests, and the browser smoke changes. Do not mix the new client with the old backend or deploy before coordinated staging verification.
+3. Run the exact [production workflow](https://github.com/Moldavite333/Cheese-Louise/blob/main/.github/workflows/production-tests.yml): `for file in *.js; do node --check "$file"; done`; `node --test tests/*.test.mjs`; `node scripts/hq-browser-smoke.mjs`; `node scripts/cocktail-browser-smoke.mjs`; `node scripts/grit-live-smoke.mjs`; `node scripts/grit-browser-smoke.mjs` (browser scripts require Playwright/Chromium setup).
+4. Assert a real current-head CI run is green; run authenticated laptop/phone and REAPER import acceptance. Keep the PR draft until complete. Do not claim mainline CI proves integration CI.
