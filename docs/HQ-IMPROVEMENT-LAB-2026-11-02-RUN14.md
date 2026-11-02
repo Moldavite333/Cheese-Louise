@@ -38,3 +38,6 @@
 
 ## Targeted execution check (after source commit)
 The updated `recording-hub.js` was parsed and executed in an isolated JavaScript runtime with mocked browser storage, timers, and DOM. Three targeted behaviors passed: (1) external-tab write triggers a read-only banner and preserves an unfinished marker, (2) the original writer can pause and preserve its elapsed time, and (3) normal single-tab start/pause remains functional. This **does not replace Node's complete test suite or a real multi-tab browser test**. The GitHub Actions list still showed no new workflow run for the connector-written head; do not mark CI green.
+
+## Additional integration blocker
+GitHub's PR API currently reports PR #57 as `mergeable: false`, `mergeable_state: dirty` on the Run 14 head. Treat this as an **unresolved merge conflict** requiring investigation against `main`; do not merge or deploy. No conflict resolution was attempted in this run.
