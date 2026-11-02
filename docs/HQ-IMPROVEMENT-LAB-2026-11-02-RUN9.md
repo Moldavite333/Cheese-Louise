@@ -20,7 +20,8 @@
 - No production data, schema, RLS, Bingo results, recording history, or deployed site changed.
 
 ## Verification / release gates
-- The first test run (`9f35f3a`) found a missing `topbar` stub in the new Romantiverse VM test fixture (131/132 tests passed). Corrected the fixture; follow-up run `9a7d39e` passed. The final six-test, three-layer head still requires its own complete CI verification.
+- The first test run (`9f35f3a`) found a missing `topbar` stub in the new Romantiverse VM test fixture (131/132 tests passed). Corrected the fixture; follow-up run `9a7d39e` passed.
+- **Final source-and-tests head `bf8cd92`: 134/134 Node tests passed, zero failures; syntax, assembled Chromium HQ, responsive cocktail, and Grit checks passed** ([Actions 41441763115](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41441763115)). The subsequent documentation-only head `cfdbcfb` also passed the full workflow ([Actions 41441823588](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41441823588)).
 - The change requires browser smoke tests on the *assembled script order*, not merely isolated source tests.
 - Real authenticated Nick/Jenny testing, *A Christmas Village* search, REAPER import, and backend-first Supabase rollout remain outstanding.
 - Existing historical scores and trait feedback were **not** altered. Some past auto-confirmed traits may still need provenance review; do not bulk delete.
