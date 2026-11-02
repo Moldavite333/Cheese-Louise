@@ -96,10 +96,10 @@
     alert('Could not save the session change on this device. Your previous recording remains active in memory. Free storage and try again.');
     return false;
   }
-  const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
+  const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;return write(d);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segmentPlan:'approved-v2',segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
-  function update(fn){if(guardExternal())return;const s=getSession();if(!s)return;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return;}fn(s);save(s);draw();}
+  function update(fn){if(guardExternal())return false;const s=getSession();if(!s)return false;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return false;}fn(s);const saved=save(s);draw();return saved;}
   const button=(label,handler,extra='')=>'<button type="button" '+extra+(stale()&&/^(start|pause|previous|next|mark|deleteMarker|refreshSnapshot|reset|restoreSession|timelineSave|timelineMove|timelineImport|recoverPause|recoverContinue)/.test(handler)?' disabled':'')+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
@@ -110,7 +110,7 @@
       +'<section id="clp-body">'+(m?bodyHtml(): '<p>Add a movie in HQ to begin.</p>')+'</section></main>';
   }
   function bodyHtml(){return view==='record'?recordHtml():view==='edit'?editHtml():socialHtml();}
-  let expandedSegment=null;
+  let expandedSegment=null, pendingMarker=null;
   function movieCredits(movie){
     let meta=movie?.source_metadata||{};
     if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}
@@ -238,7 +238,7 @@
     return recoveryHtml+'<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(plan[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
       '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(plan[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
       '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(plan[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
-      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()',recovering?'disabled':''):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',recovering||s.finished?'disabled':''))+button('Previous','previous()',recovering||i===0?'disabled':'')+button(i===plan.length-1?'Finish & save':'Lap & next','next()',recovering||s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button '+(recovering?'disabled ':'')+'aria-keyshortcuts="M" onclick="clProduction.mark()">Mark moment</button></div><p class="clp-hint">Press M to mark a moment while the timer runs. Typing in a field is unaffected.</p><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()',recovering?'disabled':'')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
+      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()',recovering?'disabled':''):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',recovering||s.finished?'disabled':''))+button('Previous','previous()',recovering||i===0?'disabled':'')+button(i===plan.length-1?'Finish & save':'Lap & next','next()',recovering||s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button '+(recovering||!s.runningSince||s.finished?'disabled ':'')+'aria-keyshortcuts="M" onclick="clProduction.mark()">Mark moment</button></div><p class="clp-hint">Press M to mark a moment while the timer runs. Typing in a field is unaffected.</p><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()',recovering?'disabled':'')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
   function sessionHistoryHtml(){
     const m=currentMovie(),history=read().sessionHistory?.[m?.id]||[];
@@ -299,7 +299,24 @@
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;s.checkpointAt=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
     next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:sessionSegments(s)[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===sessionSegments(s).length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
-    mark(){if(guardExternal())return;if(isPending(getSession())){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note,...(window.clAutomaticTimeline?.selected()||{})}));},
+    mark(){
+      if(guardExternal())return;
+      const s=getSession();
+      if(isPending(s)){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}
+      if(!s?.runningSince||s.finished){alert('Start or resume the HQ timer before adding an editing marker. Your note has been kept.');return;}
+      const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';
+      let saved=false;
+      if(pendingMarker?.movieId===s.movieId&&s.markers.includes(pendingMarker.marker)){
+        pendingMarker.marker.type=type;pendingMarker.marker.note=note;
+        saved=save(s);draw();
+      }else{
+        const scene=window.clAutomaticTimeline?.selected?.()||{};
+        const marker={...(scene.scene_id?{scene_id:scene.scene_id}:{}),...(Number.isFinite(scene.movie_time_ms)?{movie_time_ms:scene.movie_time_ms}:{}),atMs:sessionNow(s),type,note};
+        saved=update(active=>active.markers.push(marker));
+        pendingMarker=saved?null:{movieId:s.movieId,marker};
+      }
+      if(saved){pendingMarker=null;const input=document.getElementById('clp-marker-note');if(input)input.value='';}
+    },
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
     reset(){
