@@ -1,11 +1,23 @@
 .cl-auto{padding:14px;border:1px solid var(--line,#555);border-radius:12px;margin:12px 0;background:var(--panel,#202129);min-width:0}
 .cl-auto-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.clp .cl-auto button{min-height:40px;font:inherit;font-size:12px;background:var(--panel-2,#253438);color:inherit;border:1px solid var(--line,#52666b);border-radius:7px;padding:8px 10px;cursor:pointer}.clp .cl-auto button:hover{border-color:#efc766}.clp .cl-auto button:disabled{opacity:.5;cursor:default}
-.cl-auto-workspace{display:grid;grid-template-columns:minmax(100px,.65fr) minmax(180px,1fr);gap:12px;margin-top:12px}
-.cl-auto nav{max-height:70vh;overflow:auto}.cl-auto nav ol{list-style:none;margin:0;padding:0}.cl-auto nav button{display:block;text-align:left;width:100%;margin:0 0 6px;padding:10px;overflow-wrap:anywhere}
-.cl-auto-workspace>section{max-height:70vh;overflow:auto;padding:3px;scrollbar-gutter:stable}
-.cl-auto nav button[aria-current=step]{outline:2px solid #efc766;background:#473e29}.cl-auto nav small,.cl-auto nav strong{display:block}.cl-auto label{display:block;font-size:12px;margin:9px 0}
+/* Storyboard: scenes are a compact horizontal filmstrip; details stay below. */
+.cl-auto-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:12px}
+.cl-auto nav{min-width:0;overflow:visible}
+.cl-auto-rail-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:13px}
+.cl-auto-rail-head span{color:var(--muted,#b7bdc1);font-size:12px}
+.cl-auto nav ol.cl-auto-scene-rail{list-style:none;display:flex;gap:10px;margin:0;padding:5px 4px 14px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-gutter:stable}
+.cl-auto-scene-rail li{flex:0 0 clamp(180px,23vw,250px);min-width:0;scroll-snap-align:start}
+.cl-auto nav .cl-auto-scene-card{display:flex;flex-direction:column;gap:8px;align-items:stretch;text-align:left;width:100%;min-height:162px;height:100%;margin:0;padding:12px;overflow-wrap:anywhere;border-radius:10px;background:var(--panel-2,#253438)}
+.cl-auto-scene-meta{display:flex;justify-content:space-between;gap:6px;font-size:10px;letter-spacing:.02em;color:var(--muted,#b7bdc1)}
+.cl-auto-scene-card strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;font-size:14px}
+.cl-auto-scene-preview{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.35;opacity:.86;white-space:normal}
+.cl-auto-scene-flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;font-size:10px}
+.cl-auto-scene-flags span{border:1px solid var(--line,#52666b);border-radius:4px;padding:2px 5px}
+.cl-auto-workspace>section{min-width:0;max-height:none;overflow:visible;padding:10px 4px;border-top:1px solid var(--line,#555)}
+.cl-auto nav button[aria-current=step]{outline:2px solid #efc766;outline-offset:0;background:#473e29}
+.cl-auto label{display:block;font-size:12px;margin:9px 0}
 .cl-auto input,.cl-auto textarea,.cl-auto select{display:block;box-sizing:border-box;width:100%;color:inherit;background:var(--panel-2,#25262c);border:1px solid var(--line,#666);border-radius:6px;padding:9px;font:inherit;font-size:14px}
 .cl-auto pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;font:inherit;font-size:12px}.cl-auto details{margin:12px 0}.cl-auto summary{cursor:pointer;min-height:30px}.cl-auto section{min-width:0}
 .cl-auto :focus-visible{outline:3px solid #efc766;outline-offset:2px}#cl-auto-status{font-size:12px;color:#efc766}
 @media(min-width:900px){.clp-desk-columns{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important}.clp-desk-bingo{grid-column:1/-1!important}.clp-bingo-groups{grid-template-columns:1fr 1fr}}
-@media(max-width:599px){.cl-auto-workspace{grid-template-columns:1fr}.cl-auto nav{max-height:200px}}
+@media(max-width:599px){.cl-auto-rail-head{flex-direction:column;gap:2px}.cl-auto-scene-rail li{flex-basis:78vw;max-width:270px}.cl-auto nav .cl-auto-scene-card{min-height:148px}}
