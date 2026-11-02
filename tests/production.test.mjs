@@ -33,20 +33,21 @@ test('Watch Along import produces an editable timeline draft and preserves exist
  assert.equal(h.data().timelines.a.items.length,1);assert.equal(h.data().timelineDrafts.a,'00:05 \u2014 Opening\nMeeting\nFinal reveal');
  p.timelineSave();assert.equal(h.data().timelines.a.items.length,3);assert.equal(h.data().timelines.a.items[0].time,'00:05');
 });
-function harness(source,initial={}){
- const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
- const listeners=new Map();
+function harness(source,initial={},initialNow=100000){
+ const storage=new Map(Object.entries(initial));let now=initialNow,html='',blocked=false;const alerts=[];
+ const listeners=new Map(),windowListeners=new Map(),intervals=new Map();
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
  const context={window:null,workspace:{id:'workspace-test'},session:{user:{id:'test'}},state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],source_metadata:'{"director":"Director A"}'},{id:'b',title:'Movie B',selectedTraitIds:[]}],traits:[{id:'t1',name:'Old flame',points:5,category:'Romance',is_active:true}]},selectedMovie:null,currentTab:'recording',
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(blocked)throw Error('Storage full');storage.set(k,v)},removeItem:k=>storage.delete(k)},
- document:{getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},
+ document:{visibilityState:'visible',getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},
+ addEventListener:(type,fn)=>windowListeners.set(type,fn),
  Date:class extends Date{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}},
- setInterval:()=>0,setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
+ setInterval:(fn,ms)=>{intervals.set(ms,fn);return ms},setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
  tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s;elements.get('clp-marker-note').value='';elements.get('clp-marker-type').value='Funny / Clip'},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
  context.window=context;vm.createContext(context);vm.runInContext(source,context);
- return {context,storage,elements,listeners,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
+ return {context,storage,elements,listeners,windowListeners,intervals,alerts,advance:ms=>{now+=ms},now:()=>now,html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
  const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.pause();p.movie('b');
@@ -246,4 +247,54 @@ test('M shortcut creates a live marker without stealing text entry or affecting 
  p.view('edit');keydown(key());p.view('record');p.pause();keydown(key());
  assert.equal(h.data().session.markers.length,1,'Only active recording desk accepts shortcut');
  assert.equal(prevented,1);
+});
+
+test('crash recovery freezes the timer at its last saved checkpoint until explicitly resolved',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(12000);h.intervals.get(5000)();
+ p.mark();assert.equal(h.data().session.markers[0].atMs,12000);
+ const stored=Object.fromEntries(h.storage);
+ const restarted=harness(recording,stored,h.now()+3600000),q=restarted.context.clProduction;
+ restarted.context.render();
+ assert.match(restarted.html(),/Verify the interrupted recording timer/);
+ assert.match(restarted.html(),/00:00:12/);
+ assert.equal(restarted.data().session.runningSince,100000,'Reload does not silently mutate the session');
+ q.mark();assert.equal(restarted.data().session.markers.length,1,'Pending recovery blocks edits');
+ q.recoverPause();
+ assert.equal(restarted.data().session.runningSince,null);
+ assert.equal(restarted.data().session.elapsedMs,12000,'Closed-browser gap is not invented');
+ assert.equal(restarted.data().session.markers[0].atMs,12000);
+ restarted.context.render();assert.doesNotMatch(restarted.html(),/Verify the interrupted recording timer/);
+ const again=harness(recording,Object.fromEntries(restarted.storage),restarted.now()+60000);
+ again.context.render();assert.doesNotMatch(again.html(),/Verify the interrupted recording timer/);
+ assert.equal(again.data().session.elapsedMs,12000);
+});
+
+test('explicit continuous-recorder confirmation counts a gap, while legacy sessions remain conservative',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(5000);h.intervals.get(5000)();
+ const r=harness(recording,Object.fromEntries(h.storage),h.now()+30000),q=r.context.clProduction;
+ q.recoverContinue();
+ assert.equal(r.data().session.runningSince,100000);
+ assert.equal(r.data().session.checkpointAt,r.now());
+ q.mark();assert.equal(r.data().session.markers[0].atMs,35000);
+ q.pause();assert.equal(r.data().session.elapsedMs,35000);
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{},segment:0,laps:[],markers:[],elapsedMs:8000,runningSince:100000,finished:false}};
+ const old=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)},100000+7200000);
+ old.context.render();assert.match(old.html(),/Verify the interrupted recording timer/);
+ old.context.clProduction.recoverPause();assert.equal(old.data().session.elapsedMs,8000,'No checkpoint means no speculative gap');
+});
+
+test('hidden and pagehide checkpoint without pausing a live take',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(9000);
+ h.context.document.visibilityState='hidden';h.listeners.get('visibilitychange')();
+ assert.equal(h.data().session.checkpointAt,109000);
+ h.advance(60000);h.intervals.get(5000)();
+ assert.equal(h.data().session.checkpointAt,109000,'Background throttling cannot invent checkpoints');
+ h.windowListeners.get('pagehide')({persisted:false});
+ assert.equal(h.data().session.checkpointAt,109000,'Pagehide after hidden does not count background gap');
+ assert.equal(h.data().session.runningSince,100000,'Leaving HQ does not silently stop the RØDECaster');
+ const r=harness(recording,Object.fromEntries(h.storage),h.now());
+ r.context.clProduction.recoverPause();assert.equal(r.data().session.elapsedMs,9000);
 });
