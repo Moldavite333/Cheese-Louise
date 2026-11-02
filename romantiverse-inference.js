@@ -429,16 +429,9 @@ suggestTraits = async function(movieId){
   if(!suggestions.length){
     return alert('The Romantiverse Interpreter did not find any new likely Cheese Traits in this synopsis yet. You can still score the movie manually.');
   }
-
   const lines = suggestions.map(m=>`• ${m.trait.name} (+${m.trait.points}) — ${rvConfidenceLabel(m.confidence)}: ${m.reason}`);
-  if(!confirm(`Romantiverse Interpreter suggests:\n\n${lines.join('\n')}\n\nEstimated added cheese: +${suggestions.reduce((s,m)=>s+Number(m.trait.points||0),0)}\n\nAdd all of these? You can remove any of them afterward.`)) return;
-
-  const rows = suggestions.map(m=>({workspace_id:workspace.id,movie_id:movieId,trait_id:m.trait.id,selected_by:me()}));
-  const {error} = await db.from('movie_traits').insert(rows);
-  if(error) return alert(error.message);
-  await logActivity(`accepted ${suggestions.length} Romantiverse Interpreter suggestion${suggestions.length===1?'':'s'} for ${movie.title}.`,'movie',movieId);
-  await loadAll();
-  render();
+  // A synopsis-based guess must never create verified movie_traits rows.
+  alert(`Romantiverse Interpreter predictions (unverified):\n\n${lines.join('\n')}\n\nSelect each trait you actually observed in the movie detail picker after watching. Nothing has been added.`);
 };
 window.suggestTraits = suggestTraits;
 window.romantiverseAnalyze = romantiverseAnalyze;
