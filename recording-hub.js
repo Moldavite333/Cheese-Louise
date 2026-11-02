@@ -21,7 +21,18 @@
   const write=data=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));memory.delete(key());storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
   const watchMovieId=()=>{try{return localStorage.getItem('cheeseLouise:watchAlong:'+workspaceId()+':movie')}catch{return null}};
   const currentMovie=()=>movieList().find(m=>m.id===read().movieId)||movieList().find(m=>m.id===watchMovieId())||movieList()[0]||null;
-  const sessionNow=s=>Math.max(0,(s.elapsedMs||0)+(s.runningSince?Date.now()-s.runningSince:0));
+  // An interrupted page must not invent recording time while the browser was closed.
+  // Reconciliation is explicit: the RØDECaster, not this timer, is the audio authority.
+  const loaded=read(),loadedSession=loaded.sessions?.[loaded.movieId]||loaded.session;
+  let pendingRecovery=loadedSession?.runningSince?{
+    movieId:loadedSession.movieId,runningSince:loadedSession.runningSince,
+    stopAt:Math.max(loadedSession.runningSince,Math.min(Date.now(),
+      Number.isFinite(Number(loadedSession.checkpointAt))&&Number(loadedSession.checkpointAt)>=loadedSession.runningSince
+        ?Number(loadedSession.checkpointAt):loadedSession.runningSince))
+  }:null;
+  const isPending=s=>Boolean(pendingRecovery&&s?.movieId===pendingRecovery.movieId&&s.runningSince===pendingRecovery.runningSince);
+  const sessionNow=s=>Math.max(0,(s.elapsedMs||0)+(s.runningSince?
+    (isPending(s)?pendingRecovery.stopAt:Date.now())-s.runningSince:0));
   const startOfSegment=s=>s.laps?.reduce((a,l)=>a+(l.durationMs||0),0)||0;
   function rundown(movie){
     const wk='cheeseLouise:watchAlong:'+workspaceId()+':draft:'+movie.id;
@@ -62,7 +73,7 @@
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
-  function update(fn){const s=getSession();if(!s)return;fn(s);save(s);draw();}
+  function update(fn){const s=getSession();if(!s)return;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return;}fn(s);save(s);draw();}
   const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
@@ -179,11 +190,12 @@
   function recordHtml(){
     const s=getSession(),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
     const focused=expandedSegment!==null&&expandedSegment>=0?expandedSegment:i;
+    const recoveryHtml=isPending(s)?'<div class="clp-recovery" role="alert"><strong>Verify the interrupted recording timer.</strong><p>HQ is showing the last saved checkpoint, not counting time while this page was closed. Compare with the RØDECaster before using markers. If another HQ tab is still recording, return to that tab instead.</p><div class="clp-actions">'+button('Pause at checkpoint','recoverPause()')+button('Continue counting gap','recoverContinue()')+'</div></div>':'';
     const rows=segments.map((seg,n)=>{
       const lap=s.laps[n],active=n===i;
       return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):'Target '+seg.target+':00')+'</small></button>';
     }).join('');
-    return '<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
+    return recoveryHtml+'<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
       '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(segments[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
       '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
       '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button aria-keyshortcuts="M" onclick="clProduction.mark()">Mark moment</button></div><p class="clp-hint">Press M to mark a moment while the timer runs. Typing in a field is unaffected.</p><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
@@ -240,10 +252,12 @@
       if(previous)save(previous);
       const d=read();d.movieId=id;write(d);expandedSegment=null;render();
     },
-    start(){update(s=>{if(!s.finished&&!s.runningSince)s.runningSince=Date.now();});},
-    pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;}});},
+    recoverPause(){const s=getSession();if(!isPending(s))return;const total=sessionNow(s);pendingRecovery=null;s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;save(s);draw();},
+    recoverContinue(){const s=getSession();if(!isPending(s))return;if(!confirm('Only count the gap if the RØDECaster was recording continuously while HQ was closed. Otherwise choose Pause at checkpoint. Continue?'))return;pendingRecovery=null;s.checkpointAt=Date.now();save(s);draw();},
+    start(){update(s=>{if(!s.finished&&!s.runningSince){s.runningSince=Date.now();s.checkpointAt=s.runningSince;}});},
+    pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;s.checkpointAt=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
-    next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.finished=true;}else{s.segment++;}});},
+    next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
     mark(){const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
@@ -275,11 +289,21 @@
     copySocial(){const m=currentMovie(),s=getSession();copy(['CHEESE LOUISE — EPISODE PROMOTION',m.title,'Network: '+(m.network||'Verify network'),'Cheese Grating: '+(rundown(m).grating||0),'Clip candidates:',...s.markers.filter(x=>x.type==='Funny / Clip').map(x=>clock(x.atMs)+' '+x.note),'Add verified cocktail recipe, release date, episode link and Bingo link before posting.'].join('\n'));},
     syncTraits(movieId){if(currentTab!=='recording'||currentMovie()?.id!==movieId)return;const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}}
   };
+  // Persist a bounded checkpoint while the page is active. Hidden tabs can be
+  // suspended without firing pagehide, especially on phones.
+  function checkpointActive(force=false){
+    if(pendingRecovery||(!force&&document.visibilityState==='hidden'))return;
+    const s=getSession();if(!s?.runningSince)return;
+    s.checkpointAt=Date.now();save(s);
+  }
+  document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')checkpointActive(true);});
+  window.addEventListener?.('pagehide',()=>{if(document.visibilityState!=='hidden')checkpointActive(true);});
+  setInterval(()=>checkpointActive(),5000);
   // A one-key editing marker matches the quick-cue workflow without stealing text input.
   // Deliberately restricted to an active recording and to non-editable targets.
   function markerShortcut(event){
     if(event.defaultPrevented||event.isComposing||event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey||String(event.key||'').toLowerCase()!=='m')return;
-    if(currentTab!=='recording'||view!=='record'||!getSession()?.runningSince)return;
+    if(currentTab!=='recording'||view!=='record'||!getSession()?.runningSince||isPending(getSession()))return;
     const target=event.target||document.activeElement;
     if(target?.isContentEditable||target?.closest?.('[role="dialog"], [contenteditable="true"]')||['INPUT','TEXTAREA','SELECT','BUTTON'].includes(String(target?.tagName||'').toUpperCase()))return;
     event.preventDefault();
