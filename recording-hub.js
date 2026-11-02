@@ -228,7 +228,18 @@
     openWatchAlong(){const movie=currentMovie();if(!movie)return;try{localStorage.setItem('cheeseLouise:watchAlong:'+workspaceId()+':movie',movie.id)}catch{}if(window.hqWorkspace?.open)window.hqWorkspace.open('watchalong');else{currentTab='watchalong';render();}},
     expand(i){expandedSegment=expandedSegment===i?-1:i;draw();},
     view(v){view=v;draw();document.querySelectorAll('.clp-tabs button').forEach((b,i)=>b.classList.toggle('selected',['record','edit','socials'][i]===v));},
-    movie(id){if(!movieList().some(m=>m.id===id))return;const previous=getSession();if(previous){if(previous.runningSince){previous.elapsedMs=sessionNow(previous);previous.runningSince=null;}save(previous);}const d=read();d.movieId=id;write(d);expandedSegment=null;render();},
+    movie(id){
+      if(!movieList().some(m=>m.id===id)||currentMovie()?.id===id)return;
+      const previous=getSession();
+      // Switching the movie during a take must never silently stop the HQ clock.
+      if(previous?.runningSince){
+        alert('Pause the recording timer before switching movies. Your current recording and markers are unchanged.');
+        render(); // Restore the selected movie in the dropdown.
+        return;
+      }
+      if(previous)save(previous);
+      const d=read();d.movieId=id;write(d);expandedSegment=null;render();
+    },
     start(){update(s=>{if(!s.finished&&!s.runningSince)s.runningSince=Date.now();});},
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
