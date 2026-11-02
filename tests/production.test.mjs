@@ -258,6 +258,7 @@ test('crash recovery freezes the timer at its last saved checkpoint until explic
  restarted.context.render();
  assert.match(restarted.html(),/Verify the interrupted recording timer/);
  assert.match(restarted.html(),/00:00:12/);
+ assert.match(restarted.html(),/disabled aria-keyshortcuts="M"/,'Marker button disabled during recovery');
  assert.equal(restarted.data().session.runningSince,100000,'Reload does not silently mutate the session');
  restarted.elements.get('clp-marker-note').value='Unsaved recovery note';
  q.mark();assert.equal(restarted.data().session.markers.length,1,'Pending recovery blocks edits');
