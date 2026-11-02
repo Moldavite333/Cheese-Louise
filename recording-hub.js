@@ -42,6 +42,23 @@
     if(window.clMovieTraits&&outlineItems.length){const named=new Set(outlineItems.filter(i=>i.type==='trait').map(i=>i.text));for(const trait of selected)if(!named.has(trait.name))outlineItems.push({type:'trait',text:trait.name,category:trait.category||''});}
     return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
+  const clone=value=>JSON.parse(JSON.stringify(value));
+  const hasRecordedWork=s=>Boolean(s&&((s.elapsedMs||0)>0||s.runningSince||(s.laps||[]).length||(s.markers||[]).length||s.finished));
+  function archiveSession(data,session){
+    if(!hasRecordedWork(session))return false;
+    const snapshot=clone(session);
+    if(snapshot.runningSince){snapshot.elapsedMs=sessionNow(session);snapshot.runningSince=null;}
+    data.sessionHistory=data.sessionHistory||{};
+    const history=data.sessionHistory[session.movieId]=data.sessionHistory[session.movieId]||[];
+    history.unshift({archiveId:String(Date.now())+'-'+history.length+'-'+Math.random().toString(36).slice(2,8),archivedAt:Date.now(),session:snapshot});
+    return true;
+  }
+  function commitSessionChange(data,original){
+    if(write(data))return true;
+    memory.set(key(),original);
+    alert('Could not save the session change on this device. Your previous recording remains active in memory. Free storage and try again.');
+    return false;
+  }
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
@@ -171,11 +188,21 @@
       '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
       '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
+  function sessionHistoryHtml(){
+    const m=currentMovie(),history=read().sessionHistory?.[m?.id]||[];
+    if(!history.length)return '<p class="clp-hint">No previous recording sessions saved for this movie on this browser.</p>';
+    return '<details class="clp-session-history"><summary>Past recording sessions ('+history.length+')</summary><p class="clp-hint">Stored on this device, not yet shared across Nick and Jenny’s devices. Restoring one preserves the current session in this history.</p><div class="clp-list">'+history.map(entry=>{
+      const s=entry.session||{},date=new Date(entry.archivedAt).toLocaleString();
+      const id=String(entry.archiveId||'');
+      if(!/^[a-z0-9-]+$/i.test(id))return '';
+      return '<div><span><strong>'+escapeHtml(date)+'</strong> · '+clock(s.elapsedMs||0)+' · '+(s.markers||[]).length+' markers'+(s.finished?' · finished':'')+'</span>'+button('Restore','restoreSession(\\''+id+'\\')')+'</div>';
+    }).join('')+'</div></details>';
+  }
   function editHtml(){
     const s=getSession();return '<h2>Editing sheet</h2><p>All timestamps are relative to when you started the HQ timer. Start the RØDECaster recording at the same moment for accurate alignment.</p>'
       +'<h3>Segment boundaries</h3><div class="clp-list">'+(s.laps||[]).map(l=>'<div><span>'+clock(l.startMs)+' — '+escapeHtml(l.name)+'</span><strong>'+clock(l.durationMs)+'</strong></div>').join('')+'</div>'
       +'<h3>Markers</h3><div class="clp-list">'+(s.markers||[]).map((m,i)=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span><button onclick="clProduction.deleteMarker('+i+')">Remove</button></div>').join('')+'</div>'
-      +'<div class="clp-actions">'+button('Download CSV','exportCsv()')+button('Copy editing sheet','copyEdit()')+'</div>';
+      +'<div class="clp-actions">'+button('Download CSV','exportCsv()')+button('Copy editing sheet','copyEdit()')+'</div>'+sessionHistoryHtml();
   }
   function socialHtml(){
     const s=getSession(),m=currentMovie(),d=read(),done=d.socials?.[m.id]||{},tasks=['Teaser prepared','Cocktail post prepared','Episode release post prepared','Funny clip selected','Bingo link checked','Posts scheduled'];
@@ -208,7 +235,27 @@
     mark(){const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
-    reset(){if(confirm('Start a new session? The current session and its markers will be replaced. Export the editing sheet first.'))update(s=>Object.assign(s,makeSession(currentMovie())));},
+    reset(){
+      const m=currentMovie(),active=getSession();if(!m||!active)return;
+      if(!confirm('Start a new recording session? Your current recording and markers will be kept in Past recording sessions on this device.'))return;
+      const data=read(),original=clone(data);
+      archiveSession(data,active);
+      const fresh=makeSession(m);
+      data.sessions=data.sessions||{};data.sessions[m.id]=fresh;data.session=fresh;data.movieId=m.id;
+      if(commitSessionChange(data,original))draw();
+    },
+    restoreSession(archiveId){
+      const m=currentMovie(),active=getSession();if(!m||!active)return;
+      if(active.runningSince){alert('Pause the recording timer before restoring an earlier session.');return;}
+      const data=read(),history=data.sessionHistory?.[m.id]||[],index=history.findIndex(x=>x.archiveId===archiveId);
+      if(index<0)return;
+      if(!confirm('Restore this earlier recording session? Your current recorded work will be saved in Past recording sessions.'))return;
+      const original=clone(data),selected=history.splice(index,1)[0];
+      archiveSession(data,active);
+      const restored=clone(selected.session);restored.movieId=m.id;restored.runningSince=null;
+      data.sessions=data.sessions||{};data.sessions[m.id]=restored;data.session=restored;data.movieId=m.id;
+      if(commitSessionChange(data,original))draw();
+    },
     social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
     exportCsv(){const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-editing-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     copyEdit(){copy(editingText());},
