@@ -37,7 +37,7 @@ PR #57 integrated the evidence-first movie timeline and automatic movie research
 
 ## 2026-11-02 — Run 17: recording marker integrity
 
-**Implemented on the same draft branch:** The Mark moment button now requires an active HQ timer, matching the `M` shortcut; paused and pre-start calls preserve unsaved notes. A failed local-storage write retains the note and in-memory marker; retry uses a stable marker ID so neither manual retry nor a checkpoint creates duplicate markers. The recording timestamp, category and note cannot be overwritten by automatic timeline scene metadata. Four Node regressions were added, and four executable targeted V8 runtime checks passed.
+**Implemented on the same draft branch:** The Mark moment button now requires an active HQ timer, matching the `M` shortcut; paused and pre-start calls preserve unsaved notes. A failed local-storage write retains the note and in-memory marker; retry uses a stable marker ID so neither manual retry nor a checkpoint creates duplicate markers. The recording timestamp, category and note cannot be overwritten by automatic timeline scene metadata. Four Node regressions were added. Four targeted V8 runtime checks and all 35 `production.test.mjs` test bodies passed in a V8 compatibility harness; official Node/Chromium CI is still pending.
 
 **Verification boundary:** The full current-head GitHub Actions workflow has not run yet; the earlier 177-test pass does not validate Run 17. GitHub currently reports the draft PR mergeable and zero commits behind `main`. No main merge, production deployment, backend migration or real-device test. [Run 17 full log and prioritized acceptance matrix](HQ-IMPROVEMENT-LAB-2026-11-02-RUN17.md).
 
