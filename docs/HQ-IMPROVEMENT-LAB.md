@@ -30,3 +30,15 @@ Keep the current notes-first landscape layout, Nick/Jenny-only HQ access, no-Hor
 **Reviewed:** Run 13 checkpoint recovery and draft PR #57. **Implemented on review branch:** compare-before-write protection and same-origin `storage` event detection for HQ recording state. A tab that observes another tab's production-workspace edit becomes read-only, preserving unsaved marker text and preventing stale timer checkpoints, timeline edits, markers and session changes. Three regression tests added. This is not atomic locking or phone/laptop synchronization.
 
 **Verification:** GitHub Actions for the new head had not been observed at the time of writing; prior Run 13 green CI does not validate this change. **No merge or deployment.** Full detail: [Run 14](HQ-IMPROVEMENT-LAB-2026-11-02-RUN14.md). Next: current-head CI, authenticated two-tab verification, then versioned cross-device synchronization and staged release gates.
+
+## 2026-11-02 — Runs 15–16: timeline integration, approved show format, current integration baseline
+
+PR #57 integrated the evidence-first movie timeline and automatic movie research from newer `main`, retaining recording-session history, REAPER export, interrupted-timer recovery and same-browser conflict detection. New sessions now follow the seven-section ~45-minute approved format, with a ~20-second cold open and five-minute Bingo/Cheese Grating ending; historical sessions keep original lap names. **Run 16's exact merge commit passed 177/177 Node tests and configured browser checks.** The research backend, authenticated devices and REAPER GUI were not live-verified. Full logs: [Run 15](HQ-IMPROVEMENT-LAB-2026-11-02-RUN15.md) and [Run 16](HQ-IMPROVEMENT-LAB-2026-11-02-RUN16.md).
+
+## 2026-11-02 — Run 17: recording marker integrity
+
+**Implemented on the same draft branch:** The Mark moment button now requires an active HQ timer, matching the `M` shortcut; paused and pre-start calls preserve unsaved notes. A failed local-storage write retains the note and in-memory marker; retry uses a stable marker ID so neither manual retry nor a checkpoint creates duplicate markers. The recording timestamp, category and note cannot be overwritten by automatic timeline scene metadata. Four Node regressions were added, and four executable targeted V8 runtime checks passed.
+
+**Verification boundary:** The full current-head GitHub Actions workflow has not run yet; the earlier 177-test pass does not validate Run 17. GitHub currently reports the draft PR mergeable and zero commits behind `main`. No main merge, production deployment, backend migration or real-device test. [Run 17 full log and prioritized acceptance matrix](HQ-IMPROVEMENT-LAB-2026-11-02-RUN17.md).
+
+**Next:** Run full current-head CI; validate on Nick's laptop, Jenny's phone, two tabs, and actual REAPER import before any release. Then implement versioned shared episode state rather than another local-only recording feature.
