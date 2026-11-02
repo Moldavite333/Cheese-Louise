@@ -63,7 +63,7 @@ test('adding from Radar never treats metadata-matched tropes as verified',async(
   const h=fixture();
   const html=h.context.discoveryCard(h.candidate);
   assert.match(html,/Add to Radar/);
-  assert.match(html,/Review 2 predicted Cheese Traits after watching/);
+  assert.match(html,/Metadata prediction only\. Add to Radar, then confirm traits after watching/);
   assert.doesNotMatch(html,/Add \+ confirm/);
   await h.context.addDiscoveredMovie(558815);
   assert.equal(h.insertedTraits.length,0);
