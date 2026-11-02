@@ -37,11 +37,14 @@ loadAll = async function(){
   state.movies = state.movies.map(m => {
     const selectedTraitIds = cheeseTraitRows.filter(mt => mt.movie_id === m.id).map(mt => mt.trait_id);
     const selectedTraits = selectedTraitIds.map(traitById).filter(Boolean);
+    const gratingAudit = window.clCheeseGratingIntegrity.audit(m,selectedTraitIds,state.traits);
     return {
       ...m,
-      score: Number(m.cheese_score ?? 0),
+      // Checked trait evidence is authoritative; keep the stored legacy value untouched.
+      score: gratingAudit.confirmedScore,
       selectedTraitIds,
-      selectedTraits
+      selectedTraits,
+      gratingAudit
     };
   });
 };
@@ -62,7 +65,7 @@ movieCard = function(m){
     <div class="movie-body">
       <div class="score-row"><span class="subtle">${esc(m.network||'Unknown')} • ${esc(m.date)}</span><span class="cheese-score">🧀 <span data-cheese-score-movie="${esc(m.id)}">${esc(m.score)}</span></span></div>
       <div class="pills">${cheeseTraitPills(m)}</div>
-      <div class="subtle">${count ? `${count} Cheese Trait${count===1?'':'s'} · ` : ''}${consensus(m)}</div>
+      <div class="subtle">${m.gratingAudit?.needsReview?'Score needs review · ':''}${count ? `${count} Cheese Trait${count===1?'':'s'} · ` : ''}${consensus(m)}</div>
       <div class="vote-row">
         <button class="vote-btn ${v==='yes'?'active-yes':''}" onclick="vote('${m.id}','yes')">❤️ Yes</button>
         <button class="vote-btn ${v==='maybe'?'active-maybe':''}" onclick="vote('${m.id}','maybe')">🤔 Maybe</button>
@@ -168,7 +171,7 @@ function cheeseMovieModal(){
   const v=m.votes?.[me()];
   const count=m.selectedTraitIds?.length||0;
   return `<div class="modal-backdrop" onclick="closeMovie(event)"><div class="modal movie-modal" onclick="event.stopPropagation()">
-    <div class="modal-header"><div><div class="kicker">${esc(m.network||'Unknown')} • ${esc(m.date)}</div><h2 style="margin:6px 0">${esc(m.title)}</h2><div class="cheese-total"><span>🧀 Cheese Rating</span><strong>${esc(m.score)}</strong></div><div class="subtle">${count} trait${count===1?'':'s'} selected · Higher = cheesier, not “better.”</div></div><button class="close" onclick="selectedMovie=null;traitSearch='';traitSelectedOnly=false;render()">×</button></div>
+    <div class="modal-header"><div><div class="kicker">${esc(m.network||'Unknown')} • ${esc(m.date)}</div><h2 style="margin:6px 0">${esc(m.title)}</h2><div class="cheese-total"><span>🧀 Cheese Grating</span><strong>${esc(m.score)}</strong></div><div class="subtle">${count} checked trait${count===1?'':'s'} · Higher = cheesier, not “better.”</div>${m.gratingAudit?.needsReview?`<div class="subtle" role="status">Score review: saved legacy value ${m.gratingAudit.storedScore===null?'not recorded':esc(m.gratingAudit.storedScore)}; checked total ${esc(m.score)}. Original saved value is preserved.${m.gratingAudit.complete?'':' Some checked traits are missing from the current library; total may be incomplete.'}</div>`:''}</div><button class="close" onclick="selectedMovie=null;traitSearch='';traitSelectedOnly=false;render()">×</button></div>
     <p>${esc(m.summary||'No summary yet.')}</p>
     <div class="movie-status-row"><span class="subtle">Radar status</span><button class="filter ${m.status==='needs_review'?'active-filter':''}" onclick="setMovieStatus('${m.id}','needs_review')">Needs Review</button><button class="filter ${m.status==='radar'?'active-filter':''}" onclick="setMovieStatus('${m.id}','radar')">Radar</button><button class="filter ${m.status==='watched'?'active-filter':''}" onclick="setMovieStatus('${m.id}','watched')">Watched</button><button class="filter ${m.status==='passed'?'active-filter':''}" onclick="setMovieStatus('${m.id}','passed')">Passed</button></div>
     <div class="trait-tools"><input id="traitSearch" class="search" placeholder="Search Cheese Traits…" value="${esc(traitSearch)}" oninput="setTraitSearch(this.value)"><button class="secondary ${traitSelectedOnly?'active-filter':''}" onclick="toggleSelectedTraitsOnly()">Selected only</button></div>
