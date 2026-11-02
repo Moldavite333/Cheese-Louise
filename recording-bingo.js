@@ -16,7 +16,8 @@ function importSnapshot(id,value,{ask=true}={}){
  if(ask&&!old&&expected.year&&!result.movie.year&&!confirm('This card has no release year. Attach it to '+target.title+' ('+expected.year+')?'))return false;
  if(old&&Number.isInteger(result.revision)&&Number.isInteger(old.result.revision)&&result.revision<old.result.revision)throw Error('This shared-card snapshot is older than the one already linked.');
  const record={result,notes:old?.notes||{},name:old?.name||result.name,receivedAt:new Date().toISOString()};
- data[id]={cards:[record,...previous.filter(c=>c.result.id!==result.id)].slice(0,8)};write(data);return true;
+ if(!old&&previous.length>=8)throw Error('Eight cards are already attached to this movie. Unlink an unused card before adding another.');
+ data[id]={cards:old?previous.map(c=>c.result.id===result.id?record:c):[...previous,record]};write(data);return true;
 }
 function action(fn,...args){return e('clRecordingBingo.'+fn+'('+args.map(x=>JSON.stringify(String(x))).join(',')+')')}
 function board(m,s,entry,win,open){return '<details class="clp-bingo-card-view" '+(open?'open ':'')+'data-clp-detail="'+e(s.id)+'-board"><summary>Website card · '+e(entry.name)+'</summary><div class="clp-bingo-board" role="group" aria-label="Website Bingo card for '+e(entry.name)+'">'+'BINGO'.split('').map(letter=>'<span class="clp-board-letter" aria-hidden="true">'+letter+'</span>').join('')+s.card.map((square,i)=>{
