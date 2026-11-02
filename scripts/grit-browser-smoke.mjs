@@ -4,7 +4,7 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright';
 const root=process.cwd();
-const html=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>*{box-sizing:border-box}body{margin:12px;background:#111217;color:#eee;font:14px Arial}textarea{max-width:100%}button{white-space:normal}#modal{max-width:850px;margin:auto}</style><div id="modal"></div><script>
+const html=String.raw`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>*{box-sizing:border-box}body{margin:12px;background:#111217;color:#eee;font:14px Arial}textarea{max-width:100%}button{white-space:normal}#modal{max-width:850px;margin:auto}</style><div id="modal"></div><script>
 let workspace={id:'grit-fixture'},session={user:{id:'fixture'}},selectedMovie='a',clDiscoveryMovieDetailId=7;
 const SUPABASE_URL='https://fixture.supabase.co';let fail=false,take=0,captured;
 const state={movies:[{id:'a',title:'Christmas at the Catnip Cafe',year:2025,tmdb_id:7,summary:'A veterinarian helps a cafe owner find homes for rescue cats at Christmas.',notes:'The adoption paperwork vanishes.',comments:[{body:'Who keeps feeding the kittens?'}],selectedTraits:[{name:'Rescue animals'}]}],discoveryResults:[{tmdb_id:8,title:'Forgotten Holiday',summary:'A woman pretends not to know her husband.'}],traits:[]};
@@ -39,3 +39,4 @@ try{for(const width of [360,768,1440]){
  assert.deepEqual(errors,[]);await page.close();
 }console.log('Grit browser fixtures passed: original takes, details, comments, history, error preservation, source links, copy brief and reload at phone/tablet/desktop widths.');}
 finally{await browser.close();await new Promise(r=>server.close(r))}
+
