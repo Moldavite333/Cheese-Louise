@@ -89,6 +89,57 @@
   function cueCard(text,index,type,label){
     return '<li class="clp-cue clp-cue-'+type+'"><span class="clp-cue-number" aria-hidden="true">'+(index+1)+'</span><div><span class="clp-cue-label">'+escapeHtml(label)+'</span><p>'+escapeHtml(text)+'</p></div></li>';
   }
+  const timelineEditing=new Set();
+  function movieTimeline(){
+    const m=currentMovie(),data=read(),raw=data.timelines?.[m?.id]||{};
+    const items=Array.isArray(raw.items)?raw.items.filter(i=>i&&typeof i.text==='string'&&i.text.trim()):[];
+    return {items,index:Math.max(0,Math.min(items.length,Number.isInteger(raw.index)?raw.index:0))};
+  }
+  function timelineLines(items){return items.map(i=>(i.time?i.time+' — ':'')+i.text).join('\n');}
+  function timelineLabel(item){return (item?.time?'<time>'+escapeHtml(item.time)+'</time> ':'')+escapeHtml(item?.text||'');}
+  function movieTimelineHtml(){
+    const m=currentMovie(),data=read(),timeline=movieTimeline(),{items,index}=timeline;
+    const editing=timelineEditing.has(m.id),draft=data.timelineDrafts?.[m.id]??timelineLines(items);
+    const current=items[index],next=items[index+1];
+    return '<section class="clp-movie-timeline" aria-labelledby="clp-timeline-title"><div class="clp-timeline-head"><div><h2 id="clp-timeline-title">Movie timeline</h2><small>Story order · '+(items.length?Math.min(index+1,items.length)+' of '+items.length+(index===items.length?' · complete':''):'No beats added yet')+'</small></div>'+button(editing?'Close editor':'Edit timeline','timelineEdit()')+'</div>'+
+      (items.length?'<div class="clp-timeline-focus" aria-live="polite"><div><span class="clp-cue-label">'+(current?'Now':'Finished')+'</span><p>'+ (current?timelineLabel(current):'All movie beats covered.')+'</p></div><div><span class="clp-cue-label">Next</span><p>'+(next?timelineLabel(next):current?'End of movie timeline':'No remaining beats')+'</p></div></div><div class="clp-timeline-actions">'+button('Previous beat','timelineMove(-1)',index===0?'disabled':'')+button(current?'Done · next beat':'Timeline complete','timelineMove(1)',!current?'disabled':'')+'</div><details class="clp-timeline-list"><summary>All '+items.length+' story beats</summary><ol>'+items.map((item,n)=>'<li><button type="button" class="'+(n===index?'current':n<index?'done':'')+'" '+(n===index?'aria-current="step"':'')+' onclick="clProduction.timelineGo('+n+')"><span class="clp-timeline-number">'+(n<index?'✓':n+1)+'</span><span>'+timelineLabel(item)+'</span></button></li>').join('')+'</ol></details>':'<p class="clp-hint">Add the movie’s plot beats in story order to see where you are and what happens next.</p>')+
+      (editing?'<div class="clp-timeline-editor"><label for="clp-timeline-text">One plot beat per line. Optional movie time: 12:30 — They meet at the café.</label><textarea id="clp-timeline-text" rows="6" oninput="clProduction.timelineDraft(this.value)">'+escapeHtml(draft)+'</textarea><div class="clp-timeline-actions">'+button('Save timeline','timelineSave()')+button('Import Watch Along order','timelineImport()')+'</div><p class="clp-hint">Imported notes are an editable starting point. Put them in movie order before saving. Movie times are separate from the recording timer.</p></div>':'')+'</section>';
+  }
+  function timelineMove(delta){
+    const m=currentMovie(),timeline=movieTimeline(),data=read();if(!m)return;
+    timeline.index=Math.max(0,Math.min(timeline.items.length,timeline.index+delta));
+    data.timelines=data.timelines||{};data.timelines[m.id]=timeline;write(data);draw();
+  }
+  function timelineSave(){
+    const m=currentMovie();if(!m)return;
+    const data=read(),old=movieTimeline(),text=document.getElementById('clp-timeline-text')?.value??data.timelineDrafts?.[m.id]??'';
+    const available=new Map();for(const item of old.items){const k=(item.time||'')+'|'+item.text;if(!available.has(k))available.set(k,[]);available.get(k).push(item.id);}
+    const items=String(text).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map((line,n)=>{
+      const match=line.match(/^\[?((?:\d{1,2}:)?\d{1,3}:[0-5]\d)\]?\s*(?:[—–-]\s*)?(.+)$/);
+      const time=match?match[1]:'',text=match?match[2].trim():line;
+      const reused=available.get(time+'|'+text)?.shift();
+      return {id:reused||'beat-'+Date.now()+'-'+n+'-'+Math.random().toString(36).slice(2,7),time,text};
+    });
+    const currentId=old.items[old.index]?.id,existingIndex=currentId?items.findIndex(i=>i.id===currentId):-1;
+    data.timelines=data.timelines||{};data.timelines[m.id]={items,index:existingIndex>=0?existingIndex:Math.min(old.index,items.length)};
+    data.timelineDrafts=data.timelineDrafts||{};delete data.timelineDrafts[m.id];
+    write(data);timelineEditing.delete(m.id);draw();
+  }
+  function timelineImport(){
+    const m=currentMovie();if(!m)return;
+    const source=rundown(m),ordered=source.outlineItems?.length?source.outlineItems.map(i=>i.text):source.talkingPoints||[];
+    const notes=String(source.notes||'').split(/\n+/).map(t=>t.replace(/^\s*[•*-]\s*/,'').trim()).filter(Boolean);
+    const lines=[...new Set([...ordered,...notes].map(t=>String(t).trim()).filter(Boolean))];
+    if(!lines.length){alert('No Watch Along outline or notes found for this movie on this device.');return;}
+    const data=read();data.timelineDrafts=data.timelineDrafts||{};
+    const existing=data.timelineDrafts[m.id]??timelineLines(movieTimeline().items);
+    const merged=existing.split(/\n+/).filter(Boolean);
+    const identity=line=>line.replace(/^\[?(?:(?:\d{1,2}:)?\d{1,3}:[0-5]\d)\]?\s*(?:[—–-]\s*)?/,'').trim().toLowerCase();
+    const seen=new Set(merged.map(identity));
+    for(const line of lines)if(!seen.has(identity(line))){merged.push(line);seen.add(identity(line));}
+    data.timelineDrafts[m.id]=merged.join('\n');
+    write(data);timelineEditing.add(m.id);draw();
+  }
   function recordingNotes(s){
     const latest=rundown(currentMovie()),saved=s.snapshot||{},knownTraits=new Set((state.traits||[]).map(t=>t.name));
     const snap=latest.hasDraft?latest:{...saved,talkingPoints:window.clMovieTraits?[...new Set([...(saved.talkingPoints||[]).filter(text=>!knownTraits.has(text)),...latest.talkingPoints])]:(saved.talkingPoints||latest.talkingPoints),grating:latest.grating,confirmedCount:latest.confirmedCount};
@@ -117,7 +168,7 @@
     }).join('');
     return '<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
       '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(segments[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
-      '<div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+recordingNotes(s)+
+      '<div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+recordingNotes(s)+
       '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
   function editHtml(){
@@ -138,6 +189,12 @@
   function editingText(){const s=getSession();return ['CHEESE LOUISE EDITING SHEET',s.title,'LAPS',...s.laps.map(l=>clock(l.startMs)+' '+l.name+' ('+clock(l.durationMs)+')'),'MARKERS',...s.markers.map(m=>clock(m.atMs)+' '+m.type+(m.note?' — '+m.note:''))].join('\n');}
   async function copy(t){try{await navigator.clipboard.writeText(t);alert('Copied.')}catch{prompt('Copy this text:',t)}}
   window.clProduction={
+    timelineEdit(){const m=currentMovie();if(!m)return;if(timelineEditing.has(m.id))timelineEditing.delete(m.id);else timelineEditing.add(m.id);draw();},
+    timelineDraft(text){const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data);},
+    timelineSave,
+    timelineImport,
+    timelineMove,
+    timelineGo(index){if(!Number.isInteger(index))return;const timeline=movieTimeline();timelineMove(Math.max(0,Math.min(timeline.items.length-1,index))-timeline.index);},
     followWatchMovie(){const id=watchMovieId();if(!id||!movieList().some(m=>m.id===id)||getSession()?.runningSince)return;const d=read();d.movieId=id;write(d);expandedSegment=null;},
     openWatchAlong(){const movie=currentMovie();if(!movie)return;try{localStorage.setItem('cheeseLouise:watchAlong:'+workspaceId()+':movie',movie.id)}catch{}if(window.hqWorkspace?.open)window.hqWorkspace.open('watchalong');else{currentTab='watchalong';render();}},
     expand(i){expandedSegment=expandedSegment===i?-1:i;draw();},
