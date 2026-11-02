@@ -265,12 +265,8 @@ async function suggestTraits(movieId){
   const aliases=suggestionAliases();
   const suggested=state.traits.filter(t=>t.is_active && !m.selectedTraitIds?.includes(t.id) && ((aliases[t.name]||[]).some(k=>text.includes(k)) || (t.name.length>5 && text.includes(t.name.toLowerCase()))));
   if(!suggested.length) return alert('No obvious trait matches jumped out of that synopsis yet.');
-  if(!confirm(`Suggested Cheese Traits:\n\n${suggested.map(t=>`• ${t.name} (+${t.points})`).join('\n')}\n\nAdd all of these?`)) return;
-  const rows=suggested.map(t=>({workspace_id:workspace.id,movie_id:movieId,trait_id:t.id,selected_by:me()}));
-  const {error}=await db.from('movie_traits').insert(rows);
-  if(error) return alert(error.message);
-  await logActivity(`added ${suggested.length} suggested Cheese Traits to ${m.title}.`,'movie',movieId);
-  await loadAll(); render();
+  // Fallback engine also previews only: predictions cannot verify movie traits.
+  alert(`Suggested traits (unverified):\n\n${suggested.map(t=>`• ${t.name} (+${t.points})`).join('\n')}\n\nAfter watching, select the traits you actually observed. Nothing has been added.`);
 }
 
 async function addTrait(){
