@@ -425,3 +425,41 @@ test('checkpoint persistence of an unsaved marker does not duplicate it on a man
   assert.equal(h.data().session.markers.length,1,'Retry must recognize the already-persisted marker ID');
   assert.equal(h.elements.get('clp-marker-note').value,'');
 });
+
+
+test('manual rundown survives automatic Watch Notes edits until an explicit rebuild',()=>{
+ const h=harness(watching);h.context.currentTab='watchalong';
+ h.context.watchAlongSaveText('notes','Initial observation');
+ let draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.match(draft.rundownText,/Initial observation/);
+ assert.equal(draft.rundownGeneratedText,draft.rundownText);
+ h.context.watchAlongSaveRundown('Custom cold open and revised ending');
+ h.context.watchAlongSaveText('notes','A completely new observation');
+ draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.equal(draft.rundownText,'Custom cold open and revised ending');
+ h.context.watchAlongGenerateRundown();
+ draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.match(draft.rundownText,/A completely new observation/);
+ assert.ok(!draft.rundownText.includes('Custom cold open'));
+ assert.ok(draft.rundownText.includes('COLD OPEN (ABOUT 20 SECONDS)'));
+ assert.ok(draft.rundownText.includes('BINGO & CHEESE GRATING (ABOUT FIVE MINUTES)'));
+ assert.ok(!draft.rundownText.includes('HORROR-FIED'));
+});
+
+test('recording freezes the saved rundown during a take and updates only after pause',()=>{
+ const key='cheeseLouise:watchAlong:workspace-test:draft:a';
+ const h=harness(recording,{[key]:JSON.stringify({rundownText:'Original saved rundown',notes:'Opening note'})}),p=h.context.clProduction;
+ p.start();
+ h.context.render();
+ assert.match(h.html(),/Saved episode rundown \(read-only\)/);
+ assert.match(h.html(),/Original saved rundown/);
+ h.storage.set(key,JSON.stringify({rundownText:'Edited while recording',notes:'Opening note'}));
+ h.context.render();
+ assert.ok(!h.html().includes('Edited while recording'));
+ p.refreshSnapshot();
+ assert.equal(h.data().session.snapshot.savedRundownText,'Original saved rundown');
+ p.pause();p.refreshSnapshot();
+ assert.equal(h.data().session.snapshot.savedRundownText,'Edited while recording');
+ h.context.render();assert.match(h.html(),/Edited while recording/);
+ assert.equal(h.data().session.laps.length,0);
+});
