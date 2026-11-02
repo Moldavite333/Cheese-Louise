@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {eligible,scoreMovie,diversify,norm,featureNames} from '../supabase/functions/recommend-romantiverse/engine.mjs';
+import {eligible,scoreMovie,diversify,norm,featureNames,identityKey,excludedByIdentity} from '../supabase/functions/recommend-romantiverse/engine.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const seed={id:1,title:'Favorite magical romance',overview:'A magical wish sends her back in time to find love.',genres:[{id:10749},{id:10770}],keywords:{keywords:[]}};
 const romance={id:2,title:'A Christmas Wish',overview:'A magical wish helps a woman fall in love.',runtime:88,genres:[{id:10749},{id:10770}],keywords:{keywords:[]},seed_ids:[1]};
@@ -58,7 +58,8 @@ test('fresh picks exclude earlier batches and saved films and retain discovery h
  const {c,requests}=client();c.state.movies=[{title:'Already saved',votes:{a:'yes',b:'yes'},source_metadata:{year:2023}}];
  await c.discoverCheeseMovies(true);await c.discoverCheeseMovies(true);
  assert.equal(requests[0].name,'recommend-romantiverse');assert.equal(requests[1].body.batch,1);
- assert.ok(requests[1].body.exclude_ids.includes(10));assert.ok(requests[1].body.exclude_titles.includes('Already saved'));
+ assert.ok(requests[1].body.exclude_ids.includes(10));assert.ok(requests[1].body.exclude_title_years.includes('already saved|2023'));
+ assert.equal(requests[1].body.exclude_unknown_titles.length,0);
  assert.equal(requests[0].body.likes[0].weight,1.5);
  assert.equal(c.state.discoveryResults[0].tmdb_id,11);
 });
@@ -77,4 +78,25 @@ test('poster lookup uses year-only catalog records, batches requests and preserv
  await c.clPosterResolver.resolve(Array.from({length:17},(_,i)=>({id:i,title:'Movie '+i,year:2023})));
  assert.deepEqual(calls.map(x=>x.length),[8,8,1]);
  await c.addDiscoveredMovie(42,false);assert.equal(originalSaves,1);
+});
+
+
+test('year-aware identity permits remakes but blocks same-year duplicates',()=>{
+ const years=new Set([identityKey({title:'A Christmas Village',release_date:'2018-12-01'})]),unknown=new Set();
+ assert.equal(excludedByIdentity({id:20,title:'A Christmas Village',release_date:'2018-11-30'},new Set(),years,unknown),true);
+ assert.equal(excludedByIdentity({id:21,title:'A Christmas Village',release_date:'2026-11-30'},new Set(),years,unknown),false);
+ assert.equal(excludedByIdentity({id:22,title:'A Christmas Village'},new Set(),years,unknown),true,'Missing year must not silently duplicate an existing title');
+ assert.equal(excludedByIdentity({id:21,title:'A Christmas Village',release_date:'2026-11-30'},new Set([21]),years,unknown),true,'TMDB ID wins');
+ assert.equal(excludedByIdentity({id:30,title:'Unknown release',release_date:'2026-01-01'},new Set(),years,new Set(['unknown release'])),true);
+});
+test('recommendation client distinguishes a remake and preserves year-qualified history',async()=>{
+ const {c,requests}=client();
+ c.state.movies=[{title:'A Christmas Village',year:2018,tmdb_id:123,source_metadata:{source_type:'tmdb_search'}}];
+ const excludes=c.clRecExclusions(c.state.movies,{title_years:[],unknown_titles:[]});
+ assert.equal(c.clRecExcluded({title:'A Christmas Village',year:2018},excludes),true);
+ assert.equal(c.clRecExcluded({title:'A Christmas Village',year:2026},excludes),false);
+ assert.equal(c.clRecExcluded({title:'A Christmas Village'},excludes),true);
+ await c.discoverCheeseMovies(true);
+ assert.ok(requests[0].body.exclude_title_years.includes('christmas village|2018'));
+ assert.ok(!requests[0].body.exclude_unknown_titles.includes('christmas village'));
 });
