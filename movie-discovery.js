@@ -127,13 +127,12 @@ function discoveryCard(c){
       ${(c.stars||[]).length?`<div class="subtle"><strong>Starring:</strong> ${esc(c.stars.join(' · '))}</div>`:''}
       <p>${esc(c.summary||'No synopsis yet.')}</p>
       <div class="new-find-score"><strong>Predicted Cheese Grating</strong><span class="cheese-score">🧀 ${est.score}</span></div>
-      <div class="subtle">Preview from metadata only; checked traits determine the official tally.</div>
+      <div class="subtle">Metadata prediction only. Add to Radar, then confirm traits after watching.</div>
       ${est.traits.length?`<div class="pills">${est.traits.slice(0,5).map(t=>`<span class="pill trait-pill">${esc(t.name)} <b>+${t.points}</b></span>`).join('')}${est.traits.length>5?`<span class="pill">+${est.traits.length-5} more</span>`:''}</div>`:'<div class="subtle">No exact Cheese Traits confidently matched yet.</div>'}
       ${why.length?`<details class="new-find-why"><summary>Why is this on my radar?</summary><div class="pills">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></details>`:''}
       ${discoveryVoteControls(c,true)}
       <div class="new-find-actions">
         <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)})">Add to Radar</button>
-        ${est.traits.length?`<div class="subtle">Review ${est.traits.length} predicted Cheese Traits after watching; none are confirmed automatically.</div>`:""}
         <button class="secondary" onclick="hideDiscoveredMovie(${Number(c.tmdb_id)})">Hide for now</button>
         <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">${c.tmdb_type==='hallmark'?'Hallmark':'Source'} ↗</a>
       </div>
