@@ -12,14 +12,15 @@
 
 ## Implemented on existing PR #57 (review branch only)
 - Discovery cards say **Predicted Cheese Grating**, explain that predictions are not verified, and only offer **Add to Radar**.
+- Applied the same read-only suggestion rule to both fallback layers, `romantiverse-inference.js` and `cheese-traits.js`, so a missing Cheese Master script cannot re-enable automatic confirmation.
 - Cheese Master's **Suggest from synopsis** now presents a read-only preview; it never inserts `movie_traits` or positive learning feedback. Nick and Jenny must check traits individually in the existing movie detail picker after watching.
 - The Cheese Master wrapper always calls its underlying add function with `false` and no longer auto-updates traits or records accepted feedback from predictions.
 - Predicted Cheese Grating is now the **uncapped sum of suggested trait points**; weighted 0–100 match quality remains available separately as `matchScore`.
-- Added four Node regression cases covering uncapped prediction, read-only suggestion, legacy `true` bypass, and final discovery-card behavior.
+- Added six Node regression cases covering uncapped prediction, read-only suggestion, legacy `true` bypass, final discovery-card behavior, and both fallback engines.
 - No production data, schema, RLS, Bingo results, recording history, or deployed site changed.
 
 ## Verification / release gates
-- GitHub Actions workflow for Run 9 commit `9f35f3a` initiated; confirm final result before claiming green.
+- The first test run (`9f35f3a`) found a missing `topbar` stub in the new Romantiverse VM test fixture (131/132 tests passed). Corrected the fixture; follow-up run `9a7d39e` passed. The final six-test, three-layer head still requires its own complete CI verification.
 - The change requires browser smoke tests on the *assembled script order*, not merely isolated source tests.
 - Real authenticated Nick/Jenny testing, *A Christmas Village* search, REAPER import, and backend-first Supabase rollout remain outstanding.
 - Existing historical scores and trait feedback were **not** altered. Some past auto-confirmed traits may still need provenance review; do not bulk delete.
