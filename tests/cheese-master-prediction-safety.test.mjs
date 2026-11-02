@@ -79,7 +79,7 @@ test('Romantiverse discovery card offers Add to Radar, not accept-predictions',(
     discoveryCard:()=>'',suggestTraits:async()=>{},
     romantiverseAnalyze:()=>({matches:[]}),
     rvMatchDetailsHtml:()=>'',rvConfidenceLabel:()=> 'Possible',
-    suggestionAliases:()=>({}),esc:v=>String(v),
+    suggestionAliases:()=>({}),topbar:()=>'',esc:v=>String(v),
     addDiscoveredMovie:async()=>{},hideDiscoveredMovie:()=>{}
   };
   context.window=context;
