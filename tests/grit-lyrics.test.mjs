@@ -50,3 +50,18 @@ test('persistent repetition, thin material, and provider failures never return a
 test('a request for more facts from the songwriter is shown instead of storing empty lyrics',async()=>{
  const h=setup({responses:[{...song,status:'needs_details',lyrics:'',question:'What goes wrong at the cat adoption?'}]});const r=await h.call({});assert.equal(r.status,422);assert.match((await r.json()).error,/cat adoption/);
 });
+
+test('research verifies title and year before attaching public reviews or character details',async()=>{
+ for(const wrongMovie of [false,true]){
+  const handler=createHandler({env:name=>({TMDB_READ_ACCESS_TOKEN:'movie-token',SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_ANON_KEY:'anon'}[name]),fetcher:async url=>{
+   if(url.endsWith('/auth/v1/user'))return response({id:'user-a'});
+   if(url.includes('/rest/v1/'))return response([{workspace_id:'workspace-a'}]);
+   if(url.includes('api.themoviedb.org'))return response({title:wrongMovie?'A Different Christmas':movie.title,release_date:'2025-11-01',overview:'A veterinarian and a cafe owner plan a Christmas adoption event.',credits:{cast:[{name:'Actor',character:'Ada'}]},reviews:{results:[{author:'Viewer',content:'The adoption event has a ridiculous budget.',url:'https://www.themoviedb.org/review/test'}]}});
+   throw Error('Unexpected research URL');
+  }});
+  const r=await handler(new Request('https://fixture/grit',{method:'POST',headers:{Authorization:'Bearer token'},body:JSON.stringify({action:'research',workspace_id:'workspace-a',movie:{...movie,tmdb_id:123}})}));
+  assert.equal(r.status,200);const result=(await r.json()).research;
+  assert.equal(result.reviews.length,wrongMovie?0:1);assert.equal(result.characters.length,wrongMovie?0:1);
+  if(!wrongMovie){assert.match(result.reviews[0].kind,/opinion/);assert.ok(result.sources.some(s=>s.url.includes('/review/')))}
+ }
+});

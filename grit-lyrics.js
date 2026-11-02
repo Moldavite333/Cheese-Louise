@@ -27,7 +27,7 @@
  }
  function history(){return Array.isArray(read().history)?read().history:[]}
  function remember(kind,id,lyrics){if(!lyrics.trim())return;const data=read();data.history=[...(Array.isArray(data.history)?data.history:[]),{movie:movieFor(kind,id)?.title,lyrics:lyrics.slice(0,12000)}].slice(-12);try{localStorage.setItem(storageKey(),JSON.stringify(data))}catch{}}
- function args(kind,id){const entry=get(kind,id);return {workspace_id:wid(),movie:movieMaterial(kind,id),details:entry.details,research:entry.research||null,history:history(),take:entry.take,web_research:entry.web}}
+ function args(kind,id){const entry=get(kind,id);return {workspace_id:wid(),movie:movieMaterial(kind,id),details:entry.details,research:entry.research||null,history:[...history(),...(entry.lyrics?[{lyrics:entry.lyrics}]:[])].slice(-12),take:entry.take,web_research:entry.web}}
  async function invoke(body){const {data,error}=await db.functions.invoke('grit-lyrics',{body});if(error){let message;try{message=(await error.context?.json())?.error}catch{}throw Error(message||'Songwriting could not connect. Your draft is safe. Use Copy songwriting brief to continue in ChatGPT.')}if(data?.error)throw Error(data.error);return data}
  function links(sources){return (sources||[]).filter(s=>{try{return new URL(s.url).protocol==='https:'}catch{return false}}).map(s=>'<a href="'+e(s.url)+'" target="_blank" rel="noopener noreferrer">'+e(s.title||'Movie source')+' ↗</a>').join(' · ')}
  function panel(kind,id){
@@ -52,9 +52,9 @@
  window.clUpdateGritLyrics=(kind,id,value)=>{const entry=get(kind,id);entry.lyrics=String(value).slice(0,12000);entry.edited=true;persist()};
  window.clOpenGritLyrics=async(kind,id)=>{
   if(!movieFor(kind,id))return;mount(kind,id);document.querySelector('.cl-grit-panel')?.scrollIntoView({behavior:'smooth',block:'nearest'});
-  const entry=get(kind,id);if(entry.lyrics||entry.busy)return;
+  const entry=get(kind,id);if(entry.busy)return;
   try{const r=await fetch(SUPABASE_URL+'/functions/v1/grit-lyrics');if(r.ok){const health=await r.json();entry.ready=health.ready;refresh(kind,id);if(!health.ready)return}}catch{}
-  return window.clRegenerateGritLyrics(kind,id);
+  if(!entry.lyrics)return window.clRegenerateGritLyrics(kind,id);
  };
  window.clResearchGrit=async(kind,id)=>{
   const entry=get(kind,id);if(entry.busy)return;entry.busy=true;entry.error='';entry.status='Researching this movie…';refresh(kind,id);
