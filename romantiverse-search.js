@@ -58,6 +58,39 @@ function romantiverseSearchVisibleResults(){
   return typeof clTasteRank==='function'?clTasteRank(results):results;
 }
 
+// Exact title searches should not silently disappear when a movie is already
+// saved or an unrelated Radar filter excludes it. Keep horror exclusion intact.
+function romantiverseSearchTitleKey(value){
+  return String(value||'').toLowerCase().normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ')
+    .trim().replace(/^(a|an|the) /,'');
+}
+function romantiverseSearchExactMatches(query){
+  const key=romantiverseSearchTitleKey(query);
+  const matches={saved:[],filtered:[]};
+  if(!key)return matches;
+  const visibleIds=new Set(romantiverseSearchVisibleResults().map(c=>(c.tmdb_type||'movie')+':'+Number(c.tmdb_id)));
+  for(const candidate of state.romantiverseSearchResults||[]){
+    if(!candidate?.tmdb_id||typeof clMovieIsHorror!=='function'||clMovieIsHorror(candidate))continue;
+    if(romantiverseSearchTitleKey(candidate.title)!==key)continue;
+    const saved=typeof discoverySavedMovie==='function'?discoverySavedMovie(candidate):
+      (state.movies||[]).find(m=>Number(m.tmdb_id)===Number(candidate.tmdb_id)&&(m.tmdb_type||'movie')===(candidate.tmdb_type||'movie'));
+    if(saved)matches.saved.push(candidate);
+    else if(!visibleIds.has((candidate.tmdb_type||'movie')+':'+Number(candidate.tmdb_id)))matches.filtered.push(candidate);
+  }
+  return matches;
+}
+
+function openRomantiverseSavedMovie(id){
+  const candidate=romantiverseSearchCandidate(id);
+  if(!candidate)return;
+  const saved=typeof discoverySavedMovie==='function'?discoverySavedMovie(candidate):
+    (state.movies||[]).find(m=>Number(m.tmdb_id)===Number(candidate.tmdb_id)&&(m.tmdb_type||'movie')===(candidate.tmdb_type||'movie'));
+  if(!saved)return;
+  selectedMovie=saved.id;
+  render();
+}
+
 function romantiverseSearchCard(c){
   let html=discoveryCard(c);
   const reasons=(c.search_reasons||[]).slice(0,4);
@@ -118,12 +151,25 @@ function romantiverseSearchPanel(){
   }
 
   const terms=romantiverseSearchExpandedTerms.slice(0,8);
+  const exact=romantiverseSearchExactMatches(q);
+  const savedExact=exact.saved.map(c=>
+    '<div class="card card-pad" role="status"><strong>Already in your Radar: '+esc(c.title)+'</strong>'+
+    '<div class="subtle">This exact title is saved. Search filters do not remove it from your library.</div>'+
+    '<button class="secondary" onclick="openRomantiverseSavedMovie('+Number(c.tmdb_id)+')">Open saved movie</button></div>'
+  ).join('');
+  const filteredExact=exact.filtered.length
+    ? '<div class="rom-search-exact"><strong>Exact title match outside your current filters</strong>'+
+      '<div class="subtle">Shown because you searched for this title. Your Radar filters still apply to the other results.</div>'+
+      '<div class="new-find-grid">'+exact.filtered.map(romantiverseSearchCard).join('')+'</div></div>'
+    : '';
+  const exactHtml=savedExact+filteredExact;
   return taste+'<div class="rom-search-panel">'+
     '<div class="rom-search-head"><div><div class="kicker">Romantiverse Search</div><div class="page-title small-title">Results for “'+esc(label)+'”</div><div class="subtle">Concept search across TMDB metadata. Existing Radar filters are applied below.</div></div><button class="secondary" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">↻ Search again</button></div>'+
     (romantiverseSearchWarning?'<p role="status" class="subtle">'+esc(romantiverseSearchWarning)+'</p>':'')+
     (terms.length?'<div class="rom-search-expansion"><span class="subtle">Also looking for:</span><div class="pills">'+terms.map(t=>'<span class="pill">'+esc(t)+'</span>').join('')+'</div></div>':'')+
+    exactHtml+
     '<div class="results-line"><strong>'+visible.length+'</strong> external match'+(visible.length===1?'':'es')+' from '+state.romantiverseSearchResults.length+' unique finds after filters, hidden titles and saved movies</div>'+
-    '<div class="new-find-grid">'+(visible.map(romantiverseSearchCard).join('')||'<div class="empty card card-pad">No external matches survive the current filters. Clear a filter or try a broader idea.</div>')+'</div>'+
+    '<div class="new-find-grid">'+(visible.map(romantiverseSearchCard).join('')||'<div class="empty card card-pad">'+(exactHtml?'No other external matches survive the current filters.':'No external matches survive the current filters. Clear a filter or try a broader idea.')+'</div>')+'</div>'+
     '<div class="subtle rom-search-attribution">Search source: TMDB · streaming availability: JustWatch via TMDB · Cheese Louise expands related concepts before ranking.</div>'+
   '</div>';
 }
@@ -292,6 +338,7 @@ topbar=function(){
 };
 
 window.runRomantiverseSearch=runRomantiverseSearch;
+window.openRomantiverseSavedMovie=openRomantiverseSavedMovie;
 window.addRomantiverseSearchMovie=addRomantiverseSearchMovie;
 window.voteRomantiverseSearchMovie=voteRomantiverseSearchMovie;
 window.hideRomantiverseSearchMovie=hideRomantiverseSearchMovie;

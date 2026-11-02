@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import {favorites,norm,eligible,scoreMovie,diversify,names} from './engine.mjs'
+import {favorites,norm,eligible,scoreMovie,diversify,names,identityKey,excludedByIdentity} from './engine.mjs'
 
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'}
 const cache=new Map<string,{at:number;value:any}>()
@@ -44,16 +44,18 @@ function matches(movie:any,filters:any){
 export async function recommend(input:any,token:string){
  const liked=(Array.isArray(input.likes)?input.likes:[]).slice(0,8)
  const disliked=(Array.isArray(input.dislikes)?input.dislikes:[]).slice(0,6)
- const rawSeeds=[...liked,...favorites].filter((x,i,a)=>a.findIndex(y=>norm(y.title)===norm(x.title))===i).slice(0,16)
+ const rawSeeds=[...liked,...favorites].filter((x,i,a)=>a.findIndex(y=>(identityKey(y)||norm(y.title))===(identityKey(x)||norm(x.title)))===i).slice(0,16)
  const resolved=await mapLimit(rawSeeds,5,s=>resolve(s,token))
  const seeds=resolved.filter(Boolean),negative=(await mapLimit(disliked,3,s=>resolve(s,token))).filter(Boolean)
  if(!seeds.length)throw new Error('Could not match your favorites to movie records. Please try again.')
  const excluded=new Set((Array.isArray(input.exclude_ids)?input.exclude_ids:[]).slice(0,2000).map(Number))
- const excludedTitles=new Set((Array.isArray(input.exclude_titles)?input.exclude_titles:[]).slice(0,2000).map(norm))
- for(const seed of [...seeds,...negative]){excluded.add(seed.id);excludedTitles.add(norm(seed.title))}
+ // Legacy exclude_titles is accepted for older HQ clients; new clients supply year-aware identities.
+ const excludedTitles=new Set([...(Array.isArray(input.exclude_titles)?input.exclude_titles:[]),...(Array.isArray(input.exclude_unknown_titles)?input.exclude_unknown_titles:[])].slice(0,2000).map(norm))
+ const excludedTitleYears=new Set((Array.isArray(input.exclude_title_years)?input.exclude_title_years:[]).slice(0,2000).filter((v:any)=>typeof v==='string'&&/^[a-z0-9 ]+\|(?:19|20)\d{2}$/.test(v)))
+ for(const seed of [...seeds,...negative]){excluded.add(seed.id);const key=identityKey(seed);if(key)excludedTitleYears.add(key);else excludedTitles.add(norm(seed.title))}
  const candidates=new Map<number,any>()
  function add(rows:any[],seedId?:number,probe=false){for(const movie of rows||[]){
-  if(!movie.id||movie.adult||excluded.has(movie.id)||excludedTitles.has(norm(movie.title)))continue
+  if(!movie.id||movie.adult||excludedByIdentity(movie,excluded,excludedTitleYears,excludedTitles))continue
   const old=candidates.get(movie.id);candidates.set(movie.id,{...movie,probe:probe||old?.probe||false,seed_ids:[...new Set([...(old?.seed_ids||[]),...(seedId?[seedId]:[])])]})
  }}
  for(const seed of seeds)add(seed.recommendations?.results||[],seed.id)
