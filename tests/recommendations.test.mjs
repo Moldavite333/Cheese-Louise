@@ -95,6 +95,8 @@ test('recommendation client distinguishes a remake and preserves year-qualified 
  c.state.movies=[{title:'A Christmas Village',year:2018,tmdb_id:123,source_metadata:{source_type:'tmdb_search'}}];
  const excludes=c.clRecExclusions(c.state.movies,{title_years:[],unknown_titles:[]});
  assert.equal(c.clRecExcluded({title:'A Christmas Village',year:2018},excludes),true);
+ assert.equal(c.clRecNorm('Christmas at the Catnip Café'),c.clRecNorm('Christmas at the Catnip Cafe'));
+ assert.equal(c.clRecIdentity({title:'Christmas at the Catnip Café',year:2026}),'christmas at the catnip cafe|2026');
  assert.equal(c.clRecExcluded({title:'A Christmas Village',year:2026},excludes),false);
  assert.equal(c.clRecExcluded({title:'A Christmas Village'},excludes),true);
  await c.discoverCheeseMovies(true);
