@@ -25,6 +25,8 @@ try{
   discoveryLoaded=true;discoveryLoading=false;discoveryError='';currentTab='home';render();
   state.traits=Array.from({length:18},(_,i)=>({id:'trait-'+i,name:i%2?'An elaborate town festival with a very long name':'An unexpected magical romantic connection',category:'Romance',points:2,is_active:true}));
   state.movies[0].poster_url='/fixture-poster.svg';
+  state.movies[0].selectedTraitIds=['trait-0','trait-1'];
+  state.movies[0].selectedTraits=state.traits.slice(0,2);
   state.movies[0].votes={'fixture-partner':'maybe'};members.push({user_id:'fixture-partner'});profiles['fixture-partner']={display_name:'Co-host'};
   localStorage.setItem('cheeseLouise:watchAlong:fixture-workspace:draft:fixture-movie',JSON.stringify({traitIds:['trait-0','trait-1'],outlineItems:[{id:'opening-note',type:'note',text:'Open with the enchanted hourglass joke.'},{id:'first-trait',type:'trait',traitId:'trait-0'}],notes:'The snow only appears when the leads argue.\nThe town festival has no boats, just pastries.\nReturn to the coffee-shop callback before Bingo.'}));
   localStorage.setItem('cheeseLouise:production:v1:fixture-workspace',JSON.stringify({movieId:'fixture-movie',session:{movieId:'fixture-movie',title:'Autumn at the Orchard',snapshot:{notes:'',talkingPoints:[]},segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false}}));
