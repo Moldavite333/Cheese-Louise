@@ -34,7 +34,7 @@ test('Watch Along import produces an editable timeline draft and preserves exist
  p.timelineSave();assert.equal(h.data().timelines.a.items.length,3);assert.equal(h.data().timelines.a.items[0].time,'00:05');
 });
 function harness(source,initial={},initialNow=100000){
- const storage=new Map(Object.entries(initial));let now=initialNow,html='',blocked=false;const alerts=[];
+ const storage=initial instanceof Map?initial:new Map(Object.entries(initial));let now=initialNow,html='',blocked=false;const alerts=[];
  const listeners=new Map(),windowListeners=new Map(),intervals=new Map();
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
  const context={window:null,workspace:{id:'workspace-test'},session:{user:{id:'test'}},state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],source_metadata:'{"director":"Director A"}'},{id:'b',title:'Movie B',selectedTraitIds:[]}],traits:[{id:'t1',name:'Old flame',points:5,category:'Romance',is_active:true}]},selectedMovie:null,currentTab:'recording',
@@ -300,4 +300,46 @@ test('hidden and pagehide checkpoint without pausing a live take',()=>{
  assert.equal(h.data().session.runningSince,100000,'Leaving HQ does not silently stop the RØDECaster');
  const r=harness(recording,Object.fromEntries(h.storage),h.now());
  r.context.clProduction.recoverPause();assert.equal(r.data().session.elapsedMs,9000);
+});
+
+test('second HQ tab becomes read-only after an external recording write',()=>{
+ const shared=new Map(),a=harness(recording,shared),b=harness(recording,shared);
+ const p=a.context.clProduction,q=b.context.clProduction;
+ p.start();a.advance(10000);p.mark();
+ const key='cheeseLouise:production:v1:workspace-test',latest=shared.get(key);
+ b.windowListeners.get('storage')({key,newValue:latest});
+ assert.match(b.html(),/workspace changed in another HQ tab/i);
+ b.elements.get('clp-marker-note').value='Keep this unsaved draft';
+ q.mark();q.recoverPause();q.timelineDraft('Do not overwrite timeline');q.start();
+ assert.equal(shared.get(key),latest,'Second tab cannot overwrite recording or timeline');
+ assert.equal(b.elements.get('clp-marker-note').value,'Keep this unsaved draft');
+ b.intervals.get(5000)();
+ assert.equal(shared.get(key),latest,'Stale tab cannot write timer checkpoints');
+ p.pause();
+ assert.equal(a.data().session.elapsedMs,10000,'Original tab remains usable');
+ assert.ok(b.alerts.some(v=>v.includes('read-only')));
+});
+test('missed storage event is detected before marker text or saved session can be overwritten',()=>{
+ const shared=new Map(),a=harness(recording,shared),b=harness(recording,shared);
+ a.context.clProduction.start();
+ b.elements.get('clp-marker-note').value='Unsaved clip idea';
+ b.context.clProduction.mark();
+ assert.equal(b.elements.get('clp-marker-note').value,'Unsaved clip idea');
+ assert.equal(a.data().session.markers.length,0);
+ b.context.render();
+ assert.match(b.html(),/read-only to protect your notes/);
+ const latest=shared.get('cheeseLouise:production:v1:workspace-test');
+ b.context.clProduction.reset();
+ assert.equal(shared.get('cheeseLouise:production:v1:workspace-test'),latest);
+ const fresh=harness(recording,Object.fromEntries(shared),a.now()+10000);
+ fresh.context.render();
+ assert.doesNotMatch(fresh.html(),/workspace changed in another HQ tab/i,'Reload starts a fresh review of current saved state');
+ assert.match(fresh.html(),/Verify the interrupted recording timer/,'Existing interrupted-timer safeguard remains');
+});
+test('unrelated storage events do not lock HQ and same-tab saves remain usable',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ h.windowListeners.get('storage')({key:'unrelated',newValue:'new'});
+ p.start();h.advance(8000);p.pause();
+ assert.equal(h.data().session.elapsedMs,8000);
+ assert.doesNotMatch(h.html(),/workspace changed in another HQ tab/i);
 });
