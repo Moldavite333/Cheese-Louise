@@ -4,10 +4,26 @@ let clRecommendationSequence=0;
 const clRecMemoryHistory=new Map();
 function clRecMeta(movie){let meta=movie?.source_metadata||{};if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}return meta;}
 function clRecNorm(title){return String(title||'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(a|an|the) /,'');}
+function clRecYear(movie){
+ const meta=clRecMeta(movie);
+ const values=[typeof clReleaseYear==='function'?clReleaseYear(movie):null,movie?.year,movie?.release_date,movie?.premiere_date,meta.year,meta.release_date,meta.premiere_date];
+ for(const value of values){const match=String(value??'').match(/^(?:19|20)\d{2}/);if(match)return Number(match[0]);}
+ return null;
+}
+function clRecIdentity(movie){const title=clRecNorm(movie?.title),year=clRecYear(movie);return title&&year?title+'|'+year:null;}
+function clRecExclusions(movies,history){
+ const titleYears=new Set(history.title_years||[]),unknownTitles=new Set(history.unknown_titles||[]);
+ for(const movie of movies){const key=clRecIdentity(movie);if(key)titleYears.add(key);else if(clRecNorm(movie.title))unknownTitles.add(clRecNorm(movie.title));}
+ return {titleYears,unknownTitles};
+}
+function clRecExcluded(movie,excluded){
+ const title=clRecNorm(movie?.title),key=clRecIdentity(movie);
+ return excluded.unknownTitles.has(title)||(key?excluded.titleYears.has(key):[...excluded.titleYears].some(value=>value.startsWith(title+'|')));
+}
 function clRecStorageKey(){return 'cheeseLouise:recommendations:v2:'+(workspace?.id||'local');}
-function clRecHistory(){const key=clRecStorageKey();if(clRecMemoryHistory.has(key))return clRecMemoryHistory.get(key);try{const value=JSON.parse(localStorage.getItem(key)||'{}');return {ids:Array.isArray(value.ids)?value.ids:[],titles:Array.isArray(value.titles)?value.titles:[],batch:Number(value.batch)||0};}catch{return {ids:[],titles:[],batch:0};}}
+function clRecHistory(){const key=clRecStorageKey();if(clRecMemoryHistory.has(key))return clRecMemoryHistory.get(key);try{const value=JSON.parse(localStorage.getItem(key)||'{}');return {ids:Array.isArray(value.ids)?value.ids:[],titles:Array.isArray(value.titles)?value.titles:[],title_years:Array.isArray(value.title_years)?value.title_years:[],unknown_titles:Array.isArray(value.unknown_titles)?value.unknown_titles:[],batch:Number(value.batch)||0};}catch{return {ids:[],titles:[],batch:0};}}
 function clRecPreferences(){
- const movies=state.movies||[],pref=m=>({title:m.title,year:typeof clReleaseYear==='function'?clReleaseYear(m):Number(clRecMeta(m).year)||null,weight:Object.values(m.votes||{}).filter(v=>v==='yes').length>=2?1.5:1});
+ const movies=state.movies||[],pref=m=>({title:m.title,year:clRecYear(m),weight:Object.values(m.votes||{}).filter(v=>v==='yes').length>=2?1.5:1});
  return {likes:movies.filter(m=>Object.values(m.votes||{}).includes('yes')&&!Object.values(m.votes||{}).includes('no')).map(pref),
   dislikes:movies.filter(m=>Object.values(m.votes||{}).includes('no')||m.status==='passed').map(pref)};
 }
@@ -17,20 +33,25 @@ function clRecKnownIds(){return (state.movies||[]).map(m=>{
 discoverCheeseMovies=async function(force=false){
  if(!workspace||!session||discoveryLoading||(!force&&discoveryLoaded))return;
  const sequence=++clRecommendationSequence,workspaceId=workspace.id;
- const history=clRecHistory(),prefs=clRecPreferences();
+ const history=clRecHistory(),prefs=clRecPreferences(),exclusions=clRecExclusions(state.movies||[],history);
  discoveryLoading=true;discoveryError='';render();
  try{
   const {data,error}=await db.functions.invoke('recommend-romantiverse',{body:{...prefs,max_results:24,batch:history.batch,
    exclude_ids:[...new Set([...history.ids,...clRecKnownIds(),...discoveryHidden])].slice(-2000),
-   exclude_titles:[...new Set([...history.titles,...(state.movies||[]).map(m=>m.title)])].slice(-2000),
+   exclude_title_years:[...exclusions.titleYears].slice(-2000),
+   exclude_unknown_titles:[...exclusions.unknownTitles].slice(-2000),
    filters:{holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax}}});
   if(sequence!==clRecommendationSequence||workspace?.id!==workspaceId)return;
   if(error)throw error;if(data?.error)throw new Error(data.error);
   if(!Array.isArray(data?.results))throw new Error('Movie recommendations returned an incomplete response.');
-  const known=new Set((state.movies||[]).map(m=>clRecNorm(m.title))),seen=new Set(history.ids.map(Number));
-  state.discoveryResults=data.results.filter(m=>!clMovieIsHorror(m)&&!known.has(clRecNorm(m.title))&&!seen.has(Number(m.tmdb_id)));
+  const seen=new Set([...history.ids,...clRecKnownIds()].map(Number));
+  state.discoveryResults=data.results.filter(m=>!clMovieIsHorror(m)&&!clRecExcluded(m,exclusions)&&!seen.has(Number(m.tmdb_id)));
   clRecommendationMeta=data;discoveryLoaded=true;
-  const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),batch:(history.batch+1)%10000};
+  const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),
+   titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),
+   title_years:[...new Set([...(history.title_years||[]),...state.discoveryResults.map(clRecIdentity).filter(Boolean)])].slice(-2000),
+   unknown_titles:[...new Set([...(history.unknown_titles||[]),...state.discoveryResults.filter(m=>!clRecIdentity(m)).map(m=>clRecNorm(m.title)).filter(Boolean)])].slice(-2000),
+   batch:(history.batch+1)%10000};
   clRecMemoryHistory.set(clRecStorageKey(),next);
   try{localStorage.setItem(clRecStorageKey(),JSON.stringify(next));}catch{clRecommendationMeta.history_warning='This browser could not save discovery history; repeat prevention will last only while this page stays open.';}
  }catch(error){if(sequence===clRecommendationSequence)discoveryError=error?.message||String(error);}
