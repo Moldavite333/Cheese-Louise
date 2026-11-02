@@ -93,3 +93,42 @@ test('Romantiverse discovery card offers Add to Radar, not accept-predictions',(
   assert.match(html,/Add to Radar/);
   assert.doesNotMatch(html,/Add \+ accept|Add only|addDiscoveredMovie\(9,true\)/);
 });
+
+
+test('fallback Romantiverse Interpreter only previews synopsis matches',async()=>{
+  const alerts=[];
+  const context={
+    state:{movies:[{id:'m',title:'A Christmas Village',selectedTraitIds:[]}],traits:[]},
+    window:null,discoveryTraitSuggestions:()=>[],discoveryEstimate:()=>({score:0,traits:[]}),
+    discoveryCard:()=>'',suggestTraits:async()=>{},romantiverseAnalyze:()=>({matches:[]}),
+    rvMatchDetailsHtml:()=>'',rvConfidenceLabel:()=> 'Possible',suggestionAliases:()=>({}),
+    topbar:()=>'',esc:v=>String(v),alert:msg=>alerts.push(String(msg))
+  };
+  context.window=context;
+  vm.createContext(context);
+  vm.runInContext(read('romantiverse-inference.js'),context);
+  context.romantiverseAnalyze=()=>({matches:[{trait:{id:'t',name:'Bakery',points:75},confidence:0.8,reason:'Synopsis'}]});
+  await context.suggestTraits('m');
+  assert.equal(alerts.length,1);
+  assert.match(alerts[0],/unverified/);
+  assert.match(alerts[0],/Nothing has been added/);
+});
+
+test('base Cheese Traits suggestion fallback never inserts predicted traits',async()=>{
+  const alerts=[];
+  const context={
+    state:{movies:[{id:'m',title:'A Christmas Village',summary:'She owns a bakery.',selectedTraitIds:[]}],
+      traits:[{id:'t',name:'Bakery',points:75,is_active:true}],filterPresets:[]},
+    workspace:{id:'w'},session:null,window:null,loadAll:async()=>{},
+    movies:()=>'',movieCard:()=>'',filteredMovies:()=>[],modal:()=>'',addMovie:async()=>{},
+    setTimeout:()=>1,me:()=> 'nick',consensus:()=>'',render(){},esc:v=>String(v),
+    alert:msg=>alerts.push(String(msg)),db:{from(){throw Error('Unexpected database call')}}
+  };
+  context.window=context;
+  vm.createContext(context);
+  vm.runInContext(read('cheese-traits.js'),context);
+  await context.suggestTraits('m');
+  assert.equal(alerts.length,1);
+  assert.match(alerts[0],/unverified/);
+  assert.match(alerts[0],/Nothing has been added/);
+});
