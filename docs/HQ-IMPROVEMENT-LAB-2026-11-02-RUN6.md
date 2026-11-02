@@ -15,7 +15,7 @@ The previous run's read-only production audit found 16 of 32 saved movies with s
 1. Add pure cheese-grating-integrity.js to compute confirmed point totals from unique checked trait IDs and current trait definitions. Track original stored score separately, flag mismatches and missing definitions, never cap the total.
 2. Change the Movie Radar loaded view to use the checked total as its displayed Cheese Grating, with subtle review labels for discrepancies.
 3. Add an explanation in the movie detail/modal showing the preserved stored value and confirmed tally. If a selected trait definition is missing, mark the tally partial.
-4. Add five deterministic regression tests for legacy 23-vs-0, uncapped 140, unknown traits, null stored scores, and no mutation.
+4. Add seven deterministic regression tests (five pure audit cases and two Movie Radar integration cases) for legacy 23-vs-0, uncapped 140, unknown traits, null stored scores, and no mutation.
 5. Preserve the original database value. **No UPDATE, DELETE, migration, RLS change, production deployment, or bulk correction.**
 
 ## Acceptance criteria
