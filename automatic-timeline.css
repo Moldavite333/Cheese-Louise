@@ -1,0 +1,10 @@
+.cl-auto{padding:14px;border:1px solid var(--line,#555);border-radius:12px;margin:12px 0;background:var(--panel,#202129);min-width:0}
+.cl-auto-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.cl-auto button{min-height:40px;font:inherit;font-size:12px}
+.cl-auto-workspace{display:grid;grid-template-columns:minmax(100px,.65fr) minmax(180px,1fr);gap:12px;margin-top:12px}
+.cl-auto nav{max-height:70vh;overflow:auto}.cl-auto nav ol{list-style:none;margin:0;padding:0}.cl-auto nav button{display:block;text-align:left;width:100%;margin:0 0 6px;padding:10px;overflow-wrap:anywhere}
+.cl-auto nav button[aria-current=step]{outline:2px solid #efc766;background:#473e29}.cl-auto nav small,.cl-auto nav strong{display:block}.cl-auto label{display:block;font-size:12px;margin:9px 0}
+.cl-auto input,.cl-auto textarea,.cl-auto select{display:block;box-sizing:border-box;width:100%;color:inherit;background:var(--panel-2,#25262c);border:1px solid var(--line,#666);border-radius:6px;padding:9px;font:inherit;font-size:14px}
+.cl-auto pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;font:inherit;font-size:12px}.cl-auto details{margin:12px 0}.cl-auto summary{cursor:pointer;min-height:30px}.cl-auto section{min-width:0}
+.cl-auto :focus-visible{outline:3px solid #efc766;outline-offset:2px}#cl-auto-status{font-size:12px;color:#efc766}
+@media(min-width:900px){.clp-desk-columns{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important}.clp-desk-bingo{grid-column:1/-1!important}.clp-bingo-groups{grid-template-columns:1fr 1fr}}
+@media(max-width:599px){.cl-auto-workspace{grid-template-columns:1fr}.cl-auto nav{max-height:200px}}
