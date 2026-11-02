@@ -161,7 +161,7 @@ async function loadAll(){
   state.movies=(moviesRes.data||[]).map(m=>({
     ...m,
     date:m.premiere_date?fmtDate(m.premiere_date):'TBD',
-    score:m.cheese_score??'—',
+    score:'—', // Verified Cheese Grating is populated only after checked trait rows load.
     votes:Object.fromEntries((votesByMovie.get(m.id)||[]).map(v=>[v.user_id,v.vote])),
     bookmarks:Object.fromEntries((bookmarksByMovie.get(m.id)||[]).map(b=>[b.user_id,true])),
     comments:(commentsByMovie.get(m.id)||[])
@@ -283,7 +283,7 @@ function modal(){
   const m=state.movies.find(x=>x.id===selectedMovie);
   if(!m) return '';
   const v=m.votes?.[me()];
-  return `<div class="modal-backdrop" onclick="closeMovie(event)"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><div><div class="kicker">${esc(m.network||'Unknown')} • ${esc(m.date)}</div><h2 style="margin:6px 0">${esc(m.title)}</h2><div class="cheese-score">🧀 Cheese potential ${esc(m.score)}</div></div><button class="close" onclick="selectedMovie=null;render()">×</button></div><p>${esc(m.summary||'No summary yet.')}</p><div class="pills">${(m.tags||[]).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div><div style="margin-top:16px"><strong>${consensus(m)}</strong></div><div class="vote-row" style="margin-top:10px"><button class="vote-btn ${v==='yes'?'active-yes':''}" onclick="vote('${m.id}','yes')">❤️ Yes</button><button class="vote-btn ${v==='maybe'?'active-maybe':''}" onclick="vote('${m.id}','maybe')">🤔 Maybe</button><button class="vote-btn ${v==='no'?'active-no':''}" onclick="vote('${m.id}','no')">❌ No</button></div><h3 style="margin-top:22px">Comments</h3>${m.comments.map(c=>`<div class="comment"><strong>${esc(memberName(c.user_id))}</strong><div>${esc(c.body)}</div></div>`).join('')||'<div class="subtle" style="margin-top:8px">No comments yet.</div>'}<div class="comment-box"><input id="commentInput" placeholder="Add a note…"><button class="primary" onclick="comment('${m.id}')">Send</button></div></div></div>`;
+  return `<div class="modal-backdrop" onclick="closeMovie(event)"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><div><div class="kicker">${esc(m.network||'Unknown')} • ${esc(m.date)}</div><h2 style="margin:6px 0">${esc(m.title)}</h2><div class="cheese-score">🧀 Cheese Grating ${esc(m.score)}</div></div><button class="close" onclick="selectedMovie=null;render()">×</button></div><p>${esc(m.summary||'No summary yet.')}</p><div class="pills">${(m.tags||[]).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div><div style="margin-top:16px"><strong>${consensus(m)}</strong></div><div class="vote-row" style="margin-top:10px"><button class="vote-btn ${v==='yes'?'active-yes':''}" onclick="vote('${m.id}','yes')">❤️ Yes</button><button class="vote-btn ${v==='maybe'?'active-maybe':''}" onclick="vote('${m.id}','maybe')">🤔 Maybe</button><button class="vote-btn ${v==='no'?'active-no':''}" onclick="vote('${m.id}','no')">❌ No</button></div><h3 style="margin-top:22px">Comments</h3>${m.comments.map(c=>`<div class="comment"><strong>${esc(memberName(c.user_id))}</strong><div>${esc(c.body)}</div></div>`).join('')||'<div class="subtle" style="margin-top:8px">No comments yet.</div>'}<div class="comment-box"><input id="commentInput" placeholder="Add a note…"><button class="primary" onclick="comment('${m.id}')">Send</button></div></div></div>`;
 }
 
 function render(){
@@ -319,8 +319,8 @@ async function comment(id){
 async function addMovie(){
   const title=prompt('Movie title:'); if(!title) return;
   const network=prompt('Network / studio:','Hallmark')||'';
-  const scoreRaw=prompt('Cheese potential 0–100:','85');
-  const cheese_score=Math.max(0,Math.min(100,Number(scoreRaw)||0));
+  // Manual movie entry is discovery, not evidence of observed tropes.
+  const cheese_score=0;
   const tags=(prompt('Tags, separated by commas:','Small town, Christmas')||'').split(',').map(x=>x.trim()).filter(Boolean);
   const summary=prompt('Short premise / why it looks promising:','')||'';
   const {data,error}=await db.from('movies').insert({workspace_id:workspace.id,title,network,cheese_score,tags,summary,created_by:me()}).select().single();
@@ -403,7 +403,13 @@ async function importV11Data(){
 
   const movieMap={};
   for(const m of old.movies||[]){
-    const {data}=await db.from('movies').insert({workspace_id:workspace.id,title:m.title,network:m.network,cheese_score:Number(m.score)||null,tags:m.tags||[],summary:m.summary||'',created_by:me()}).select().single();
+    // Preserve old v1.1 estimates as explicitly unverified text, never as official Cheese Grating.
+    const rawLegacy=m.score;
+    const legacyValue=rawLegacy===null||rawLegacy===undefined||String(rawLegacy).trim()===''?null:Number(rawLegacy);
+    const legacyNote=legacyValue!==null&&Number.isFinite(legacyValue)&&legacyValue!==0
+      ? `[Imported v1.1 estimate: ${legacyValue} points; unverified Cheese Grating]` : '';
+    const summary=[String(m.summary||''),legacyNote].filter(Boolean).join('\n\n');
+    const {data}=await db.from('movies').insert({workspace_id:workspace.id,title:m.title,network:m.network,cheese_score:0,tags:m.tags||[],summary,created_by:me()}).select().single();
     if(!data) continue;
     movieMap[m.id]=data.id;
     const oldUser=old.currentUser||profile.display_name;
