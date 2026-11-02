@@ -56,3 +56,18 @@ test('Jenny export includes evidence and confirmed movie tropes without Bingo cl
 test('workspace and movie keys isolate drafts',()=>{
  const h=harness();h.A.edit('nick_notes','Private to original');h.context.workspace='w2';h.html();h.A.edit('nick_notes','Other workspace');assert.equal(h.data().scenes[0].nick_notes,'Private to original');
 });
+test('storyboard cards retain scene order, unknown times and separate editable host notes',()=>{
+ const h=harness();h.A.edit('nick_notes','Nick callback');h.A.edit('jenny_notes','Jenny observation');h.A.add();h.A.edit('title','The next scene');h.A.edit('start_time_ms','12:30');const html=h.html();assert.match(html,/cl-story-track/);assert.match(html,/cl-story-card/);assert.ok(html.indexOf('A shop owner returns home.')<html.indexOf('The next scene'));assert.match(html,/Time unknown/);assert.match(html,/00:12:30/);h.A.select(0);const selected=h.html();assert.match(selected,/Nick callback/);assert.match(selected,/Jenny observation/);assert.match(selected,/No observations added/);assert.match(selected,/None linked to this scene/);assert.equal(h.storage.size,1);
+});
+test('storyboard keyboard navigation preserves selection, bookmark and notes across rerenders and reload',()=>{
+ const h=harness();h.A.add();h.A.edit('nick_notes','Keep my place');h.A.bookmark();const selected=h.data().selected;let prevented=false;h.A.cardKey({key:'Home',preventDefault(){prevented=true;}},2);assert.equal(h.data().selected,h.data().scenes[0].scene_id);assert.equal(prevented,true);h.A.pickup();h.html();assert.equal(h.data().selected,selected);const loaded=harness(h.storage);assert.equal(loaded.data().selected,selected);assert.match(loaded.html(),/Keep my place/);assert.match(loaded.html(),/Next scene/);
+});
+test('funny observations and plot-hole notes survive merge and undo without treating trope candidates as confirmed',()=>{
+ const h=harness();h.A.edit('funny_observations','The oversized order\nThe coffee callback');h.A.edit('plot_holes','Who pays the rent?');h.A.edit('discussion_prompts','What does this decision cost?');h.A.merge();assert.match(h.html(),/Who pays the rent/);assert.equal(h.data().scenes[0].funny_observations.length,2);h.A.undo();assert.equal(h.data().scenes.length,2);assert.equal(h.data().scenes[0].plot_holes[0],'Who pays the rent?');
+});
+test('scene trope links require a confirmed movie trait and remain user-confirmed rather than independently verified',()=>{
+ const h=harness();h.context.confirmedTraits=[{id:'known',name:'Business rescue'}];h.context.traits=h.context.confirmedTraits;h.A.trope('unknown',true);assert.equal(h.data().scenes[0].trope_candidates.length,0);h.A.trope('known',true);assert.match(h.html(),/Business rescue · user-confirmed/);assert.equal(h.data().scenes[0].trope_candidates[0].evidence_status,'Unverified');h.A.trope('known',false);assert.equal(h.data().scenes[0].trope_candidates.length,0);
+});
+test('merging scenes retains marker associations without modifying original recording timestamps',()=>{
+ const h=harness();const second=h.data().scenes[1].scene_id;h.context.recordingMarkers=[{scene_id:second,atMs:12345,type:'Retake',note:'Keep this marker'}];h.A.merge();assert.match(h.html(),/Keep this marker/);assert.equal(h.context.recordingMarkers[0].atMs,12345);h.A.undo();assert.equal(h.data().scenes[1].scene_id,second);
+});

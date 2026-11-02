@@ -100,7 +100,9 @@ try{
     window.__fixtureResearch=[{movie_id:'fixture-movie',workspace_id:workspace.id,status:'ready',report:{schema_version:1,movie_id:'fixture-movie',identity:{title:'Autumn at the Orchard',year:'2025'},generated_at:'2026-11-02T00:00:00.000Z',coverage:'limited',mode:'Source-supported plot outline',premise:'The family orchard needs saving before the harvest festival.',story_beats:[{id:'orchard-stakes',title:'Orchard rescue deadline',summary:'The family orchard needs saving before the harvest festival.',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],characters:[{name:'The orchard owner',actor:'',motivation:'Save the family business.',discussion_angle:'What practical options are available?',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],discussion:[{title:'The festival economics',observation:'The orchard needs saving.',question:'How much revenue could one festival realistically raise?',basis:'interpretation',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],trope_candidates:[],research_gaps:['Check the actual resolution while watching.'],warnings:['Synthetic research draft.'],sources:[source]}}];
    });
    await page.evaluate(()=>clMovieResearch.prepare('fixture-movie'));
+   await page.getByText('Movie research & generation',{exact:true}).click();
    assert.ok((await page.locator('.cl-movie-research').innerText()).includes('Partial research brief'),'Shared movie research appears in Recording');
+   await page.getByText('Movie research & generation',{exact:true}).click();
    assert.ok((await page.locator('.cl-auto nav').innerText()).includes('Orchard rescue deadline'),'Sourced beats populate the editable timeline automatically');
    await page.locator('.cl-auto nav button').filter({hasText:'Orchard rescue deadline'}).click();
    assert.ok((await page.getByRole('complementary',{name:'Scene discussion prompts'}).innerText()).includes('realistically raise'),'Movie-specific prompts attach to the relevant beat');
@@ -111,12 +113,34 @@ try{
    await timeline.getByLabel('Scene title',{exact:true}).blur();
    await timeline.getByLabel('Nick’s notes',{exact:true}).fill('Preserve this manual observation');
    await timeline.getByRole('button',{name:'Pick Up Here',exact:true}).click();
+   await timeline.getByText('Timeline tools & exports',{exact:true}).click();
    await timeline.getByText('Import authorized captions',{exact:true}).click();
    await timeline.getByLabel('Caption file',{exact:true}).setInputFiles({name:'authorized.vtt',mimeType:'text/vtt',buffer:Buffer.from('WEBVTT\n\n00:01.000 --> 00:03.000\n<v Jenny>Fixture dialogue</v>')});
    await page.waitForFunction(()=>document.querySelector('.cl-auto nav')?.textContent.includes('Caption excerpt'));
    await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).click();
    assert.equal(await timeline.getByLabel('Nick’s notes',{exact:true}).inputValue(),'Preserve this manual observation');
    assert.equal(await timeline.getByLabel('Scene title',{exact:true}).inputValue(),'Fixture scene correction');
+   await timeline.getByRole('button',{name:'Done editing',exact:true}).click();
+   await timeline.getByLabel('Jenny’s notes',{exact:true}).fill('Jenny’s separate scene note');
+   const currentScene=await page.evaluate(()=>clAutomaticTimeline.selected().scene_id);
+   await timeline.getByRole('button',{name:'← Previous scene',exact:true}).click();
+   await timeline.getByRole('button',{name:'Next scene →',exact:true}).click();
+   assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Next/Previous scene preserve the same stable scene position');
+   assert.equal(await timeline.getByLabel('Nick’s notes',{exact:true}).inputValue(),'Preserve this manual observation');
+   assert.equal(await timeline.getByLabel('Jenny’s notes',{exact:true}).inputValue(),'Jenny’s separate scene note');
+   await timeline.locator('.cl-story-card[aria-current="step"]').press('Home');
+   assert.equal(await timeline.locator('.cl-story-card[aria-current="step"] .cl-story-number').innerText(),'01','Keyboard Home selects the first scene');
+   await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).click();
+   await page.evaluate(()=>clProduction.expand(2));
+   assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Browsing recording segments preserves the selected movie scene');
+   await page.evaluate(()=>clProduction.view('edit'));
+   await page.evaluate(()=>clProduction.view('record'));
+   assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Returning from the editing section restores the selected scene');
+   await page.waitForFunction(()=>{const rail=document.querySelector('.cl-story-track'),card=rail?.querySelector('[aria-current="step"]');if(!card)return false;const a=card.getBoundingClientRect(),b=rail.getBoundingClientRect();return a.left>=b.left-4&&a.right<=b.right+4;});
+   const track=await timeline.locator('.cl-story-track').evaluate(el=>({width:el.clientWidth,content:el.scrollWidth}));
+   assert.ok(track.content>track.width,'Scene cards scroll inside the storyboard instead of stretching the page');
+   assert.ok(await timeline.locator('.cl-story-card').first().evaluate(el=>el.getBoundingClientRect().height>=150),'Scene cards have readable touch targets');
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Storyboard fits viewport '+width);
    assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
    await page.getByRole('heading',{name:'Your Bingo results',exact:true}).waitFor();
    await page.evaluate(()=>{
@@ -144,8 +168,9 @@ try{
    assert.equal(await page.locator('.clp-bingo-squares textarea').first().inputValue(),'The paperwork joke belongs before the reveal.');
    if(width>=1280){
     const positions=await page.locator('.clp-desk-columns>section').evaluateAll(els=>els.map(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y})));
-    assert.ok(positions[0].x<positions[1].x,'Landscape desk keeps timeline and notes side by side');
-    assert.ok(Math.abs(positions[0].y-positions[1].y)<2,'Timeline and notes share a top edge');
+    assert.ok(positions[1].y>positions[0].y,'Legacy talk order sits below the primary storyboard');
+    assert.ok(await page.locator('.clp-desk-story').evaluate(el=>el.getBoundingClientRect().width>=el.parentElement.getBoundingClientRect().width-2),'Storyboard spans the laptop workspace');
+    assert.ok(await page.locator('.cl-story-hosts').evaluate(el=>el.getBoundingClientRect().y<document.querySelector('.cl-story-summary').getBoundingClientRect().bottom),'Both hosts’ notes sit beside the scene summary beneath the cards');
     assert.ok(positions[2].y>positions[1].y&&Math.abs(positions[2].x-positions[0].x)<2,'Bingo results sit below the discussion workspace');
    }
    assert.ok(await page.locator('.clp-cue-trait').first().evaluate(el=>el.getBoundingClientRect().height<45),'Traits use compact text rows');
