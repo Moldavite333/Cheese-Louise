@@ -17,8 +17,9 @@ test('manual talk order coexists with evidence-first timeline',()=>{
   assert.match(hub,/function timelineSave\(/);
 });
 test('scene-linked markers retain recording clock, note and conflict safeguards',()=>{
-  assert.match(hub,/mark\(\)\{if\(guardExternal\(\)\)return;/);
-  assert.match(hub,/if\(isPending\(getSession\(\)\)\)/);
+  assert.match(hub,/mark\(\)\s*\{\s*if\(guardExternal\(\)\)return;/);
+  assert.match(hub,/if\(isPending\(s\)\)/);
+  assert.match(hub,/if\(!s\?\.runningSince\|\|s\.finished\)/);
   assert.match(hub,/const marker=\{markerId:/);
   assert.match(hub,/Number\.isFinite\(scene\.movie_time_ms\)/);
   assert.match(hub,/atMs:sessionNow\(s\),type,note/);
