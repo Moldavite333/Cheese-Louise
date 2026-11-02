@@ -76,7 +76,7 @@
     });
     if(!outlineItems.length&&String(draft.outline||'').trim())outlineItems.push({type:'note',text:String(draft.outline),category:''});
     if(window.clMovieTraits&&outlineItems.length){const named=new Set(outlineItems.filter(i=>i.type==='trait').map(i=>i.text));for(const trait of selected)if(!named.has(trait.name))outlineItems.push({type:'trait',text:trait.name,category:trait.category||''});}
-    return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
+    return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),savedRundownText:String(draft.rundownText||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
   const clone=value=>JSON.parse(JSON.stringify(value));
   const hasRecordedWork=s=>Boolean(s&&((s.elapsedMs||0)>0||s.runningSince||(s.laps||[]).length||(s.markers||[]).length||s.finished));
@@ -219,11 +219,14 @@
     const ordered=Array.isArray(snap.outlineItems)&&snap.outlineItems.length?snap.outlineItems:(snap.talkingPoints||[]).map(text=>({type:'trait',text}));
     const observations=noteBlocks(snap.notes);
     const earlier=latest.hasDraft&&saved.notes&&saved.notes!==latest.notes?noteBlocks(saved.notes):[];
+    // Keep the rundown fixed once a take has begun; refresh explicitly while paused.
+    const savedRundownText=hasRecordedWork(s)?String(saved.savedRundownText||'').trim():String(latest.savedRundownText||saved.savedRundownText||'').trim();
     return '<section class="clp-notebook" aria-labelledby="clp-notes-title"><div class="clp-notebook-head"><div><span class="clp-eyebrow">AT THE MIC</span><h2 id="clp-notes-title">Recording notes</h2></div><span class="clp-snapshot-label">'+(latest.hasDraft?'Latest Watch Along notes':'Saved recording notes')+' · '+escapeHtml(currentMovie()?.title)+'</span></div>'+
       '<div class="clp-note-legend" aria-label="Note colors"><span class="clp-legend-trait">Cheese Traits</span><span class="clp-legend-note">Talking points</span><span class="clp-legend-observation">Watch notes</span></div>'+
       '<section class="clp-note-group"><h3>Your talk order</h3><ol class="clp-cue-list" tabindex="0">'+(ordered.map((item,index)=>cueCard(item.text,index,item.type==='trait'?'trait':'note',item.type==='trait'?'Cheese Trait'+(item.category?' · '+item.category:''):'Talking point')).join('')||'<li class="clp-note-empty">Build your talk order in Watch Along, then update the snapshot here.</li>')+'</ol></section>'+
       '<section id="clp-watch-observations" tabindex="-1" class="clp-note-group"><h3>Watch Along observations</h3><ol class="clp-cue-list" tabindex="0">'+(observations.map((text,index)=>cueCard(text,index,'observation','Watch note')).join('')||'<li class="clp-note-empty">No Watch Along observations found for this movie on this browser. Open Watch Along to check the movie and its notes.</li>')+'</ol></section>'+
       (earlier.length?'<details class="clp-credit-reference"><summary>Earlier recording-session notes</summary><ol class="clp-cue-list" tabindex="0">'+earlier.map((text,index)=>cueCard(text,index,'observation','Earlier saved note')).join('')+'</ol></details>':'')+
+      (savedRundownText?'<details class="clp-credit-reference"><summary>Saved episode rundown (read-only)</summary><div style="white-space:pre-wrap;max-height:20rem;overflow:auto">'+escapeHtml(savedRundownText)+'</div><p class="clp-hint">To update this recording copy, pause and choose Update from Watch Along. The storyboard remains your primary scene navigation.</p></details>':'')+
       '<div class="clp-grating-cue"><span>Cheese Grating</span><strong>'+Number(snap.grating||0)+' points</strong><small>'+Number(snap.confirmedCount||0)+' confirmed traits · Bingo results follow the discussion</small></div>'+
       '<details class="clp-credit-reference"><summary>Movie credits & research reference</summary>'+movieCredits(currentMovie())+'</details></section>';
   }
@@ -320,7 +323,7 @@
       if(saved){pendingMarker=null;const input=document.getElementById('clp-marker-note');if(input)input.value='';}
     },
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
-    refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
+    refreshSnapshot(){const s=getSession();if(!s)return;if(s.runningSince||isPending(s)){alert('Pause or recover the recording timer before updating the rundown.');return;}if(!confirm('Replace this session’s saved notes and rundown with the latest Watch Along version?'))return;update(active=>{active.snapshot=rundown(currentMovie());});},
     reset(){
       if(guardExternal())return;
       const m=currentMovie(),active=getSession();if(!m||!active)return;
