@@ -81,7 +81,7 @@ function clSavedMovieDetailModal(){
     <div class="cl-movie-detail-hero">
       <div>${clMovieDetailPoster(m)}</div>
       <div class="cl-movie-detail-hero-copy">
-        <div class="cl-movie-detail-score-row"><div><div class="kicker">Cheese Grating</div><div class="cl-movie-detail-big-score">🧀 ${esc(m.score??0)}</div>${m.gratingAudit?.needsReview?`<div class="subtle" role="status">Score review: saved legacy value ${m.gratingAudit.storedScore===null?'not recorded':esc(m.gratingAudit.storedScore)}; checked total ${esc(m.score??0)}. Saved data is unchanged.${m.gratingAudit.complete?'':' Some checked trait definitions are missing; total may be incomplete.'}</div>`:''}</div><div><div class="kicker">Shared verdict</div><strong>${esc(consensus(m))}</strong></div></div>
+        <div class="cl-movie-detail-score-row"><div><div class="kicker">Cheese Rating</div><div class="cl-movie-detail-big-score">🧀 ${esc(m.score??m.cheese_score??0)}</div></div><div><div class="kicker">Shared verdict</div><strong>${esc(consensus(m))}</strong></div></div>
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(m.providers)}</div>
         ${clMovieDetailLinks(m)}
         <div class="cl-movie-detail-actions">
@@ -96,6 +96,7 @@ function clSavedMovieDetailModal(){
       <p>${esc(m.summary||'No synopsis is available yet.')}</p>
     </section>
 
+    ${window.clMovieResearch?.html(m)||''}
     ${notes?`<section class="cl-movie-detail-section"><div class="kicker">Notes</div><div>${esc(notes).replace(/\n/g,'<br>')}</div></section>`:''}
 
     <section class="cl-movie-detail-section">
@@ -152,7 +153,7 @@ function clDiscoveryMovieDetailModal(){
     <div class="cl-movie-detail-hero">
       <div>${clMovieDetailPoster(c)}</div>
       <div class="cl-movie-detail-hero-copy">
-        <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Predicted Cheese Grating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
+        <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Estimated Cheese Rating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(c.providers)}</div>
         ${clMovieDetailLinks(c)}
       </div>

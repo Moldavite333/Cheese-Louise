@@ -1,0 +1,49 @@
+// Shared research briefs. The server owns generation; local copies support recording.
+(() => {
+ const memory=new Map(),requested=new Set();let timer=null,libraryKey='',message='';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const wid=()=>typeof workspace!=='undefined'&&workspace?.id||null;
+ const storageKey=w=>'cheeseLouise:movieResearch:v1:'+w;
+ function entries(w=wid()){
+  if(!w)return {};if(memory.has(w))return memory.get(w);
+  let value={};try{const data=JSON.parse(localStorage.getItem(storageKey(w))||'{}');if(data&&typeof data==='object'&&!Array.isArray(data))value=data;}catch{}
+  memory.set(w,value);return value;
+ }
+ function keep(w,rows){const data=entries(w);for(const row of rows||[])if(row?.workspace_id===w&&row.movie_id)data[row.movie_id]=row;try{localStorage.setItem(storageKey(w),JSON.stringify(data));}catch{if(w===wid())message='Research is available in this tab; download your rundown before closing because device storage is full.';}}
+ const get=id=>entries()[id];
+ const report=id=>{const r=get(id)?.report;return r?.schema_version===1&&r.movie_id===id?r:null;};
+ const links=(item,r)=>(item.source_ids||[]).map(id=>r.sources.find(s=>s.id===id)).filter(Boolean).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)} ↗</a>`:`<span>${esc(s.title)}</span>`).join(' · ');
+ function evidence(item,r){return `<details class="cl-research-evidence"><summary>Supporting research</summary><p>${esc(item.evidence_anchor)}</p><p>${links(item,r)}</p><small>Source-linked research draft; not independently verified.</small></details>`;}
+ const calls=(name,id)=>esc('clMovieResearch.'+name+'('+JSON.stringify(id)+')');
+ const button=(label,name,id)=>`<button type="button" class="secondary" onclick="${calls(name,id)}">${label}</button>`;
+ function body(movie){
+  const row=get(movie.id),r=report(movie.id),active=['queued','generating'].includes(row?.status);
+  const stateLabel=active?'Researching in the background…':row?.status==='error'?'Research needs another attempt.':r?(r.coverage==='detailed'?'Research brief ready':'Partial research brief — sources are limited'):'Research will prepare automatically after sign-in.';
+  return `<header><div><span class="kicker">MOVIE HOMEWORK · SPOILERS</span><h3>Producer’s research brief</h3></div><span class="cl-research-state" role="status">${esc(stateLabel)}</span></header><p class="subtle">${esc(message||'Shared between Nick and Jenny. Your scene corrections and personal notes stay separate.')}</p><div class="cl-research-actions">${!active?button(r?'Refresh research':'Prepare research','prepare',movie.id):''}${r?button('Download full research','download',movie.id)+button('Copy research','copy',movie.id):''}</div>${row?.status==='error'?`<p class="subtle">${esc(errorText(row.error_code))}${row.retry_after?' Next retry after '+esc(new Date(row.retry_after).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))+'.':''} Previous notes are preserved.</p>`:''}${r?`<p>${esc(r.premise)}</p><details class="cl-research-full"><summary>Read ${r.story_beats.length} story beats · ${r.characters.length} characters · ${r.discussion.length} discussion angles</summary><p class="subtle">${esc(r.mode)} · researched ${esc(new Date(r.generated_at).toLocaleDateString())}. Review against the actual film.</p><h4>Story beats</h4><ol>${r.story_beats.map(item=>`<li><strong>${esc(item.title)}</strong><p>${esc(item.summary)}</p>${evidence(item,r)}</li>`).join('')||'<li>Not enough verified story information yet.</li>'}</ol><h4>Character motivations</h4>${r.characters.map(item=>`<article><strong>${esc(item.name)}${item.actor?' · '+esc(item.actor):''}</strong><p>${esc(item.motivation)}</p><p>${esc(item.discussion_angle)}</p>${evidence(item,r)}</article>`).join('')||'<p>Character details need research.</p>'}<h4>Discussion angles</h4>${r.discussion.map(item=>`<article><small>${item.basis==='interpretation'?'Interpretation / question':'Source-supported premise'} · Draft</small><strong>${esc(item.title)}</strong><p>${esc(item.observation)}</p><p class="cl-research-question">${esc(item.question)}</p>${evidence(item,r)}</article>`).join('')}<h4>Possible Romantiverse tropes</h4>${r.trope_candidates.map(item=>{const trait=(typeof state!=='undefined'?state.traits:[])?.find(t=>t.id===item.trope_id);return `<article><strong>${esc(trait?.name||'Trope candidate')}</strong><p>${esc(item.why)}</p><small>Candidate only · not a confirmed trait, marked square or Bingo.</small>${evidence(item,r)}</article>`;}).join('')||'<p>No source-supported candidates found.</p>'}<h4>Check while watching</h4><ul>${r.research_gaps.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h4>Sources and limits</h4><ul>${r.sources.map(s=>`<li>${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)} ↗</a>`:esc(s.title)}<small>${esc(s.provenance)}</small></li>`).join('')}</ul>${r.warnings.map(x=>`<p class="subtle">${esc(x)}</p>`).join('')}<p class="subtle">Movie data: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</p></details>`:''}`;
+ }
+ function html(movie){return `<section class="cl-movie-research" data-cl-research-movie="${esc(movie.id)}" aria-label="Movie research brief">${body(movie)}</section>`;}
+ function refresh(w){if(w!==wid())return;document.querySelectorAll('[data-cl-research-movie]').forEach(host=>{const m=(state.movies||[]).find(x=>x.id===host.dataset.clResearchMovie);if(!m)return;const opened=[...host.querySelectorAll('details')].map(x=>x.open);host.innerHTML=body(m);host.querySelectorAll('details').forEach((x,i)=>x.open=!!opened[i]);});for(const row of Object.values(entries(w)))if(row.report?.schema_version===1)window.clAutomaticTimeline?.refreshResearch(row.movie_id);}
+ function errorText(code){return ({identity_mismatch:'The movie title/year does not match its catalog record. Correct that identity first.',needs_release_year_or_movie_id:'Add a release year or TMDB ID so research can identify the correct movie.',research_not_configured:'Automatic research needs its server connection.',provider_busy:'The research provider is busy or its API credit is unavailable.',insufficient_sources:'Not enough matching movie information was found.',movie_changed_retry:'Movie information changed during research; prepare it again.',workspace_forbidden:'Sign in to the correct HQ workspace.',sign_in_required:'Sign in to HQ again.'})[code]||'The research service could not finish. Try again later.';}
+ async function invoke(action,movieId,force=false){
+  const w=wid();if(!w||typeof session==='undefined'||!session)return;
+  const {data,error}=await db.functions.invoke('movie-research',{body:{workspace_id:w,action,...(movieId?{movie_id:movieId}:{}),force}});
+  if(error){let code;try{code=(await error.context?.json())?.error;}catch{}throw Error(errorText(code));}if(data?.error)throw Error(errorText(data.error));
+  keep(w,data?.briefs||[]);refresh(w);return {data,w};
+ }
+ function active(){return Object.values(entries()).some(x=>['queued','generating'].includes(x.status));}
+ function poll(){clearTimeout(timer);if(!wid()||!active())return;timer=setTimeout(async()=>{try{await invoke('library_status');}catch{}poll();},document.visibilityState==='hidden'?30000:7000);}
+ async function prepare(id){if(!id)return;const w=wid();try{message='';await invoke('prepare',id,true);poll();}catch(e){if(w===wid()){message=e.message;refresh(w);}}}
+ function schedule(){
+  if(!wid()||typeof session==='undefined'||!session||!(state.movies||[]).length)return;
+  const w=wid(),ids=(state.movies||[]).filter(m=>m.status!=='passed').map(m=>m.id+':'+(m.updated_at||'')).sort().join(',');const signature=w+':'+ids;
+  if(requested.has(signature))return;requested.add(signature);libraryKey=signature;
+  setTimeout(async()=>{if(w!==wid()||libraryKey!==signature)return;try{message='';await invoke('prepare_library');poll();}catch(e){if(w===wid()){message=e.message;refresh(w);}requested.delete(signature);}},1800);
+ }
+ function text(id){const r=report(id);if(!r)return '';const sourceLines=item=>(item.source_ids||[]).map(ref=>r.sources.find(s=>s.id===ref)).filter(Boolean).map(s=>s.title+(s.url?' — '+s.url:''));return [r.identity.title+' · '+r.identity.year,'CHEESE LOUISE — PRODUCER’S RESEARCH BRIEF',r.mode,'AI draft; review against the film. Spoilers follow.','',r.premise,'','STORY BEATS',...r.story_beats.flatMap((x,i)=>[`${i+1}. ${x.title}`,x.summary,...sourceLines(x),'']),'CHARACTERS',...r.characters.flatMap(x=>[x.name+(x.actor?' — '+x.actor:''),x.motivation,x.discussion_angle,...sourceLines(x),'']),'DISCUSSION ANGLES',...r.discussion.flatMap(x=>[x.title+' ['+x.basis+']',x.observation,x.question,...sourceLines(x),'']),'CHECK WHILE WATCHING',...r.research_gaps,'',...r.warnings].join('\n');}
+ window.clMovieResearch={html,getReport:report,getRow:get,schedule,text,prepare,
+  download(id){const content=text(id);if(!content)return;const url=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='movie-research.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
+  async copy(id){try{await navigator.clipboard.writeText(text(id));message='Research copied. Paste into Samsung Notes or your rundown.';}catch{message='Clipboard unavailable. Download the research instead.';}refresh(wid());}
+ };
+ if(typeof loadAll==='function'){const previous=loadAll;loadAll=async function(...args){const result=await previous.apply(this,args);schedule();return result;};}
+ schedule();
+})();
