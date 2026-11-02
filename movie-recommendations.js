@@ -3,7 +3,7 @@ let clRecommendationMeta=null;
 let clRecommendationSequence=0;
 const clRecMemoryHistory=new Map();
 function clRecMeta(movie){let meta=movie?.source_metadata||{};if(typeof meta==='string'){try{meta=JSON.parse(meta)}catch{meta={}}}return meta;}
-function clRecNorm(title){return String(title||'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(a|an|the) /,'');}
+function clRecNorm(title){return String(title||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(a|an|the) /,'');}
 function clRecYear(movie){
  const meta=clRecMeta(movie);
  const values=[typeof clReleaseYear==='function'?clReleaseYear(movie):null,movie?.year,movie?.release_date,movie?.premiere_date,meta.year,meta.release_date,meta.premiere_date];
