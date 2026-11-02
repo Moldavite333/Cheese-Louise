@@ -7,7 +7,6 @@
       typeof clMergedOriginalCatalog !== 'function' ||
       typeof clCleanTag !== 'function') return;
 
-  const baseCatalogMatches = clSmartOriginalMatches;
   const baseCompatibility = window.clCocktailMatchmakerCompatibility || clSmartMatch;
 
   const PROFILES = {
@@ -91,7 +90,7 @@
         [/brandy|cognac/i,'brandy',2.5],
         [/bourbon|rye|whisk(?:e)?y/i,'whiskey',2],
         [/aged rum|dark rum/i,'aged rum',2],
-        [/gin/i,'gin / juniper',1.5],
+        [/\bgin\b/i,'gin / juniper',1.5],
         [/champagne|prosecco|sparkling wine/i,'sparkling wine',2.5]
       ],
       styles:[
@@ -161,7 +160,7 @@
         [/champagne|prosecco|sparkling wine|cava/i,'sparkling wine',2]
       ],
       spirits:[
-        [/gin/i,'gin',2.5],
+        [/\bgin\b/i,'gin',2.5],
         [/champagne|prosecco|sparkling wine/i,'sparkling wine',2]
       ],
       styles:[[/floral|light|refreshing|sparkling|spritz|bright/i,'light / floral',2.5]],
@@ -186,7 +185,7 @@
         [/white rum|light rum|rum\b/i,'rum',2.5],
         [/tequila/i,'tequila',2.5],
         [/mezcal/i,'mezcal',1.5],
-        [/gin/i,'gin',1.5]
+        [/\bgin\b/i,'gin',1.5]
       ],
       styles:[[/refreshing|highball|spritz|tiki|frozen|long/i,'refreshing / long',2.5]],
       negatives:[
@@ -205,7 +204,7 @@
         [/elderflower/i,'elderflower',2.5],
         [/champagne|prosecco|sparkling wine|cava/i,'sparkling wine',3]
       ],
-      spirits:[[/champagne|prosecco|sparkling wine/i,'sparkling wine',2.5],[/gin/i,'gin',1.5]],
+      spirits:[[/champagne|prosecco|sparkling wine/i,'sparkling wine',2.5],[/\bgin\b/i,'gin',1.5]],
       styles:[[/romantic|floral|sparkling|elegant|pink/i,'romantic / elegant',2.5]],
       negatives:[[/savory|beer|ale/i,'savory / beer-forward',2.5]]
     },
@@ -217,13 +216,14 @@
         [/elderflower/i,'elderflower',2],
         [/pomegranate|cherry/i,'jewel-toned fruit',2]
       ],
-      spirits:[[/cognac|brandy/i,'cognac / brandy',2],[/gin|vodka/i,'clean spirit',1.5]],
+      spirits:[[/cognac|brandy/i,'cognac / brandy',2],[/\bgin\b|vodka/i,'clean spirit',1.5]],
       styles:[[/sparkling|celebratory|elegant|martini/i,'celebratory / elegant',3]],
       negatives:[[/creamy|eggnog|hot coffee/i,'heavy nightcap style',2]]
     }
   };
 
   function stMovieText(movie){
+    movie=clMatchingMovieContext(movie);
     return [movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)]
       .filter(Boolean).join(' ').toLowerCase();
   }
@@ -232,12 +232,17 @@
     const holiday=clCleanTag(movie?.holiday||'');
     const season=clCleanTag(movie?.season||'');
     const text=stMovieText(movie);
-    if(holiday.includes('christmas') || /\bchristmas\b|mistletoe|santa|xmas/.test(text)) return 'christmas';
+    // Explicit metadata takes precedence over ambiguous title/synopsis words.
+    const explicit=[[/christmas|xmas/,'christmas'],[/halloween/,'halloween'],[/thanksgiving/,'thanksgiving'],[/valentine/,'valentine'],[/new.?year/,'newyear'],[/easter|mother.?s.?day/,'spring'],[/patrick/,'spring'],[/fourth|4th|independence|father.?s.?day/,'summer']];
+    for(const [pattern,key] of explicit) if(pattern.test(holiday)) return key;
+    const seasons={fall:'fall',autumn:'fall',winter:'winter',spring:'spring',summer:'summer'};
+    if(seasons[season]) return seasons[season];
+    if(holiday.includes('christmas') || /\bchristmas\b|mistletoe|\bsanta\b|\bxmas\b/.test(text)) return 'christmas';
     if(holiday.includes('halloween') || /\bhalloween\b|spooky|haunted/.test(text)) return 'halloween';
     if(holiday.includes('thanksgiving') || /\bthanksgiving\b/.test(text)) return 'thanksgiving';
     if(holiday.includes('valentine') || /valentine/.test(text)) return 'valentine';
     if(holiday.includes('new-year') || /new year/.test(text)) return 'newyear';
-    if(season==='fall' || season==='autumn' || /\bfall\b|\bautumn\b|harvest/.test(text)) return 'fall';
+    if(season==='fall' || season==='autumn' || /\bautumn\b|\bharvest\b|\bfall festival\b/.test(text)) return 'fall';
     if(season==='winter' || /\bwinter\b|snow|ski|lodge/.test(text)) return 'winter';
     if(season==='spring' || /\bspring\b/.test(text)) return 'spring';
     if(season==='summer' || /\bsummer\b/.test(text)) return 'summer';
@@ -323,7 +328,8 @@
 
     const oldSeason=Number(result.compatibility.season.score||0);
     const delta=season.score-oldSeason;
-    const score=Math.max(8,Math.min(99,Math.round(Number(result.score||0)+delta)));
+    // Seasonal authenticity is a primary signal, not a 15-point afterthought.
+    const score=Math.max(0,Math.min(99,Math.round(Number(result.rawScore??result.score??0)-Number(result.dealbreakers?.penalty||0)+delta+season.score)));
     const reasons=(result.reasons||[]).filter(r=>!/^season fit:/i.test(String(r)) && !/^season authenticity:/i.test(String(r)));
     const evidence=season.hits.length ? season.hits.slice(0,5).join(', ') : 'no strong recipe cues';
     reasons.push(`season authenticity: ${season.label} — ${evidence}`);
@@ -332,11 +338,11 @@
     return {
       ...result,
       score,
-      rawScore:Math.round(Number(result.rawScore||result.score||0)+delta),
+      rawScore:Math.round(Number(result.rawScore??result.score??0)+delta+season.score),
       reasons,
       compatibility:{
         ...result.compatibility,
-        season:{score:season.score,max:15,label:'Season'}
+        season:{score:season.score*2,max:30,label:'Season / holiday'}
       },
       seasonProfile:season,
       matchmakerVersion:'v2-seasonal-1'
@@ -348,34 +354,16 @@
   };
 
   clSmartOriginalMatches=function(movie){
-    const baseResults=baseCatalogMatches(movie)||[];
     const catalog=clMergedOriginalCatalog()||[];
-    const resultByName=new Map();
-
-    for(const result of baseResults){
-      if(!result?.cocktail) continue;
-      resultByName.set(clNormName(result.cocktail.name),stTuneResult(movie,result));
-    }
-
-    // Add seasonally authentic recipes that the broad first-pass matcher may have missed.
-    const seasonalCandidates=catalog
-      .map(c=>({c,season:stSeasonScore(movie,c)}))
-      .filter(x=>x.season && x.season.score>=5)
-      .sort((a,b)=>b.season.score-a.season.score)
-      .slice(0,90);
-
-    for(const row of seasonalCandidates){
-      const key=clNormName(row.c.name);
-      if(resultByName.has(key)) continue;
-      resultByName.set(key,stTuneResult(movie,baseCompatibility(movie,row.c)));
-    }
-
-    return [...resultByName.values()].sort((a,b)=>
+    const prepared=window.clPrepareCocktailMovie?.(movie);
+    const ranked=catalog.map(c=>stTuneResult(movie,baseCompatibility(movie,c,prepared))).sort((a,b)=>
       Number(b.score||0)-Number(a.score||0) ||
+      Number(b.rawScore||0)-Number(a.rawScore||0) ||
       Number(b.titleNameMatch?.score||0)-Number(a.titleNameMatch?.score||0) ||
       Number(b.symbolism?.score||0)-Number(a.symbolism?.score||0) ||
       String(a.cocktail?.name||'').localeCompare(String(b.cocktail?.name||''))
     );
+    return clDiversifyCocktailMatches(ranked);
   };
 
   window.clSmartMatch=clSmartMatch;

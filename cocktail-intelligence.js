@@ -7,10 +7,12 @@ state.onlineCocktails = state.onlineCocktails || [];
 let clOnlineCatalogStatus = { loaded:false, loading:false, error:'', updatedAt:null };
 let clGeneratedVersions = [];
 let clGeneratedForMovieId = '';
+let clGeneratedSignature = '';
 let clGeneratedContext = 'bar';
+let clGenerationRequest = 0;
 
 const CL_COCKTAILDB_BASE = 'https://www.thecocktaildb.com/api/json/v1/1';
-const CL_COCKTAILDB_CACHE_KEY = 'cheeseLouiseCocktailDB_v113';
+const CL_COCKTAILDB_CACHE_KEY = 'cheeseLouiseCocktailDB_v114';
 const CL_COCKTAILDB_CACHE_MS = 24 * 60 * 60 * 1000;
 const CL_COCKTAIL_INTELLIGENCE_VERSION = 'v1.13';
 
@@ -31,6 +33,10 @@ function clNormName(value){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .toLowerCase().replace(/[’‘]/g,"'")
     .replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+function clMatchingMovieContext(movie={}){
+  return {...movie,summary:[...new Set([movie.summary,movie.synopsis,movie.overview,movie.description].filter(x=>typeof x==='string'&&x.trim()))].join(' ')};
 }
 
 const CL_IBA_NAME_MAP = (()=>{
@@ -68,14 +74,14 @@ const CL_CRAFT_TREND_LENSES = [
 
 const CL_SPIRIT_RULES = [
   [/rye whiskey|rye\b/i,'Rye'],[/bourbon/i,'Bourbon'],[/scotch/i,'Scotch'],[/irish whiskey/i,'Irish Whiskey'],[/whisk(?:e)?y/i,'Whiskey'],
-  [/gin/i,'Gin'],[/dark rum|aged rum/i,'Aged Rum'],[/white rum|light rum/i,'White Rum'],[/rum/i,'Rum'],
+  [/\bgin\b/i,'Gin'],[/dark rum|aged rum/i,'Aged Rum'],[/white rum|light rum/i,'White Rum'],[/\brum\b/i,'Rum'],
   [/mezcal/i,'Mezcal'],[/tequila/i,'Tequila'],[/pisco/i,'Pisco'],[/cachaca|cachaça/i,'Cachaça'],
   [/cognac/i,'Cognac'],[/brandy/i,'Brandy'],[/vodka/i,'Vodka'],[/champagne|prosecco|sparkling wine/i,'Sparkling Wine'],
   [/sherry/i,'Sherry'],[/port\b/i,'Port'],[/vermouth/i,'Vermouth'],[/wine/i,'Wine']
 ];
 
 const CL_INGREDIENT_TAG_RULES = [
-  [/gin|juniper/i,['gin','botanical','herbal']],
+  [/\bgin\b|juniper/i,['gin','botanical','herbal']],
   [/rye/i,['rye','whiskey','warming','spirit-forward','amber']],
   [/bourbon/i,['bourbon','whiskey','warming','spirit-forward','amber']],
   [/whisk(?:e)?y|scotch/i,['whiskey','warming','spirit-forward','amber']],
@@ -95,9 +101,9 @@ const CL_INGREDIENT_TAG_RULES = [
   [/lemon|lime|grapefruit|orange|citrus/i,['citrus','bright','refreshing']],
   [/cranberry|raspberry|blackberry|strawberry|berry/i,['berry','fruity','romantic']],
   [/pineapple|passion fruit|mango|coconut/i,['tropical','fruity','summer']],
-  [/apple|cider/i,['apple','orchard','fall']], [/pear/i,['pear','orchard','elegant']],
+  [/\bapples?\b|\bcider\b/i,['apple','orchard','fall']], [/\bpears?\b/i,['pear','orchard','elegant']],
   [/coffee|espresso|kahlua/i,['coffee','dark','after-dinner','rich']],
-  [/chocolate|cacao|creme de cacao|crème de cacao/i,['chocolate','dessert','rich']],
+  [/chocolate|cacao|cocoa|creme de cacao|crème de cacao/i,['chocolate','dessert','rich']],
   [/cream|milk|half-and-half/i,['creamy','rich','dessert']], [/egg|egg white/i,['foamy','silky','sour']],
   [/ginger/i,['ginger','spicy','warming']], [/mint/i,['mint','fresh','herbal']],
   [/basil|rosemary|thyme|sage/i,['herbal','fresh','craft']],
@@ -106,11 +112,12 @@ const CL_INGREDIENT_TAG_RULES = [
   [/simple syrup|sugar|syrup|grenadine/i,['sweet']],
   [/bitters/i,['bitter','spiced','spirit-forward']],
   [/soda|club soda|tonic|ginger ale/i,['highball','refreshing','long']],
-  [/beer|ale/i,['beer','long','casual']],
-  [/tea/i,['tea','craft','low-abv']]
+  [/(?<!ginger )\bbeer\b|(?<!ginger )\bale\b/i,['beer','long','casual']],
+  [/\btea\b/i,['tea','craft']]
 ];
 
 const CL_MOVIE_FINGERPRINT_RULES = [
+  [/florist|flowers?|garden|lavender|roses?/i,['floral','fresh','herbal']],
   [/bakery|baker|pastry|cupcake|cake shop/i,['bakery','dessert','sweet','vanilla','baking-spice','cozy']],
   [/christmas tree farm|tree farm/i,['tree-farm','herbal','rosemary','juniper','rustic','winter','holiday']],
   [/farm|ranch|country/i,['rustic','country','warming','bourbon']],
@@ -133,11 +140,11 @@ const CL_MOVIE_FINGERPRINT_RULES = [
   [/widow|widower|late husband|late wife|dead spouse|deceased spouse/i,['bittersweet','dark','spirit-forward','warming']],
   [/single mom|single dad|single mother|single father/i,['family','cozy','approachable']],
   [/executive|corporate|lawyer|attorney|ceo|big city|new york|manhattan/i,['city','elegant','martini','night']],
-  [/christmas|holiday/i,['holiday','winter','cranberry','warming','baking-spice','sparkling']],
+  [/\bchristmas\b|\bxmas\b/i,['holiday','winter','cranberry','warming','baking-spice','sparkling']],
   [/halloween|spooky|haunted/i,['halloween','dark','spiced','berry','playful']],
   [/valentine|valentine's/i,['valentines','romantic','berry','floral','sparkling','pink']],
   [/new year|new year's/i,['new-years','celebratory','sparkling','elegant','night']],
-  [/fall|autumn|harvest/i,['fall','apple','maple','warming','spiced']],
+  [/\bautumn\b|\bharvest\b|\bfall festival\b/i,['fall','apple','maple','warming','spiced']],
   [/spring/i,['spring','floral','light','citrus']],
   [/summer/i,['summer','refreshing','citrus','tropical']],
   [/cozy|fireplace|fireside/i,['cozy','warming','rich']],
@@ -226,9 +233,15 @@ function clInferFamily(candidate){
   return category ? category.replace(/\b\w/g,c=>c.toUpperCase()) : 'Cocktail';
 }
 
+function clRecipeRows(candidate){
+  if(Array.isArray(candidate?.ingredientRows) && candidate.ingredientRows.length) return candidate.ingredientRows;
+  return String(candidate?.ingredients||'').split(/\n+/).filter(s=>s.trim()).map(ingredient=>({ingredient}));
+}
+
 function clDeriveCocktailTags(candidate){
-  const rows=candidate?.ingredientRows||[];
-  const text=[candidate?.name,candidate?.source_category,candidate?.glassware,candidate?.method,...rows.map(r=>r.ingredient)].filter(Boolean).join(' ');
+  const rows=clRecipeRows(candidate);
+  // Names and directions are not ingredients ("Ginger Sunset", "stir", "tall glass").
+  const text=rows.map(r=>r.ingredient).join(' ');
   const tags=new Set();
   for(const [re,vals] of CL_INGREDIENT_TAG_RULES) if(re.test(text)) vals.forEach(v=>tags.add(clCleanTag(v)));
   const family=clInferFamily({...candidate,ingredientText:text});
@@ -300,7 +313,7 @@ async function clLoadOnlineCatalog(force=false){
     for(let i=0;i<letters.length;i+=5){
       const batch=letters.slice(i,i+5);
       const results=await Promise.all(batch.map(async letter=>{
-        const res=await fetch(`${CL_COCKTAILDB_BASE}/1/search.php?f=${letter}`);
+        const res=await fetch(`${CL_COCKTAILDB_BASE}/search.php?f=${letter}`);
         if(!res.ok) throw new Error(`Cocktail source returned ${res.status}`);
         const json=await res.json();
         return json?.drinks||[];
@@ -333,6 +346,11 @@ function clFingerprintAdd(map,tag,weight=1){
 }
 
 function clMovieFingerprint(movie){
+  movie=clMatchingMovieContext(movie);
+  const ids=new Set((movie?.selectedTraitIds||[]).map(String));
+  const traits=new Map((movie?.selectedTraits||[]).map(t=>[String(t.id||t.name),t]));
+  for(const trait of state.traits||[]) if(ids.has(String(trait.id))) traits.set(String(trait.id),trait);
+  movie={...movie,selectedTraits:[...traits.values()]};
   const weights=new Map();
   const evidence=[];
   const add=(tags,weight,why)=>{
@@ -357,7 +375,7 @@ function clMovieFingerprint(movie){
     }catch(err){ console.warn('Romantiverse cocktail fingerprint skipped',err); }
   }
 
-  const text=[movie?.title,movie?.summary,movie?.notes,movie?.network,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.providers||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)].filter(Boolean).join(' ');
+  const text=[movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>t.name)].filter(Boolean).join(' ');
   for(const [re,tags] of CL_MOVIE_FINGERPRINT_RULES){
     const hit=text.match(re);
     if(hit) add(tags,3,`movie clue: ${hit[0]}`);
@@ -371,17 +389,33 @@ function clMovieFingerprint(movie){
   return {weights,evidence:clUnique(evidence)};
 }
 
+function clMatchingCandidate(candidate){
+  // Saved imports predate the ingredient-only parser. Never let their persisted
+  // machine-generated tags (e.g. "coffee filter" -> coffee) bypass that repair.
+  // Keep the saved recipe, rating, notes and manually curated house drinks intact.
+  if(!candidate || !(candidate.source_name==='TheCocktailDB'||candidate.external&&!candidate.source_name)) return candidate;
+  const ingredientRows=clRecipeRows(candidate);
+  if(!ingredientRows.length) return candidate;
+  const ingredients=ingredientRows.map(r=>r.ingredient).join(' ');
+  return {...candidate,ingredientRows,
+    base_spirit:clInferBaseSpirit(ingredients),
+    style:clInferFamily({...candidate,ingredientText:ingredients}),
+    flavor_tags:clDeriveCocktailTags({...candidate,ingredientRows})};
+}
+
 function clCandidateFingerprint(candidate){
+  candidate=clMatchingCandidate(candidate);
   const weights=new Map();
   const add=(tags,w=1)=>{ for(const t of tags||[]) clFingerprintAdd(weights,t,w); };
   add(candidate?.flavor_tags||[],3);
   add([candidate?.base_spirit,candidate?.style,candidate?.holiday,candidate?.season,candidate?.source_category],3);
-  const ingredientRows=candidate?.ingredientRows||[];
+  const ingredientRows=clRecipeRows(candidate);
   for(const row of ingredientRows){
-    const temp={name:candidate?.name,ingredientRows:[row],source_category:candidate?.source_category,glassware:candidate?.glassware,method:candidate?.method};
+    const temp={ingredientRows:[row]};
     add(clDeriveCocktailTags(temp),2);
   }
   if(candidate?.iba_official) add(['classic','iba-official'],2);
+  add(clDeriveCocktailTags({...candidate,ingredientRows}),2);
   return weights;
 }
 
@@ -393,11 +427,13 @@ function clRecentUseRows(){
   });
   return rows.map(e=>{
     const local=clCocktailById(e.cocktail_id);
+    const parent=clParentCocktail(local);
     return {
       name:local?.name||e.cocktail||'',
-      base_spirit:local?.base_spirit||'',
+      original_name:parent?.name||local?.name||e.cocktail||'',
+      base_spirit:local?.base_spirit||parent?.base_spirit||'',
       style:local?.style||'',
-      family:local?clInferFamily(local):'',
+      family:parent?clInferFamily(parent):local?clInferFamily(local):'',
       id:local?.id||null
     };
   }).filter(x=>x.name);
@@ -411,7 +447,7 @@ function clDiversityPenalty(candidate){
   const base=clCleanTag(candidate?.base_spirit);
   const family=clCleanTag(clInferFamily(candidate));
   history.slice(0,5).forEach((h,index)=>{
-    if(clNormName(h.name)===name){ const p=index<3?24:12; penalty+=p; notes.push(`-${p} recent repeat`); }
+    if(clNormName(h.name)===name||clNormName(h.original_name)===name){ const p=index<3?24:12; penalty+=p; notes.push(`-${p} recent repeat`); }
   });
   history.slice(0,3).forEach(h=>{
     if(base && clCleanTag(h.base_spirit)===base){ penalty+=5; notes.push('-5 recent base spirit'); }
@@ -450,13 +486,13 @@ function clSmartMatch(movie,candidate){
 function clMergedOriginalCatalog(){
   const byName=new Map();
   for(const c of (state.cocktails||[]).filter(x=>x.cocktail_type==='original')){
-    const enriched={...c,external:false,iba_category:c.iba_category||CL_IBA_NAME_MAP.get(clNormName(c.name))||null};
+    const enriched={...clMatchingCandidate(c),external:false,iba_category:c.iba_category||CL_IBA_NAME_MAP.get(clNormName(c.name))||null};
     enriched.iba_official=!!(c.iba_official||enriched.iba_category);
     byName.set(clNormName(c.name),enriched);
   }
   for(const c of state.onlineCocktails||[]){
     const key=clNormName(c.name);
-    if(!byName.has(key)) byName.set(key,c);
+    if(!byName.has(key)) byName.set(key,clMatchingCandidate(c));
   }
   return [...byName.values()];
 }
@@ -481,6 +517,67 @@ function clTrendBonus(candidate){
   if(['Mezcal','Sherry','Rye','Pisco'].includes(candidate?.base_spirit)) bonus+=4;
   if(/Martini|Bitter|Spritz|Tiki|Sour/i.test(candidate?.style||'')) bonus+=2;
   return {bonus:Math.min(18,bonus),hits:clUnique(hits).slice(0,4)};
+}
+
+function clCocktailDiversityProfile(candidate){
+  const name=clNormName(candidate?.name),recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ').toLowerCase();
+  let family=clInferFamily(candidate);
+  const spirit=clCleanTag(candidate?.base_spirit||clInferBaseSpirit(recipe));
+  // Detect structure too: renaming a Manhattan riff does not make a new family.
+  if(/manhattan|martinez/.test(name)||family==='Manhattan')family='Manhattan';
+  else if(/\bcoffee\b|espresso|kahlua/.test(recipe))family='Coffee';
+  else if(/campari|aperol|\bamaro\b|fernet/.test(recipe)&&/vermouth/.test(recipe))family='Bitter Aperitivo';
+  else if(/whisk(?:e)?y|bourbon|\brye\b|\bcognac\b|\bbrandy\b/.test(recipe)&&/vermouth/.test(recipe)&&!/\b(?:lemon|lime|grapefruit) juice\b/.test(recipe))family='Manhattan';
+  else if(/cream|milk|cacao|chocolate/.test(recipe))family='Rich / Flip';
+  else if(/champagne|prosecco|sparkling wine|\bcava\b/.test(recipe))family='Sparkling';
+  else if(/ginger beer|ginger ale/.test(recipe))family='Mule';
+  else if(/\bsoda\b|\btonic\b/.test(recipe)&&family==='Cocktail')family='Highball';
+  const ingredientRules=[
+    [/whisk(?:e)?y|bourbon|\brye\b/,'whiskey'],[/\bcognac\b|\bbrandy\b/,'brandy'],[/\bgin\b/,'gin'],[/\brum\b/,'rum'],[/vodka/,'vodka'],[/tequila|mezcal/,'agave'],
+    [/sweet vermouth|vermouth rosso|rosso.*vermouth/,'sweet-vermouth'],[/dry vermouth|vermouth.*dry/,'dry-vermouth'],[/campari/,'campari'],[/aperol/,'aperol'],[/\bamaro\b|fernet/,'amaro'],
+    [/\blemon\b/,'lemon'],[/\blime\b/,'lime'],[/grapefruit/,'grapefruit'],[/orange|cura[cç]ao|triple sec|cointreau/,'orange'],[/\bbitters\b/,'bitters'],
+    [/\bmaple\b/,'maple'],[/\bhoney\b/,'honey'],[/sugar|simple syrup|demerara/,'sugar'],[/cranberry/,'cranberry'],[/apple|cider|calvados/,'apple'],[/pineapple|coconut|passion fruit/,'tropical'],
+    [/coffee|espresso|kahlua/,'coffee'],[/chocolate|cacao/,'chocolate'],[/cream|milk/,'cream'],[/champagne|prosecco|sparkling wine/,'sparkling-wine'],[/cinnamon|nutmeg|allspice|clove/,'baking-spice']
+  ];
+  return {family,spirit,ingredients:new Set(ingredientRules.filter(([re])=>re.test(recipe)).map(([,tag])=>tag))};
+}
+
+function clSelectCocktailShortlist(ranked,count=6){
+  if(!ranked.length)return [];
+  const floor=Math.max(0,ranked[0].score-25);
+  const pool=ranked.filter(r=>r.score>=floor).map(r=>({r,p:clCocktailDiversityProfile(r.cocktail)}));
+  const chosen=[],names=new Set(),familyCounts=new Map();
+  const cap=count<=3?1:2;
+  while(chosen.length<count){
+    let available=pool.filter(x=>!names.has(clNormName(x.r.cocktail.name))&&(familyCounts.get(x.p.family)||0)<cap);
+    // Establish distinct options before allowing a second drink from any family.
+    if(chosen.length>0&&chosen.length<3){const newFamilies=available.filter(x=>!familyCounts.has(x.p.family));if(newFamilies.length)available=newFamilies;}
+    if(!available.length)break;
+    let best=available[0],bestValue=-Infinity;
+    for(const row of available){
+      let penalty=0;
+      for(const prior of chosen){
+        if(row.p.family===prior.p.family)penalty+=10;
+        if(row.p.spirit&&row.p.spirit===prior.p.spirit)penalty+=2;
+        let shared=0;for(const ingredient of row.p.ingredients)if(prior.p.ingredients.has(ingredient))shared++;
+        const union=row.p.ingredients.size+prior.p.ingredients.size-shared;
+        if(union)penalty+=6*shared/union;
+      }
+      const value=row.r.score-penalty;
+      if(value>bestValue){best=row;bestValue=value;}
+    }
+    chosen.push(best);names.add(clNormName(best.r.cocktail.name));familyCounts.set(best.p.family,(familyCounts.get(best.p.family)||0)+1);
+  }
+  return chosen.map(x=>x.r);
+}
+
+function clDiversifyCocktailMatches(ranked){
+  const shortlist=clSelectCocktailShortlist(ranked,6),chosen=new Set(shortlist);
+  return [...shortlist,...ranked.filter(r=>!chosen.has(r))];
+}
+
+function clCocktailRecommendations(movie,count=6){
+  return clSelectCocktailShortlist(clSmartOriginalMatches(movie),count);
 }
 
 function clDifferenceScore(candidate,chosen){
@@ -595,20 +692,33 @@ function clBuildGeneratedVariant(movie,selection,index){
   };
 }
 
-function clGenerateThree(movieId,context='bar'){
+function clGenerationSignature(movie){
+  const m=clMatchingMovieContext(movie);
+  return JSON.stringify({movie:[m.id,m.title,m.summary,m.season,m.holiday],signals:[...clMovieFingerprint(m).weights],recipes:(state.cocktails||[]).map(c=>[c.id,c.name,c.ingredients,c.flavor_tags,c.base_spirit,c.style,c.season,c.holiday]),online:clOnlineCatalogStatus.updatedAt,recent:clRecentUseRows().slice(0,5)});
+}
+async function clGenerateThree(movieId,context='bar'){
+  const request=++clGenerationRequest;
   const movie=(state.movies||[]).find(m=>m.id===movieId);
   if(!movie) return;
-  if(!clOnlineCatalogStatus.loaded && !(state.onlineCocktails||[]).length){
+  if(!clOnlineCatalogStatus.loaded){
     clGeneratedVersions=[];
     clGeneratedForMovieId=movieId;
     clGeneratedContext=context;
-    clLoadOnlineCatalog(false).then(()=>{
-      if(clOnlineCatalogStatus.loaded) clGenerateThree(movieId,context);
+    return clLoadOnlineCatalog(false).then(()=>{
+      // A request for an old movie must not overwrite a newer selection.
+      if(clGeneratedForMovieId===movieId && clGeneratedContext===context && clMergedOriginalCatalog().length) clGenerateThree(movieId,context);
     });
     return;
   }
-  const picks=clPickThreeBases(movie);
+  const signature=clGenerationSignature(movie);
+  const previous=clGeneratedForMovieId===movieId ? clGeneratedVersions.map(v=>v.base.name) : [];
+  const picks=clPickThreeBases(movie,previous);
+  if(typeof clHydrateCatalogRecipe==='function'){
+    await Promise.all(picks.map(async pick=>{pick.match.cocktail=await clHydrateCatalogRecipe(pick.match.cocktail);}));
+    if(request!==clGenerationRequest) return;
+  }
   clGeneratedVersions=picks.map((p,i)=>clBuildGeneratedVariant(movie,p,i));
+  clGeneratedSignature=signature;
   clGeneratedForMovieId=movieId;
   clGeneratedContext=context;
   if(context==='bar') render();
@@ -620,6 +730,7 @@ function clGenerateThree(movieId,context='bar'){
 
 async function clEnsureLocalOriginal(candidate){
   if(!candidate) return null;
+  if(typeof clHydrateCatalogRecipe==='function') candidate=await clHydrateCatalogRecipe(candidate);
   const bySource=candidate.source_id ? (state.cocktails||[]).find(c=>c.source_name===candidate.source_name && String(c.source_id||'')===String(candidate.source_id)) : null;
   const byName=(state.cocktails||[]).find(c=>c.cocktail_type==='original' && clNormName(c.name)===clNormName(candidate.name));
   if(bySource||byName) return bySource||byName;
@@ -737,6 +848,11 @@ function clSourceBadge(c){
 }
 
 function clOnlineStatusHtml(){
+  if(typeof clCatalogStats==='function'){
+    const stats=clCatalogStats();
+    if(!clOnlineCatalogStatus.loaded||clOnlineCatalogStatus.loading) return '<div class="subtle cl-online-status" role="status">Loading the full recipe library before matching…</div>';
+    return `<div class="subtle cl-online-status" role="status"><strong>${stats.total.toLocaleString()}</strong> unique recipes searched · ${stats.catalog.toLocaleString()} catalog recipes · ${stats.saved} saved originals${clOnlineCatalogStatus.error?`<div>${esc(clOnlineCatalogStatus.error)}</div>`:''} <button class="link-button" onclick="clLoadOnlineCatalog(true)">Refresh library</button></div>`;
+  }
   if(clOnlineCatalogStatus.loading) return '<div class="subtle cl-online-status">↻ Loading the live cocktail catalog…</div>';
   if(clOnlineCatalogStatus.error) return `<div class="subtle cl-online-status">Online catalog failed: ${esc(clOnlineCatalogStatus.error)} <button class="secondary" onclick="clLoadOnlineCatalog(true)">Retry</button></div>`;
   if(clOnlineCatalogStatus.loaded) return `<div class="subtle cl-online-status"><strong>${(state.onlineCocktails||[]).length}</strong> online cocktails loaded · IBA official list recognized · <button class="link-button" onclick="clLoadOnlineCatalog(true)">refresh</button></div>`;
@@ -748,7 +864,7 @@ function clSmartOriginalResultCard(result,index,episode=false){
   const saved=!c.external || (state.cocktails||[]).some(x=>clNormName(x.name)===clNormName(c.name));
   return `<div class="card card-pad cl-match-card cl-smart-match-card">
     <div class="cl-match-score"><strong>#${index+1} ${esc(c.name)}</strong><span class="cheese-score">${result.score}%</span></div>
-    <div class="subtle">${esc([c.base_spirit,c.style].filter(Boolean).join(' · '))}</div>
+    <div class="subtle">${esc([c.base_spirit,clCocktailDiversityProfile(c).family].filter(Boolean).join(' · '))}</div>
     <div class="pills" style="margin-top:8px">${clSourceBadge(c)}${result.overlaps.slice(0,6).map(t=>`<span class="pill">${esc(clTagLabel(t))}</span>`).join('')}</div>
     <div class="subtle" style="margin-top:8px">${esc(result.reasons.join(' · '))}</div>
     <div class="cl-result-actions">
@@ -761,6 +877,8 @@ function clSmartOriginalResultCard(result,index,episode=false){
 }
 
 function clGeneratedVersionsHtml(movieId,context='bar'){
+  const movie=(state.movies||[]).find(m=>m.id===movieId);
+  if(movie&&clGeneratedVersions.length&&clGeneratedForMovieId===movieId&&clGeneratedSignature!==clGenerationSignature(movie))return '<div class="subtle" role="status">Movie details or the cocktail library changed. Generate three fresh versions to use the current season, holiday and story.</div>';
   if(clOnlineCatalogStatus.loading && !clGeneratedVersions.length) return '<div class="empty">Loading hundreds of originals, then building your three Cheese Louise versions…</div>';
   if(clOnlineCatalogStatus.error && !clGeneratedVersions.length) return `<div class="empty">Couldn’t reach the online cocktail catalog. ${esc(clOnlineCatalogStatus.error)}</div>`;
   if(clGeneratedForMovieId!==movieId || !clGeneratedVersions.length) return '<div class="subtle" style="margin-top:12px">Tap Cheese Louise Versions and I’ll build three deliberately different options: Familiar, Craft, and Wildcard.</div>';
@@ -784,11 +902,11 @@ function clTrendLensHtml(){
 function clEnhancedBarMatchPanel(){
   clWarmOnlineCatalog();
   const movie=(state.movies||[]).find(m=>m.id===cocktailMatchMovieId);
-  const originalResults=movie?clSmartOriginalMatches(movie).slice(0,6):[];
+  const originalResults=movie&&clOnlineCatalogStatus.loaded?clCocktailRecommendations(movie,6):[];
   const fingerprint=movie?clMovieFingerprint(movie):null;
   return `<div class="card card-pad cl-match-panel cl-intelligence-panel">
     <div class="kicker">Movie ↔ Cocktail Intelligence</div>
-    <h3 style="margin:6px 0">Match every movie signal against hundreds of drinks</h3>
+    <h3 style="margin:6px 0">Match your movie against the full recipe library</h3>
     ${clOnlineStatusHtml()}
     <select class="search" style="width:100%;margin-top:10px" onchange="setCocktailMatchMovie(this.value)">
       <option value="">Choose a movie…</option>
@@ -818,7 +936,7 @@ async function clGenerateOneFromMatch(id,isExternal){
   if(!base) return;
   const match=clSmartMatch(movie,base);
   const variant=clBuildGeneratedVariant(movie,{role:'Familiar',match},0);
-  clGeneratedVersions=[variant]; clGeneratedForMovieId=movie.id; clGeneratedContext='bar';
+  clGeneratedVersions=[variant]; clGeneratedForMovieId=movie.id; clGeneratedContext='bar';clGeneratedSignature=clGenerationSignature(movie);
   await clEditGeneratedVariant(0);
 }
 
@@ -828,11 +946,12 @@ clEpisodeMatchHtml = function(movieId,type){
   const movie=(state.movies||[]).find(m=>m.id===movieId);
   if(!movie) return '<div class="subtle" style="margin-top:8px">Link a movie first so the matchmaker has something to work with.</div>';
   clWarmOnlineCatalog();
+  if(!clOnlineCatalogStatus.loaded) return '<div class="subtle" role="status">Loading the full recipe library before matching…</div>';
   if(type==='cheese_louise'){
     if(clGeneratedForMovieId!==movieId || clGeneratedContext!=='episode') setTimeout(()=>clGenerateThree(movieId,'episode'),0);
     return `<div class="cl-generate-actions"><button type="button" class="primary" onclick="clGenerateThree('${movieId}','episode')">✨ Generate 3 fresh versions</button><span class="subtle">Familiar · Craft · Wildcard</span></div>${clGeneratedVersionsHtml(movieId,'episode')}`;
   }
-  const results=clSmartOriginalMatches(movie).slice(0,4);
+  const results=clCocktailRecommendations(movie,4);
   if(!results.length) return '<div class="subtle" style="margin-top:8px">Loading the online original-cocktail catalog…</div>';
   return `<div class="cl-episode-match-list cl-smart-episode-list">${results.map((r,i)=>clSmartOriginalResultCard(r,i,true)).join('')}</div>`;
 };
@@ -845,6 +964,7 @@ window.showEpisodeCocktailMatches=function(type){
 };
 
 setCocktailMatchMovie = function(id){
+  clGenerationRequest++;
   cocktailMatchMovieId=id||'';
   clGeneratedVersions=[]; clGeneratedForMovieId='';
   if(cocktailMatchMovieId) clWarmOnlineCatalog();

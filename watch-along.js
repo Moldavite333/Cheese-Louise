@@ -52,7 +52,7 @@
       if (!raw) return defaultDraft(movie);
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return defaultDraft(movie);
-      const traitIds = [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))];
+      const traitIds = window.clMovieTraits ? window.clMovieTraits.orderedIds(movie,parsed) : [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))];
       let outlineItems = Array.isArray(parsed.outlineItems) ? parsed.outlineItems.filter(Boolean) : [];
       if (!outlineItems.length && String(parsed.outline || '').trim()) {
         outlineItems = [{id:'legacy-outline',type:'note',text:String(parsed.outline).trim()}];
@@ -79,12 +79,12 @@
   function pulseSaved() {
     const el = document.querySelector('[data-watch-save-state]');
     if (!el) return;
-    el.textContent = 'Saved';
+    el.textContent = 'Notes saved on this device';
     el.classList.add('is-saved');
     clearTimeout(savePulseTimer);
     savePulseTimer = setTimeout(() => {
       el.classList.remove('is-saved');
-      el.textContent = 'Autosaves on this device';
+      el.textContent = 'Notes autosave on this device';
     }, 1200);
   }
 
@@ -308,6 +308,16 @@
     }
   };
 
+  function watchGratingSummaryHtml(draft,location){
+    const selected=new Set(draft.traitIds||[]);
+    const traits=(state.traits||[]).filter(t=>selected.has(t.id));
+    const total=traits.reduce((sum,t)=>sum+Number(t.points||0),0);
+    return `<div class="watch-grating-subtotal" data-watch-grating-summary="${location}" ${location==='traits'?'role="status" aria-live="polite" aria-atomic="true"':''}>
+      <div><span class="kicker">Cheese Grating</span><span class="watch-grating-count" data-watch-grating-count>${traits.length} trope${traits.length===1?'':'s'} checked</span></div>
+      <strong><span data-watch-grating-value>${total}</span> <span class="watch-grating-unit">points</span></strong>
+    </div>`;
+  }
+
   function watchAlongPage() {
     const movie = watchMovie();
     if (!movie) {
@@ -326,7 +336,7 @@
             <div class="page-title">Watch Along</div>
             <div class="subtle">Everything stays on one screen. No timer. No forced order. Capture it and keep watching.</div>
           </div>
-          <div class="watch-save-state" data-watch-save-state>Autosaves on this device</div>
+          <div class="watch-save-state"><div data-watch-save-state>Notes autosave on this device</div><div data-watch-trait-sync role="status">${esc(window.clMovieTraits?.status(movie.id).text||'Traits saved to shared workspace')}</div><button type="button" class="secondary" data-watch-trait-retry ${window.clMovieTraits?.status(movie.id).error?'':'hidden'} onclick="clMovieTraits.retry('${esc(movie.id)}')">Retry trait save</button></div>
         </div>
 
         <div class="watch-movie-bar">
@@ -358,11 +368,13 @@
             <span class="pill" data-watch-trait-count>${selectedCount} checked</span>
           </div>
           <div class="watch-trait-tools">
+            <strong class="pill" data-watch-grating aria-live="polite" style="grid-column:1/-1">Cheese Grating: ${draft.traitIds.map(id=>(state.traits||[]).find(t=>t.id===id)).filter(Boolean).reduce((sum,t)=>sum+Number(t.points||0),0)} points</strong>
             <input class="search" placeholder="Search traits…" value="${esc(watchTraitQuery)}" oninput="watchAlongSearchTraits(this.value)">
             <button class="secondary" type="button" onclick="watchAlongShowSelected()">Show checked</button>
             <button class="secondary" type="button" onclick="watchAlongShowAll()">Show all</button>
           </div>
           <div id="watchTraitBody" class="watch-trait-body">${traitGridHtml(movie, draft)}</div>
+          ${watchGratingSummaryHtml(draft,'traits')}
         </div>
 
         <div class="watch-writing-stack">
@@ -381,6 +393,7 @@
             </div>
             <textarea id="watchRundownPreview" class="watch-rundown-preview" aria-label="Editable episode rundown" oninput="watchAlongSaveRundown(this.value)">${esc(currentRundownText(movie,draft))}</textarea>
             <div class="subtle">Edit this version freely. Rebuild only when you want to replace it with the latest Watch Notes and talk order.</div>
+            ${watchGratingSummaryHtml(draft,'rundown')}
           </div>
         </div>
       </section>
@@ -432,6 +445,9 @@
     }
     putDraft(draft);
 
+    // Immediate shared state update, followed by a targeted database write.
+    if(window.clMovieTraits) void window.clMovieTraits.set(movie.id,id,!wasSelected);
+
     if (button) {
       const on = set.has(id);
       button.classList.toggle('is-selected', on);
@@ -444,6 +460,22 @@
     if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
     refreshWatchOutline(movie, draft);
     watchAlongGenerateRundown();
+  };
+
+  window.watchAlongRefreshSharedTraits = function(movieId){
+    const movie=watchMovie();if(!movie||movie.id!==movieId)return;
+    const draft=getDraft(movie),selected=new Set(draft.traitIds);
+    const total=(state.traits||[]).filter(t=>selected.has(t.id)).reduce((sum,t)=>sum+Number(t.points||0),0);
+    for(const el of document.querySelectorAll?.('[data-watch-grating]')||[]) el.textContent=`Cheese Grating: ${total} points`;
+    for(const el of document.querySelectorAll?.('[data-watch-grating-value]')||[]) el.textContent=String(total);
+    for(const el of document.querySelectorAll?.('[data-watch-grating-count]')||[]) el.textContent=`${selected.size} trope${selected.size===1?'':'s'} checked`;
+    const count=document.querySelector('[data-watch-trait-count]');if(count)count.textContent=`${selected.size} checked`;
+    const body=document.getElementById('watchTraitBody');
+    if(body)body.innerHTML=watchTraitQuery==='__selected__'?watchAlongOrderedSelectedHtml(movie,draft):traitGridHtml(movie,draft);
+    const status=window.clMovieTraits?.status(movieId);
+    const label=document.querySelector('[data-watch-trait-sync]');if(label&&status)label.textContent=status.text;
+    const retry=document.querySelector('[data-watch-trait-retry]');if(retry)retry.hidden=!status?.error;
+    refreshWatchOutline(movie,draft);watchAlongGenerateRundown();
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -694,7 +726,7 @@
   window.watchAlongClearDraft = function() {
     const movie = watchMovie();
     if (!movie) return;
-    if (!confirm(`Clear the Watch Along draft for “${movie.title}”? This only clears the temporary Watch Along notes and checks on this device.`)) return;
+    if (!confirm(`Clear the Watch Along notes and talk order for “${movie.title}”? Shared trait selections and the Cheese Grating will be kept.`)) return;
     localStorage.removeItem(draftKey(movie.id));
     watchTraitQuery = '';
     render();

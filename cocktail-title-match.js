@@ -10,7 +10,7 @@
     'my','your','our','their','his','her','this','that','these','those','one','two','three','movie','story','tale'
   ]);
   const TITLE_WEAK = new Set([
-    'love','romance','romantic','christmas','holiday','winter','spring','summer','fall','autumn','wedding','heart','hearts','home','hometown'
+    'love','romance','romantic','christmas','holiday','winter','spring','summer','fall','autumn','wedding','heart','hearts','home','hometown','island','season','promise','day','night','year','new','life','time','town'
   ]);
 
   const MM_SYMBOLS = [
@@ -33,14 +33,14 @@
     {movie:/\blady\b/i,cocktail:/white lady/i,label:'lady ↔ White Lady',points:8},
     {movie:/dark|storm|stormy|thunder/i,cocktail:/dark .?n.? stormy/i,label:'storm ↔ Dark ’N’ Stormy',points:9},
     {movie:/sunrise|dawn/i,cocktail:/tequila sunrise/i,label:'sunrise ↔ Tequila Sunrise',points:9},
-    {movie:/sea|seaside|ocean|coast|beach/i,cocktail:/sea breeze/i,label:'seaside ↔ Sea Breeze',points:8},
+    {movie:/\b(?:sea|seaside|ocean|coast|beach)\b/i,cocktail:/sea breeze/i,label:'seaside ↔ Sea Breeze',points:8},
     {movie:/paris|france|french/i,cocktail:/french 75|french martini|french connection/i,label:'French setting ↔ French cocktail',points:8},
     {movie:/russia|russian/i,cocktail:/black russian|russian spring punch/i,label:'Russian theme ↔ Russian cocktail',points:9},
     {movie:/cuba|cuban/i,cocktail:/cuba libre|old cuban/i,label:'Cuba ↔ Cuban cocktail',points:9},
     {movie:/singapore/i,cocktail:/singapore sling/i,label:'Singapore ↔ Singapore Sling',points:10},
     {movie:/ireland|irish/i,cocktail:/irish coffee/i,label:'Irish theme ↔ Irish Coffee',points:9},
     {movie:/island|tropical|caribbean|hawaii|beach/i,cocktail:/mai.?tai|pina colada|jungle bird/i,label:'island / tropical ↔ tiki classic',points:7},
-    {movie:/royal|prince|princess|queen|king|duke|duchess/i,cocktail:/royal|queen|king/i,label:'royalty ↔ royal-name cocktail',points:8}
+    {movie:/\b(?:royal|prince|princess|queen|king|duke|duchess)\b/i,cocktail:/\b(?:royal|queen|king)\b/i,label:'royalty ↔ royal-name cocktail',points:8}
   ];
 
   const MM_PERSONALITY = [
@@ -66,6 +66,7 @@
   function mmCleanWord(word){
     let w=String(word||'').toLowerCase().trim();
     if(!w || w==='s') return '';
+    if(w==='christmas')return w;
     if(w.length>4 && w.endsWith('ies')) w=w.slice(0,-3)+'y';
     else if(w.length>3 && w.endsWith('s') && !w.endsWith('ss')) w=w.slice(0,-1);
     return w;
@@ -76,6 +77,7 @@
   function mmSet(map){ return new Set(map instanceof Map?[...map.keys()]:(Array.isArray(map)?map:[])); }
   function mmHasAny(set,values){ return (values||[]).some(v=>set.has(clCleanTag(v))); }
   function mmMovieText(movie){
+    movie=clMatchingMovieContext(movie);
     return [movie?.title,movie?.summary,movie?.notes,movie?.holiday,movie?.season,...(movie?.tags||[]),...(movie?.selectedTraits||[]).map(t=>`${t.name} ${t.category}`)].filter(Boolean).join(' ');
   }
 
@@ -89,8 +91,8 @@
     const mw=new Set(mmWeakWords(mt)), cw=new Set(mmWeakWords(cn));
     const sharedWeak=[...mw].filter(w=>cw.has(w));
     let score=0,type=null;
-    if(mn===cnorm){score=25;type='exact title/name chemistry';}
-    else if(cnorm.length>=4 && (` ${mn} `.includes(` ${cnorm} `)||` ${cnorm} `.includes(` ${mn} `))){score=22;type='title/name phrase chemistry';}
+    if(mn===cnorm&&shared.length){score=25;type='exact title/name chemistry';}
+    else if(shared.length&&cnorm.length>=4 && (` ${mn} `.includes(` ${cnorm} `)||` ${cnorm} `.includes(` ${mn} `))){score=22;type='title/name phrase chemistry';}
     else if(shared.length){score=Math.min(22,14+(shared[0]?.length>=6?4:2)+Math.max(0,shared.length-1)*3);type='title/name word chemistry';}
     if(sharedWeak.length){score=Math.min(25,score+(score?2:Math.min(4,2+sharedWeak.length)));if(!type)type='title/name theme chemistry';}
     const tokens=[...shared,...sharedWeak];
@@ -102,8 +104,32 @@
     const name=String(candidate?.name||'');
     const hits=MM_SYMBOLS.filter(rule=>rule.movie.test(text)&&rule.cocktail.test(name));
     if(!hits.length) return {score:0,hits:[],reason:null};
-    const score=Math.min(10,Math.max(...hits.map(h=>h.points)));
+    // A specific movie connection must be able to beat a generic seasonal fit.
+    const score=Math.min(35,Math.max(...hits.map(h=>h.points))*3.5);
     return {score,hits:hits.map(h=>h.label),reason:`story-symbol connection: ${hits.map(h=>h.label).join(' · ')}`};
+  }
+
+  function mmRecipeStoryMatch(movie,candidate){
+    // Match distinctive ingredients actually named in the story, not ingredients
+    // inferred from a generic "cozy / romantic" mood shared by most of the library.
+    const text=[movie?.title,movie?.summary,...(movie?.selectedTraits||[]).map(t=>t.name)].filter(Boolean).join(' ');
+    const recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ');
+    const clues=[
+      [/\bmaple\b/i,/\bmaple\b/i,'maple',18],
+      [/\bpumpkin\b/i,/\bpumpkin\b/i,'pumpkin',18],
+      [/\bapple\b|\bcider\b|\borchard\b/i,/\bapple\b|\bcider\b|calvados|applejack/i,'apple / orchard',16],
+      [/\bpear\b/i,/\bpear\b/i,'pear',16],
+      [/\bcoffee\b|\bcaf[eé]\b|\bbarista\b|\bespresso\b/i,/\bcoffee\b|espresso|kahlua/i,'coffee',16],
+      [/\bchocolate\b|\bcocoa\b/i,/chocolate|cacao|cocoa/i,'chocolate',16],
+      [/\btea\b/i,/\btea\b/i,'tea',16],
+      [/\bhoney\b|\bbees?\b|\bbeekeeper\b/i,/\bhoney\b/i,'honey',16],
+      [/\bcranberry\b/i,/\bcranberry\b/i,'cranberry',16],
+      [/\bstrawberr(?:y|ies)\b/i,/\bstrawberr(?:y|ies)\b/i,'strawberry',16],
+      [/\bpeach(?:es)?\b/i,/\bpeach(?:es)?\b/i,'peach',16],
+      [/\bwine\b|\bwinery\b|\bvineyard\b|\bvintner\b/i,/\bwine\b|champagne|prosecco|vermouth|sherry/i,'wine / vineyard',16]
+    ];
+    const hits=clues.filter(([story,ingredient])=>story.test(text)&&ingredient.test(recipe));
+    return {score:Math.min(25,hits.reduce((sum,row)=>sum+row[3],0)),hits:hits.map(row=>row[2])};
   }
 
   function mmRuleScore(movieSet,cocktailSet,rules,max){
@@ -164,45 +190,66 @@
     return {penalty:Math.min(18,penalty),reasons};
   }
 
-  function mmCompatibility(movie,candidate){
-    const movieFingerprint=clMovieFingerprint(movie);
+  function mmPrepareMovie(movie){
+    return {movieFingerprint:clMovieFingerprint(movie),storyFingerprint:clMovieFingerprint({...movie,season:'',holiday:''})};
+  }
+
+  function mmCompatibility(movie,candidate,prepared){
+    candidate=clMatchingCandidate(candidate);
+    prepared=prepared||mmPrepareMovie(movie);
+    const movieFingerprint=prepared.movieFingerprint;
+    // Season already has its own dimension. Do not count its inferred tags again
+    // as movie personality and mood, which made every autumn film taste alike.
+    const storyFingerprint=prepared.storyFingerprint;
+    const storySet=mmSet(storyFingerprint.weights);
     const cocktailFingerprint=clCandidateFingerprint(candidate);
     const movieSet=mmSet(movieFingerprint.weights);
     const cocktailSet=mmSet(cocktailFingerprint);
 
     const chemistry=clTitleCocktailNameMatch(movie,candidate);
     const symbolism=mmSymbolism(movie,candidate);
+    const recipeStory=mmRecipeStoryMatch(movie,candidate);
 
-    const personalityBase=mmRuleScore(movieSet,cocktailSet,MM_PERSONALITY,25);
-    const pDirect=mmDirectOverlap(movieSet,cocktailSet,null,7);
-    const personality={score:Math.min(25,personalityBase.score+pDirect.bonus),hits:[...personalityBase.hits,...pDirect.hits.slice(0,3)]};
+    const personalityBase=mmRuleScore(storySet,cocktailSet,MM_PERSONALITY,25);
+    const pDirect=mmDirectOverlap(storySet,cocktailSet,null,7);
+    // Preserve the strength of evidence instead of flattening all clues to a Set.
+    let matchedWeight=0,totalWeight=0;
+    for(const [tag,weight] of storyFingerprint.weights){
+      totalWeight+=weight;
+      if(cocktailSet.has(tag)) matchedWeight+=weight;
+    }
+    const weightedFit=totalWeight ? 25*matchedWeight/totalWeight : 0;
+    const personality={score:Math.min(25,weightedFit+personalityBase.score*.35+pDirect.bonus*.25),hits:[...personalityBase.hits,...pDirect.hits.slice(0,3)]};
 
-    const moodBase=mmRuleScore(movieSet,cocktailSet,MM_MOODS,20);
+    const moodBase=mmRuleScore(storySet,cocktailSet,MM_MOODS,20);
     const MOOD_TAGS=new Set(['cozy','warming','celebratory','sparkling','light','refreshing','dark','mystery','playful','campy','romantic','elegant','bittersweet']);
-    const mDirect=mmDirectOverlap(movieSet,cocktailSet,MOOD_TAGS,6);
+    const mDirect=mmDirectOverlap(storySet,cocktailSet,MOOD_TAGS,6);
     const mood={score:Math.min(20,moodBase.score+mDirect.bonus),hits:[...moodBase.hits,...mDirect.hits]};
 
     const season=mmSeason(movie,candidate,cocktailSet);
     const novelty=mmNovelty(candidate);
     const dealbreakers=mmDealbreakers(movie,candidate,movieSet,cocktailSet,chemistry.score,symbolism.score);
 
-    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+novelty.score-dealbreakers.penalty;
+    let total=chemistry.score+personality.score+mood.score+season.score+symbolism.score+recipeStory.score+5-dealbreakers.penalty-Number(novelty.diversity.penalty||0);
     if(candidate?.iba_official) total+=1;
     if(candidate?.tested&&Number(candidate?.rating||0)>=4) total+=1;
-    total=Math.max(8,Math.min(99,Math.round(total)));
+    const rawScore=total+dealbreakers.penalty;
+    total=Math.max(0,Math.min(99,Math.round(total)));
 
     const dimensions={
       chemistry:{score:chemistry.score,max:25,label:'Name chemistry'},
-      personality:{score:personality.score,max:25,label:'Personality'},
+      personality:{score:personality.score,max:25,label:'Movie fit'},
       mood:{score:mood.score,max:20,label:'Mood'},
       season:{score:season.score,max:15,label:'Season'},
-      symbolism:{score:symbolism.score,max:10,label:'Story symbol'},
+      symbolism:{score:symbolism.score,max:35,label:'Story symbol'},
+      recipeStory:{score:recipeStory.score,max:25,label:'Story ingredient'},
       novelty:{score:novelty.score,max:5,label:'Novelty'}
     };
 
     const reasons=[];
     if(chemistry.reason) reasons.push(chemistry.reason);
     if(symbolism.reason) reasons.push(symbolism.reason);
+    if(recipeStory.hits.length) reasons.push(`story ingredient: ${recipeStory.hits.join(', ')}`);
     if(personality.hits.length) reasons.push(`personality fit: ${personality.hits.slice(0,3).join(', ')}`);
     if(mood.hits.length) reasons.push(`mood fit: ${mood.hits.slice(0,2).join(', ')}`);
     if(season.hits.length) reasons.push(`season fit: ${season.hits.slice(0,4).join(', ')}`);
@@ -217,7 +264,7 @@
     return {
       cocktail:candidate,
       score:total,
-      rawScore:Math.round(total+dealbreakers.penalty),
+      rawScore,
       overlaps:overlap.slice(0,12),
       reasons,
       diversity:novelty.diversity,
@@ -250,44 +297,26 @@
   clSmartOriginalMatches=function(movie){
     const catalog=clMergedOriginalCatalog();
     if(!catalog.length) return [];
-    const retrieved=catalog.map(c=>({c,retrieve:mmRetrieveScore(movie,c)})).sort((a,b)=>b.retrieve-a.retrieve||String(a.c.name).localeCompare(String(b.c.name)));
-    const mustKeep=retrieved.filter(x=>clTitleCocktailNameMatch(movie,x.c).score>=10||mmSymbolism(movie,x.c).score>0);
-    const pool=[]; const seen=new Set();
-    for(const row of [...mustKeep,...retrieved.slice(0,90)]){
-      const key=clNormName(row.c.name); if(seen.has(key)) continue; seen.add(key); pool.push(row.c);
-    }
-    return pool.map(c=>mmCompatibility(movie,c)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
+    const prepared=mmPrepareMovie(movie);
+    // Score the full catalog so seasonal ingredients cannot be cut before scoring.
+    return catalog.map(c=>mmCompatibility(movie,c,prepared)).sort((a,b)=>b.score-a.score||b.titleNameMatch.score-a.titleNameMatch.score||b.symbolism.score-a.symbolism.score||String(a.cocktail.name).localeCompare(String(b.cocktail.name)));
   };
 
-  // Three distinct recommendations: overall best, strongest chemistry/symbolism,
-  // and a high-quality wildcard that differs in family/base spirit.
+  // Keep the strongest movie match, then choose genuinely different recipe families.
   if(typeof clPickThreeBases==='function'){
-    clPickThreeBases=function(movie){
-      const ranked=clSmartOriginalMatches(movie);
+    clPickThreeBases=function(movie,excludeNames=[]){
+      let ranked=clSmartOriginalMatches(movie);
+      if(excludeNames.length && ranked.length>3){
+        const excluded=new Set(excludeNames.map(clNormName));
+        const floor=Math.max(0,ranked[0].score-18);
+        const fresh=ranked.filter(r=>!excluded.has(clNormName(r.cocktail.name))&&r.score>=floor);
+        if(fresh.length>=3) ranked=fresh;
+      }
       if(!ranked.length) return [];
-      const best=ranked[0];
-      const notBest=ranked.filter(r=>clNormName(r.cocktail.name)!==clNormName(best.cocktail.name));
-      const chemistry=(notBest.length?notBest:ranked).slice().sort((a,b)=>
-        ((b.titleNameMatch?.score||0)*2+(b.symbolism?.score||0)*2+b.score*.35)-((a.titleNameMatch?.score||0)*2+(a.symbolism?.score||0)*2+a.score*.35)
-      )[0]||best;
-      const chosen=[best,chemistry];
-      const wildcardPool=ranked.slice(0,80).filter(r=>!chosen.some(x=>clNormName(x.cocktail.name)===clNormName(r.cocktail.name)));
-      const difference=(r)=>{
-        let d=0;
-        const family=clCleanTag(clInferFamily(r.cocktail));
-        const base=clCleanTag(r.cocktail.base_spirit||'');
-        for(const x of chosen){
-          if(family&&family!==clCleanTag(clInferFamily(x.cocktail))) d+=9;
-          if(base&&base!==clCleanTag(x.cocktail.base_spirit||'')) d+=7;
-        }
-        return d;
-      };
-      const wildcard=(wildcardPool.length?wildcardPool:notBest).slice().sort((a,b)=>(b.score+difference(b))-(a.score+difference(a)))[0]||best;
-      return [
-        {role:'Familiar',match:best,matchmakerLabel:'Best Match'},
-        {role:'Craft',match:chemistry,matchmakerLabel:'Chemistry Pick'},
-        {role:'Wildcard',match:wildcard,matchmakerLabel:'Wildcard'}
-      ];
+      const labels=['Best Match','Different Style','Wildcard'];
+      return clSelectCocktailShortlist(ranked,3).map((match,index)=>({
+        role:['Familiar','Craft','Wildcard'][index],match,matchmakerLabel:labels[index]
+      }));
     };
   }
 
@@ -298,7 +327,7 @@
       let html=originalResultCard(result,index,episode);
       if(!result?.compatibility) return html;
       const d=result.compatibility;
-      const chips=[d.chemistry,d.personality,d.mood,d.season,d.symbolism,d.novelty]
+      const chips=[d.chemistry,d.personality,d.mood,d.season,d.symbolism,d.recipeStory,d.novelty].filter(Boolean)
         .map(x=>`<span class="pill cl-mm-dim">${esc(x.label)} <strong>${Math.round(Number(x.score||0))}/${x.max}</strong></span>`).join('');
       const hook=(result.titleNameMatch?.score||0)>=12||(result.symbolism?.score||0)>=7
         ? `<div class="cl-mm-hook">💘 <strong>Chemistry hook:</strong> ${esc(result.titleNameMatch?.reason||result.symbolism?.reason||'strong thematic connection')}</div>`:'';
@@ -320,5 +349,6 @@
   window.clSmartOriginalMatches=clSmartOriginalMatches;
   window.clTitleCocktailNameMatch=clTitleCocktailNameMatch;
   window.clCocktailMatchmakerCompatibility=mmCompatibility;
+  window.clPrepareCocktailMovie=mmPrepareMovie;
   window.clCocktailMatchmakerRetrieveScore=mmRetrieveScore;
 })();

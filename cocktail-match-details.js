@@ -27,7 +27,7 @@ function clMatchContextFromCard(card){
   const cards=scope ? [...scope.querySelectorAll('.cl-smart-match-card')] : [];
   const index=cards.indexOf(card);
   if(index<0) return null;
-  const result=clSmartOriginalMatches(movie)[index];
+  const result=clCocktailRecommendations(movie,episode?4:6)[index];
   if(!result) return null;
   return {episode,movie,result,index};
 }
@@ -42,6 +42,12 @@ function clOpenCocktailMatchDetails(card){
     episode:ctx.episode
   };
   render();
+  const detail=clCocktailDetail;
+  if(typeof clHydrateCatalogRecipe==='function') clHydrateCatalogRecipe(detail.cocktail).then(recipe=>{
+    if(clCocktailDetail!==detail) return;
+    clCocktailDetail={...detail,cocktail:recipe};
+    render();
+  });
 }
 
 function clCloseCocktailDetails(event){

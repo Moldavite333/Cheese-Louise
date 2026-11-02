@@ -60,7 +60,7 @@ movieCard = function(m){
   return `<article class="movie-card card">
     <div class="poster" onclick="openMovie('${m.id}')">${m.poster_url?`<img class="radar-poster-image" src="${esc(m.poster_url)}" alt="${esc(m.title)} poster" loading="lazy" decoding="async" onerror="this.hidden=true">`:''}<div class="poster-title">${esc(m.title)}</div></div>
     <div class="movie-body">
-      <div class="score-row"><span class="subtle">${esc(m.network||'Unknown')} • ${esc(m.date)}</span><span class="cheese-score">🧀 ${esc(m.score)}</span></div>
+      <div class="score-row"><span class="subtle">${esc(m.network||'Unknown')} • ${esc(m.date)}</span><span class="cheese-score">🧀 <span data-cheese-score-movie="${esc(m.id)}">${esc(m.score)}</span></span></div>
       <div class="pills">${cheeseTraitPills(m)}</div>
       <div class="subtle">${count ? `${count} Cheese Trait${count===1?'':'s'} · ` : ''}${consensus(m)}</div>
       <div class="vote-row">
