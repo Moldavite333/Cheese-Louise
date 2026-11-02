@@ -17,7 +17,7 @@
 - W3C WCAG 2.2 calls for keyboard accessibility, visible focus, and non-color-only status communication; retain textual warnings and test dropdown behavior with keyboard and touch: https://www.w3.org/TR/WCAG22/
 
 ## Verification and remaining release gates
-- Code and test changes committed to PR #57; automated workflow result to be recorded after GitHub Actions completes.
+- **Verified on code head `e04c126`: 139/139 Node regression tests passed, zero failures; browser script syntax, assembled Chromium HQ, mobile/desktop cocktail, and Grit songwriting checks passed.** [GitHub Actions run 41460606183](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41460606183). An intermediate run failed because the older session-switch test expected the now-prohibited silent auto-pause; that test was updated to explicitly pause before switching, then the entire workflow passed.
 - **Not verified:** authenticated Nick/Jenny device flow, actual RØDECaster/REAPER clock alignment and import, live exact-title search for *A Christmas Village*, full staging rollout, or cross-device synchronization.
 - No production Supabase writes, schema changes, function deployments, or main-branch merges.
 
@@ -31,3 +31,12 @@
 
 ## Next incremental task
 After CI and device checks, prioritize an explicit **release readiness checklist** and staging/rollback test for PR #57. Only after safe integration should the lab implement cross-device data sync; avoid another standalone feature branch.
+
+
+### Codex-ready release acceptance matrix (not yet executed on real devices)
+1. **Recording:** Start a take on Movie A, add a marker, attempt dropdown switch to Movie B. Require a warning, unchanged timer/markers, and Movie A still selected. Pause and switch; require Movie A's elapsed time and markers to remain recoverable after reload.
+2. **Search:** Authenticated exact search for *A Christmas Village* (2018) must return the saved movie with **Open saved movie**; a filtered exact match must be visibly labeled, not silently omitted. Same title/different year must remain a distinct identity.
+3. **Scoring:** Add a recommended movie and preview synopsis tropes. No `movie_traits` writes until Nick or Jenny individually confirms observed traits. Compare verified Cheese Grating to the checked-trait sum; legacy raw values remain preserved for audit.
+4. **Bingo:** Link Nick and Jenny's separate cards; verify marked squares, completed lines and winners are distinct, and the free center is not counted as an observed square. No Bingo action may confirm movie traits.
+5. **Postproduction:** Archive, restore, export REAPER CSV, import into a test REAPER project, align the HQ timer to the recorder timeline, and verify marker names/times. Warn before a duplicate merge import.
+6. **Rollout:** Verify the year-aware recommendation function on staging first; then deploy the client. Preserve a rollback to the previous function/client versions and never rewrite production Cheese Grating history automatically.
