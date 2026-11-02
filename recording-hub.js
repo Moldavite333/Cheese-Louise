@@ -1,7 +1,7 @@
 // Cheese Louise HQ — Recording & Production Hub (local-first)
 (() => {
   const prefix='cheeseLouise:production:v1:';
-  const segments=[
+  const legacySegments=[
     {name:'Opening & banter',target:3,prompt:'Introductions, catch-up, natural opening.'},
     {name:'Cheesy Concoctions',target:5,prompt:'Make the drink, taste it, react, and move into the movie.'},
     {name:'Movie & tropes',target:22,prompt:'Brief premise, then discuss your chosen tropes and observations.'},
@@ -9,6 +9,18 @@
     {name:'Cheese Grating & Bingo results',target:7,prompt:'Give the Cheese Grating, play the Bingo sting, and announce the winners.'},
     {name:'Closing',target:3,prompt:'Final thoughts and sign-off.'}
   ];
+  // Approved show order applies only to new sessions. Historical laps keep their
+  // original six-section plan, including optional Horror-fied, without migration.
+  const segments=[
+    {id:'cold-open',name:'Cold open',targetSeconds:20,prompt:'A short, unscripted Romantiverse question or joke before the theme.'},
+    {id:'theme',name:'Theme music',targetSeconds:30,prompt:'Play the Cheese Louise theme.'},
+    {id:'welcome',name:'Welcome & banter',targetSeconds:180,prompt:'Welcome listeners and catch up naturally.'},
+    {id:'cocktail',name:'Cheesy Concoctions',targetSeconds:300,prompt:'Introduce and taste the movie-matched cocktail.'},
+    {id:'discussion',name:'Movie review & discussion',targetSeconds:1800,prompt:'Follow movie chronology and natural conversation; mention tropes when relevant.'},
+    {id:'bingo',name:'Bingo & Cheese Grating',targetSeconds:300,prompt:'Play the Bingo sting, reveal confirmed Cheese Grating, marked squares, winning lines and winners.'},
+    {id:'closing',name:'Closing',targetSeconds:60,prompt:'Final thoughts and sign-off.'}
+  ];
+  const sessionSegments=s=>s?.segmentPlan==='approved-v2'?segments:legacySegments;
   let view='record',tick=null;
   const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clock=ms=>{const s=Math.floor(Math.max(0,ms)/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map((n,i)=>i===0?String(n).padStart(2,'0'):String(n).padStart(2,'0')).join(':');};
@@ -85,7 +97,7 @@
     return false;
   }
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
-  function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
+  function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segmentPlan:'approved-v2',segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
   function update(fn){if(guardExternal())return;const s=getSession();if(!s)return;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return;}fn(s);save(s);draw();}
   const button=(label,handler,extra='')=>'<button type="button" '+extra+(stale()&&/^(start|pause|previous|next|mark|deleteMarker|refreshSnapshot|reset|restoreSession|timelineSave|timelineMove|timelineImport|recoverPause|recoverContinue)/.test(handler)?' disabled':'')+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
@@ -112,11 +124,19 @@
     ].map(([k,v])=>'<p><strong>'+k+':</strong> '+escapeHtml(names(v))+'</p>').join('');
   }
   function rundownSection(n,s){
-    if(n===0)return '<p>Introduce yourselves, share a quick story and settle into the conversation.</p>';
-    if(n===1)return '<p>Introduce, taste and react to the Cheesy Concoction.</p>';
-    if(n===2)return '<p>Give a brief premise, then use your talk order and Watch Along cards below.</p>';
-    if(n===3)return '<p>Horror-fied mini-game and reactions.</p>';
-    if(n===4)return '<p>Give the Cheese Grating, play the Bingo theme sting, and announce the winners. Mention squares naturally during the movie discussion.</p>';
+    const part=sessionSegments(s)[n]||{};
+    const id=part.id||({
+      'Opening & banter':'welcome','Cheesy Concoctions':'cocktail',
+      'Movie & tropes':'discussion','Horror-fied':'horror',
+      'Cheese Grating & Bingo results':'bingo','Closing':'closing'
+    })[part.name];
+    if(id==='cold-open')return '<p>Lead with the roughly 20-second Romantiverse question or joke, then roll the theme. No scripted banter required.</p>';
+    if(id==='theme')return '<p>Play the Cheese Louise theme music, then welcome listeners.</p>';
+    if(id==='welcome')return '<p>Welcome listeners, introduce yourselves, and settle into natural conversation.</p>';
+    if(id==='cocktail')return '<p>Introduce, taste and react to the Cheesy Concoction.</p>';
+    if(id==='discussion')return '<p>Give a brief premise, follow the movie timeline and Watch Along notes, and mention tropes naturally.</p>';
+    if(id==='horror')return '<p>Optional Horror-fied mini-game and reactions (legacy recording plan).</p>';
+    if(id==='bingo')return '<p>Allow about five minutes: reveal confirmed Cheese Grating, play the Bingo theme sting, then distinguish marked squares from completed winning lines and announce winners. Do not actively play on mic.</p>';
     return '<p>Final thoughts and sign-off.</p>';
   }
   function noteBlocks(value){
@@ -207,18 +227,18 @@
       '<details class="clp-credit-reference"><summary>Movie credits & research reference</summary>'+movieCredits(currentMovie())+'</details></section>';
   }
   function recordHtml(){
-    const s=getSession(),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
+    const s=getSession(),plan=sessionSegments(s),i=Math.min(s.segment,plan.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
     const focused=expandedSegment!==null&&expandedSegment>=0?expandedSegment:i;
     const recovering=isPending(s);
     const recoveryHtml=recovering?'<div class="clp-recovery" role="alert"><strong>Verify the interrupted recording timer.</strong><p>HQ is showing the last saved checkpoint, not counting time while this page was closed. Compare with the RØDECaster before using markers. If another HQ tab is still recording, return to that tab instead.</p><div class="clp-actions">'+button('Pause at checkpoint','recoverPause()')+button('Continue counting gap','recoverContinue()')+'</div></div>':'';
-    const rows=segments.map((seg,n)=>{
+    const rows=plan.map((seg,n)=>{
       const lap=s.laps[n],active=n===i;
-      return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):'Target '+seg.target+':00')+'</small></button>';
+      return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):'Target '+clock((seg.targetSeconds??seg.target*60)*1000))+'</small></button>';
     }).join('');
-    return recoveryHtml+'<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
-      '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(segments[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
-      '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
-      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()',recovering?'disabled':''):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',recovering||s.finished?'disabled':''))+button('Previous','previous()',recovering||i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',recovering||s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button '+(recovering?'disabled ':'')+'aria-keyshortcuts="M" onclick="clProduction.mark()">Mark moment</button></div><p class="clp-hint">Press M to mark a moment while the timer runs. Typing in a field is unaffected.</p><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()',recovering?'disabled':'')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
+    return recoveryHtml+'<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(plan[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
+      '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(plan[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
+      '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(plan[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
+      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()',recovering?'disabled':''):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',recovering||s.finished?'disabled':''))+button('Previous','previous()',recovering||i===0?'disabled':'')+button(i===plan.length-1?'Finish & save':'Lap & next','next()',recovering||s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button '+(recovering?'disabled ':'')+'aria-keyshortcuts="M" onclick="clProduction.mark()">Mark moment</button></div><p class="clp-hint">Press M to mark a moment while the timer runs. Typing in a field is unaffected.</p><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()',recovering?'disabled':'')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
   function sessionHistoryHtml(){
     const m=currentMovie(),history=read().sessionHistory?.[m?.id]||[];
@@ -278,7 +298,7 @@
     start(){update(s=>{if(!s.finished&&!s.runningSince){s.runningSince=Date.now();s.checkpointAt=s.runningSince;}});},
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;s.checkpointAt=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
-    next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
+    next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:sessionSegments(s)[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===sessionSegments(s).length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
     mark(){if(guardExternal())return;if(isPending(getSession())){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note,...(window.clAutomaticTimeline?.selected()||{})}));},
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
@@ -307,7 +327,7 @@
     },
     social(i,v){if(guardExternal())return;const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
     exportCsv(){const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-editing-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
-    exportReaper(){const s=getSession(),build=window.clReaperMarkers?.build;if(!s||!build){alert('REAPER marker export is unavailable. Reload HQ and try again.');return;}const data=build(s,segments,sessionNow(s));if(data.trim()==='#,Name,Start,End,Length'){alert('Start the HQ timer or add an editing marker before exporting.');return;}const blob=new Blob([data],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-reaper-'+String(s.title||'episode').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)+'-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
+    exportReaper(){const s=getSession(),build=window.clReaperMarkers?.build;if(!s||!build){alert('REAPER marker export is unavailable. Reload HQ and try again.');return;}const data=build(s,sessionSegments(s),sessionNow(s));if(data.trim()==='#,Name,Start,End,Length'){alert('Start the HQ timer or add an editing marker before exporting.');return;}const blob=new Blob([data],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-reaper-'+String(s.title||'episode').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)+'-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     copyEdit(){copy(editingText());},
     copySocial(){const m=currentMovie(),s=getSession();copy(['CHEESE LOUISE — EPISODE PROMOTION',m.title,'Network: '+(m.network||'Verify network'),'Cheese Grating: '+(rundown(m).grating||0),'Clip candidates:',...s.markers.filter(x=>x.type==='Funny / Clip').map(x=>clock(x.atMs)+' '+x.note),'Add verified cocktail recipe, release date, episode link and Bingo link before posting.'].join('\n'));},
     syncTraits(movieId){if(currentTab!=='recording'||currentMovie()?.id!==movieId)return;const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}}
