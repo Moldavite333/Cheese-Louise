@@ -55,3 +55,18 @@ Nick clarified that the core problem is not missing AI credits or an advanced au
 - [Riverside: recording markers](https://support.riverside.com/hc/en-us/articles/5286816799645-Add-markers-while-recording) — markers only during an active take, with optional comments.
 
 **Next engineering rule:** Do not spend another sprint on AI credits until the visual timeline and reliable two-host workflow are verified in a real recording.
+
+## Run 18 integration correction — current main already has a more complete storyboard
+During the final current-head comparison, `main` advanced to `1e63ffaf` with a richer, tested [visual storyboard implementation](https://github.com/Moldavite333/Cheese-Louise/blob/main/docs/VISUAL-STORYBOARD.md). Its complete implementation already includes responsive cards, arrow-key/Home/End navigation, selected-card restoration, separate Nick/Jenny note panels, observations and plot holes, confirmed-scene trope linking, and marker-association preservation. The initial simpler filmstrip in this run was **superseded rather than kept as a competing UI**.
+
+- Replaced the draft branch's `automatic-timeline.js` and `automatic-timeline.css` with the exact current `main` storyboard implementations.
+- Updated the draft branch's `recording-hub.js` to pass confirmed traits and recording markers to the storyboard and hide the duplicate legacy Manual talk order when the storyboard is available; legacy fallback remains if it is unavailable.
+- Updated storyboard and recording asset cache keys without dropping the Run 17 marker safeguards.
+- Adopted `main`'s expanded `tests/automatic-timeline.test.mjs` suite, which retains prior storage-conflict tests. Removed the now-obsolete duplicate `tests/timeline-storyboard.test.mjs` introduced earlier in this run.
+- Fixed the old marker-contract assertions in `tests/timeline-integration-contract.test.mjs` to reflect current multiline guards and the whitelisted marker payload.
+- **Passed:** isolated V8 execution of the integrated current storyboard: two scene cards, one selected, unknown time cue, Nick's note persistence, scene selection, and suppression of duplicate manual timeline when the primary storyboard exists.
+- **Verified separately on main:** both Actions runs [41523975987](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41523975987) and [41523975066](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41523975066) succeeded at `1e63ffaf`. These do **not** verify the draft PR integration.
+- **Still blocked:** PR #57 reports mergeable=false after `main` advanced. A coordinated merge/conflict resolution and complete PR-head CI are required. The new on-demand-only movie-research changes on `main` also need to be integrated into the PR before any release; do not deploy the older automatic-credit-consuming research client.
+- No production deployment, merge to main, or database changes were made by this run.
+
+**Correction to the earlier sections of this log:** The temporary `cl-auto-scene-rail` implementation and its three-test file were replaced by the superior `cl-storyboard` implementation and the comprehensive mainline regression suite. Treat this integration correction as the authoritative final state for Run 18.
