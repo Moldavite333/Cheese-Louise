@@ -152,7 +152,7 @@ function clDiscoveryMovieDetailModal(){
     <div class="cl-movie-detail-hero">
       <div>${clMovieDetailPoster(c)}</div>
       <div class="cl-movie-detail-hero-copy">
-        <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Estimated Cheese Rating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
+        <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Predicted Cheese Grating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(c.providers)}</div>
         ${clMovieDetailLinks(c)}
       </div>
