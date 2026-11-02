@@ -259,8 +259,9 @@ test('crash recovery freezes the timer at its last saved checkpoint until explic
  assert.match(restarted.html(),/Verify the interrupted recording timer/);
  assert.match(restarted.html(),/00:00:12/);
  assert.equal(restarted.data().session.runningSince,100000,'Reload does not silently mutate the session');
+ restarted.elements.get('clp-marker-note').value='Unsaved recovery note';
  q.mark();assert.equal(restarted.data().session.markers.length,1,'Pending recovery blocks edits');
- assert.equal(restarted.elements.get('clp-marker-note').value,'Keep this moment','Interrupted session preserves unsaved marker text');
+ assert.equal(restarted.elements.get('clp-marker-note').value,'Unsaved recovery note','Interrupted session preserves unsaved marker text');
  q.recoverPause();
  assert.equal(restarted.data().session.runningSince,null);
  assert.equal(restarted.data().session.elapsedMs,12000,'Closed-browser gap is not invented');
