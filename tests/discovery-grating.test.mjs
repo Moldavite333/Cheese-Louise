@@ -45,7 +45,7 @@ test('prediction sums all suggested trope points and is visibly unverified',()=>
   const html=h.context.discoveryCard(h.candidate);
   assert.match(html,/Predicted Cheese Grating/);
   assert.match(html,/🧀 140/);
-  assert.match(html,/checked traits determine the official tally/);
+  assert.match(html,/Metadata prediction only\. Add to Radar, then confirm traits after watching/);
   assert.doesNotMatch(html,/Cheese Rating/);
 });
 
