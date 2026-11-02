@@ -81,7 +81,9 @@ try{
   if(route==='watchalong'){
    const preview=page.locator('#watchRundownPreview');
    assert.ok(await preview.evaluate(el=>el.clientHeight<=480),'Rundown preview has bounded height');
-   assert.equal(await preview.getAttribute('tabindex'),'0','Scrollable preview is keyboard accessible');
+   assert.equal(await preview.getAttribute('aria-label'),'Editable episode rundown','Rundown is an accessible editable field');
+   await preview.fill('Producer-adjusted opening and sign-off.');
+   assert.equal(await preview.inputValue(),'Producer-adjusted opening and sign-off.','Producer can edit the recording rundown');
    await page.locator('.watch-trait-tools').scrollIntoViewIfNeeded();
    assert.ok(await page.evaluate(()=>document.querySelector('.watch-trait-tools').getBoundingClientRect().top>=document.querySelector('.hq-topbar').getBoundingClientRect().bottom-1),'Trait tools remain below the header');
    if(width<=1320){
