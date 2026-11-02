@@ -258,7 +258,7 @@
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;s.checkpointAt=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
     next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
-    mark(){const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
+    mark(){if(isPending(getSession())){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
     reset(){
