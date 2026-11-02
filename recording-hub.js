@@ -306,14 +306,15 @@
       if(!s?.runningSince||s.finished){alert('Start or resume the HQ timer before adding an editing marker. Your note has been kept.');return;}
       const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';
       let saved=false;
-      if(pendingMarker?.movieId===s.movieId&&s.markers.includes(pendingMarker.marker)){
-        pendingMarker.marker.type=type;pendingMarker.marker.note=note;
+      const pending=s.markers.find(marker=>marker.markerId===pendingMarker?.markerId);
+      if(pendingMarker?.movieId===s.movieId&&pending){
+        pending.type=type;pending.note=note;
         saved=save(s);draw();
       }else{
         const scene=window.clAutomaticTimeline?.selected?.()||{};
-        const marker={...(scene.scene_id?{scene_id:scene.scene_id}:{}),...(Number.isFinite(scene.movie_time_ms)?{movie_time_ms:scene.movie_time_ms}:{}),atMs:sessionNow(s),type,note};
+        const marker={markerId:String(Date.now())+'-'+Math.random().toString(36).slice(2,10),...(scene.scene_id?{scene_id:scene.scene_id}:{}),...(Number.isFinite(scene.movie_time_ms)?{movie_time_ms:scene.movie_time_ms}:{}),atMs:sessionNow(s),type,note};
         saved=update(active=>active.markers.push(marker));
-        pendingMarker=saved?null:{movieId:s.movieId,marker};
+        pendingMarker=saved?null:{movieId:s.movieId,markerId:marker.markerId};
       }
       if(saved){pendingMarker=null;const input=document.getElementById('clp-marker-note');if(input)input.value='';}
     },
