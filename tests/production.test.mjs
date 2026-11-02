@@ -47,7 +47,7 @@ function harness(source,initial={},initialNow=100000){
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
  context.window=context;vm.createContext(context);vm.runInContext(source,context);
- return {context,storage,elements,listeners,windowListeners,intervals,alerts,advance:ms=>{now+=ms},now:()=>now,html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
+ return {context,storage,elements,listeners,windowListeners,intervals,alerts,advance:ms=>{now+=ms},now:()=>now,html:()=>html,block:()=>{blocked=true},unblock:()=>{blocked=false},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
  const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.pause();p.movie('b');
@@ -368,4 +368,39 @@ test('unrelated storage events do not lock HQ and same-tab saves remain usable',
  p.start();h.advance(8000);p.pause();
  assert.equal(h.data().session.elapsedMs,8000);
  assert.doesNotMatch(h.html(),/workspace changed in another HQ tab/i);
+});
+
+
+test('marker button cannot invent a timestamp while paused or before the timer starts',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  h.context.render();assert.match(h.html(),/disabled aria-keyshortcuts="M"/);
+  p.mark();assert.equal(h.data().session,undefined);
+  assert.equal(h.elements.get('clp-marker-note').value,'Keep this moment');
+  p.start();h.advance(4000);p.mark();assert.equal(h.data().session.markers.length,1);
+  p.pause();h.elements.get('clp-marker-note').value='Pickup while paused';
+  p.mark();assert.equal(h.data().session.markers.length,1,'Paused take cannot acquire a false audio timestamp');
+  assert.equal(h.elements.get('clp-marker-note').value,'Pickup while paused');
+  h.context.render();assert.match(h.html(),/disabled aria-keyshortcuts="M"/);
+});
+
+test('storage failure retains marker note and retry saves the same timestamp without duplication',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  p.start();h.advance(7200);h.block();p.mark();
+  assert.equal(h.data().session.markers.length,0,'Failed write did not persist the marker');
+  assert.equal(h.elements.get('clp-marker-note').value,'Keep this moment','Unsaved text remains available');
+  h.advance(8000);h.unblock();p.mark();
+  assert.equal(h.data().session.markers.length,1,'Retry must not create a second marker');
+  assert.equal(h.data().session.markers[0].atMs,7200,'Retry preserves original audio position');
+  assert.equal(h.data().session.markers[0].note,'Keep this moment');
+  assert.equal(h.elements.get('clp-marker-note').value,'');
+});
+
+test('automatic scene metadata cannot overwrite the actual recording marker time, category, or note',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  h.context.clAutomaticTimeline={selected:()=>({scene_id:'scene-7',movie_time_ms:12345,atMs:999999,type:'Retake',note:'Wrong'})};
+  p.start();h.advance(5500);p.mark();
+  const marker=h.data().session.markers[0];
+  assert.equal(marker.atMs,5500);assert.equal(marker.type,'Funny / Clip');
+  assert.equal(marker.note,'Keep this moment');assert.equal(marker.scene_id,'scene-7');
+  assert.equal(marker.movie_time_ms,12345);
 });
