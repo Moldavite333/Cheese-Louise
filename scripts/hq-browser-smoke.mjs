@@ -4,7 +4,7 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright';
 const root=process.cwd();
-const server=createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://local').pathname;const path=resolve(root,'.'+(pathname==='/'?'/index.html':decodeURIComponent(pathname)));if(!path.startsWith(root+sep))throw Error();const data=await readFile(path);res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'}[extname(path)]||'application/octet-stream'}).end(data)}catch{res.writeHead(404).end()}});
+const server=createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://local').pathname;const path=resolve(root,'.'+(pathname==='/'?'/index.html':decodeURIComponent(pathname)));if(!path.startsWith(root+sep))throw Error();const data=await readFile(path);res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'}[extname(path)]||'application/octet-stream'}).end(data)}catch{res.writeHead(404).end()}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch();await mkdir('artifacts',{recursive:true});
 try{
@@ -94,6 +94,34 @@ try{
   }
   if(route==='recording'){
    assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
+   await page.getByRole('heading',{name:'Your Bingo results',exact:true}).waitFor();
+   await page.evaluate(()=>{
+    const card=Array.from({length:25},(_,i)=>({id:'square-'+i,label:i===0?'A kitten steals the adoption forms':'Observed moment '+i}));
+    clRecordingBingo.importSnapshot('fixture-movie',{format:'cheese-louise-bingo-results-v1',id:'host-card',name:'Nick',movie:{title:'Autumn at the Orchard',year:2025},card,marked:[0,1,2,3,4,12],free:true,updatedAt:new Date().toISOString()});
+    clProduction.refreshDesk();
+   });
+   assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('5 marked squares'));
+   assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('1 completed Bingos'));
+   await page.locator('.clp-bingo-squares details').first().locator('summary').click();
+   await page.locator('.clp-bingo-squares textarea').first().fill('The paperwork joke belongs before the reveal.');
+   await page.locator('.clp-bingo-squares').getByRole('button',{name:'Add to talk order'}).first().click();
+   assert.ok((await page.locator('.clp-desk-discussion').innerText()).includes('paperwork joke'));
+   await page.locator('.clp-bingo-squares').getByRole('button',{name:'Add to talk order'}).first().click();
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('cheeseLouise:watchAlong:fixture-workspace:draft:fixture-movie')).outlineItems.filter(i=>i.id==='bingo-host-card-0').length),1);
+   await page.evaluate(()=>{
+    const row=JSON.parse(localStorage.getItem('cheeseLouise:recordingBingo:v1:fixture-workspace'))['fixture-movie'].cards[0];
+    clRecordingBingo.importSnapshot('fixture-movie',{...row.result,marked:[0,1,2,3,12]});
+    clProduction.refreshDesk();
+   });
+   assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('0 completed Bingos'));
+   assert.equal(await page.locator('.clp-bingo-squares textarea').first().inputValue(),'The paperwork joke belongs before the reveal.');
+   if(width>=1280){
+    const positions=await page.locator('.clp-desk-columns>section').evaluateAll(els=>els.map(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y})));
+    assert.ok(positions[0].x<positions[1].x&&positions[1].x<positions[2].x,'Landscape desk has three side-by-side lanes');
+    assert.ok(Math.abs(positions[0].y-positions[2].y)<2,'Story, notes and Bingo share a top edge');
+   }
+   assert.ok(await page.locator('.clp-cue-trait').first().evaluate(el=>el.getBoundingClientRect().height<45),'Traits use compact text rows');
+
    assert.ok(await page.locator('.clp-compact-timer').evaluate(el=>el.getBoundingClientRect().height<90),'Timing stays compact');
    assert.ok(await page.locator('#clp-total').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)<=18),'Timer digits are secondary');
    assert.equal(await page.locator('.clp-cue-observation').count(),3,'Observations render as separate cards');
@@ -136,3 +164,4 @@ try{
  }
  console.log('HQ real-browser fixtures passed at phone, tablet, small laptop, and desktop widths. No live user data was accessed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
+
