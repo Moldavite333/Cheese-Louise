@@ -32,6 +32,17 @@
 - Browser and Node tests pass; no regression to discovery, horror exclusion, voting, search, or recording.
 - On actual Nick/Jenny devices, confirm that a saved title can be found and opened when PR #54 is integrated.
 
+## Read-only score integrity audit (November 2, 2026)
+A scoped aggregate query of the live Cheese Louise Supabase `movies`, `movie_traits`, and `cheese_traits` tables found:
+- **32** saved movies.
+- **31** movies with a positive stored `cheese_score`.
+- **15** movies with a positive stored score but **zero** confirmed `movie_traits` rows.
+- **16** movies whose stored score differs from the sum of their confirmed trait points.
+- **1** movie with a confirmed trait sum greater than 100, reinforcing that the score must not be capped.
+- The already-saved *A Christmas Village* has stored score **23** and **zero** confirmed trait rows.
+
+These are factual discrepancies relative to the user-approved rule that Cheese Grating is the sum of checked trope points. They do **not** prove all mismatches were caused by this one code path; older manual values, migrations, or legacy behavior could also contribute. No production data was changed. Before any repair, identify provenance and decide whether old scores should be archived, recalculated, or marked unverified. Never silently reset user data.
+
 ## Next prioritized work
 1. Integrate/review PR #54 and test *A Christmas Village* on the live authenticated HQ with saved-title handling.
 2. Audit existing `cheese_score` rows against confirmed `movie_traits` **read-only** before proposing any data cleanup.
