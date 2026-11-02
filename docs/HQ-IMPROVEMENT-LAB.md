@@ -12,7 +12,7 @@ This log tracks **reviewable incremental work**. Do not conflate a draft PR with
 
 **Operational constraint:** HQ's timer is not electronically synchronized to the RØDECaster or REAPER. Producers must align the HQ timer with recorded audio before relying on timestamps. REAPER's **Import regions/markers (merge existing)** preserves existing project markers; repeat imports may create duplicates. The feature is not a replacement for audio-backed DAW markers.
 
-**Tests:** Three portable generator tests cover the REAPER header, millisecond timing, escaping, ordering, completed recording and empty/invalid inputs. An additional recording integration test checks the download control, generated CSV and absence of session writes. Portable tests passed locally; full repository CI and a real REAPER import remain to be verified on the PR.
+**Tests:** Three portable generator tests cover the REAPER header, millisecond timing, escaping, ordering, completed recording and empty/invalid inputs. An additional recording integration test checks the download control, generated CSV and absence of session writes. Portable tests passed locally. GitHub Actions HQ red-team regression checks passed on PR #51 (syntax, all Node tests, assembled HQ browser smoke, cocktail browser smoke, deployed songwriting readiness, and songwriting browser smoke): https://github.com/Moldavite333/Cheese-Louise/actions/runs/41385832041 . A real REAPER GUI import and clock alignment check remain unverified.
 
 **Evidence and reference:** REAPER manual's Region/Marker Manager import/export support: https://dlz.reaper.fm/userguide/ReaperUserGuide734e.pdf ; community-documented native CSV example: https://gist.github.com/X-Raym/509dbbf06a32819f2dbda085a54f3d45 .
 
