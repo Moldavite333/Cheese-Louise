@@ -1,4 +1,4 @@
-// Cheese Louise v1.3 — Cheese Traits, automatic Cheese Rating, and trait filters.
+// Cheese Louise v1.3 — Cheese Traits, automatic Cheese Grating, and trait filters.
 // Loaded after app.js and before auth-enhancements.js so password-recovery guards
 // still wrap the finished application.
 
@@ -115,7 +115,7 @@ function cheeseFilterPanel(){
       <button class="secondary" onclick="clearMovieFilters()">Clear</button>
     </div>
     <div class="score-filter">
-      <label for="minCheese"><strong>Minimum Cheese Rating</strong></label>
+      <label for="minCheese"><strong>Minimum Cheese Grating</strong></label>
       <input id="minCheese" type="range" min="0" max="75" step="5" value="${Number(movieFilters.minScore||0)}" oninput="previewMinCheese(this.value)" onchange="setMinCheese(this.value)">
       <span id="minCheeseValue" class="cheese-score">🧀 ${Number(movieFilters.minScore||0)}+</span>
     </div>
@@ -134,7 +134,7 @@ movies = function(){
   const filterCount=activeFilterCount();
   return `<section class="section">
     <div class="page-title">Movie Radar</div>
-    <div class="subtle">Find, save, vote, discuss — and build the Cheese Rating from actual Romantiverse traits.</div>
+    <div class="subtle">Find, save, vote, discuss — and build the Cheese Grating from actual Romantiverse traits.</div>
     <div class="movie-header-actions"><button class="primary" onclick="addMovie()">+ Add movie</button><button class="secondary" onclick="toggleMovieFilters()">⚙ Filters${filterCount?` (${filterCount})`:''}</button><button class="secondary" onclick="openTraitManager()">🧀 Trait Library</button></div>
   </section>
   <section class="section">
