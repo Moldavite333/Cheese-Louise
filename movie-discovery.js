@@ -132,8 +132,8 @@ function discoveryCard(c){
       ${why.length?`<details class="new-find-why"><summary>Why is this on my radar?</summary><div class="pills">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></details>`:''}
       ${discoveryVoteControls(c,true)}
       <div class="new-find-actions">
-        <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},true)">${est.traits.length?`Add + confirm ${est.traits.length} traits`:'Add to Radar'}</button>
-        ${est.traits.length?`<button class="secondary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add only</button>`:''}
+        <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)})">Add to Radar</button>
+        ${est.traits.length?`<div class="subtle">Review ${est.traits.length} predicted Cheese Traits after watching; none are confirmed automatically.</div>`:""}
         <button class="secondary" onclick="hideDiscoveredMovie(${Number(c.tmdb_id)})">Hide for now</button>
         <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">${c.tmdb_type==='hallmark'?'Hallmark':'Source'} ↗</a>
       </div>
@@ -207,7 +207,7 @@ async function discoverCheeseMovies(force=false){
   if(discoveryLoaded) setTimeout(()=>discoveryHydratePosters(force),0);
 }
 
-async function addDiscoveredMovie(id,applyTraits){
+async function addDiscoveredMovie(id){
   const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
   if(!c||!workspace) return;
   const existing=discoverySavedMovie(c);
@@ -237,15 +237,11 @@ async function addDiscoveredMovie(id,applyTraits){
   const {data,error}=await db.from('movies').insert(payload).select().single();
   if(error) return alert(error.message);
 
-  const suggestions=applyTraits?discoveryTraitSuggestions(c):[];
-  if(suggestions.length){
-    const rows=suggestions.map(t=>({workspace_id:workspace.id,movie_id:data.id,trait_id:t.id,selected_by:me()}));
-    const {error:traitError}=await db.from('movie_traits').insert(rows);
-    if(traitError) alert(`Movie added, but the suggested traits hit an error: ${traitError.message}`);
-  }
+  // Metadata-derived trope suggestions are predictions, never verified selections.
+  // Users check traits manually in movie details after watching.
 
   discoveryHidden.add(Number(id));
-  await logActivity(`found and added ${c.title} from ${originLabel}${suggestions.length?` with ${suggestions.length} confirmed Cheese Traits`:''}.`,'movie',data.id);
+  await logActivity(`found and added ${c.title} from ${originLabel}.`,'movie',data.id);
   await loadAll();
   selectedMovie=data.id; traitSearch=''; traitSelectedOnly=false; render();
 }
