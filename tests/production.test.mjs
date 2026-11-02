@@ -148,7 +148,7 @@ test('restoring an archived recording preserves the active session and keeps mov
  assert.equal(d.sessionHistory.a[0].session.elapsedMs,8000);
  p.movie('b');p.reset();
  assert.equal((h.data().sessionHistory.b||[]).length,0);
- p.movie('a');assert.equal(h.data().session.elapsedMs,5000);
+ p.movie('a');p.copyEdit();assert.equal(h.data().sessions.a.elapsedMs,5000);
 });
 
 test('restoring is blocked while recording and storage failure cannot discard a session',()=>{
