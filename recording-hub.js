@@ -17,8 +17,21 @@
   const key=()=>prefix+workspaceId();
   const memory=new Map();
   let storageWarning=false;
+  // Detect edits made by another same-origin HQ tab before overwriting them.
+  // This is a read-only safety brake, not an atomic lock or cross-device sync.
+  let lastKnownRaw=null,externalChange=false,conflictAt=0,conflictNotified=false;
+  try{lastKnownRaw=localStorage.getItem(key())}catch{}
+  function stale(){
+    if(!externalChange){try{if(localStorage.getItem(key())!==lastKnownRaw){externalChange=true;conflictAt=Date.now();}}catch{}}
+    return externalChange;
+  }
+  function guardExternal(){
+    if(!stale())return false;
+    if(!conflictNotified){conflictNotified=true;alert('Another HQ tab changed this recording workspace. This tab is now read-only. Copy any unsaved marker note, then reload to review the latest session.');}
+    return true;
+  }
   const read=()=>{if(memory.has(key()))return memory.get(key());try{const data=JSON.parse(localStorage.getItem(key())||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}};
-  const write=data=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));memory.delete(key());storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
+  const write=data=>{if(guardExternal())return false;memory.set(key(),data);try{const raw=JSON.stringify(data);localStorage.setItem(key(),raw);lastKnownRaw=raw;memory.delete(key());storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
   const watchMovieId=()=>{try{return localStorage.getItem('cheeseLouise:watchAlong:'+workspaceId()+':movie')}catch{return null}};
   const currentMovie=()=>movieList().find(m=>m.id===read().movieId)||movieList().find(m=>m.id===watchMovieId())||movieList()[0]||null;
   // An interrupted page must not invent recording time while the browser was closed.
@@ -32,7 +45,7 @@
   }:null;
   const isPending=s=>Boolean(pendingRecovery&&s?.movieId===pendingRecovery.movieId&&s.runningSince===pendingRecovery.runningSince);
   const sessionNow=s=>Math.max(0,(s.elapsedMs||0)+(s.runningSince?
-    (isPending(s)?pendingRecovery.stopAt:Date.now())-s.runningSince:0));
+    (isPending(s)?pendingRecovery.stopAt:stale()?conflictAt:Date.now())-s.runningSince:0));
   const startOfSegment=s=>s.laps?.reduce((a,l)=>a+(l.durationMs||0),0)||0;
   function rundown(movie){
     const wk='cheeseLouise:watchAlong:'+workspaceId()+':draft:'+movie.id;
@@ -65,6 +78,7 @@
     return true;
   }
   function commitSessionChange(data,original){
+    if(guardExternal())return false;
     if(write(data))return true;
     memory.set(key(),original);
     alert('Could not save the session change on this device. Your previous recording remains active in memory. Free storage and try again.');
@@ -73,11 +87,12 @@
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
-  function update(fn){const s=getSession();if(!s)return;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return;}fn(s);save(s);draw();}
-  const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
+  function update(fn){if(guardExternal())return;const s=getSession();if(!s)return;if(isPending(s)){alert('Resolve the interrupted HQ timer against the RØDECaster recording before editing this session.');return;}fn(s);save(s);draw();}
+  const button=(label,handler,extra='')=>'<button type="button" '+extra+(stale()&&/^(start|pause|previous|next|mark|deleteMarker|refreshSnapshot|reset|restoreSession|timelineSave|timelineMove|timelineImport|recoverPause|recoverContinue)/.test(handler)?' disabled':'')+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
     return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Your notes and talk order, ready for the mic.</p></div></header>'
+      +(stale()?'<div class="clp-recovery" role="alert"><strong>Recording workspace changed in another HQ tab.</strong><p>This tab is read-only to protect your notes, timers and editing markers. Copy any unsaved marker note before reloading HQ to review the latest saved session. Do not assume this is cross-device backup.</p></div>':'')
       +'<label class="clp-select">Movie <select onchange="clProduction.movie(this.value)">'+movieList().map(x=>'<option value="'+escapeHtml(x.id)+'" '+(m?.id===x.id?'selected':'')+'>'+escapeHtml(x.title||'Untitled')+'</option>').join('')+'</select></label>'
       +'<div class="clp-tabs">'+[['record','Record'],['edit','Edit'],['socials','Socials']].map(([id,name])=>'<button class="'+(view===id?'selected':'')+'" onclick="clProduction.view(\''+id+'\')">'+name+'</button>').join('')+'</div>'
       +'<section id="clp-body">'+(m?bodyHtml(): '<p>Add a movie in HQ to begin.</p>')+'</section></main>';
@@ -134,11 +149,13 @@
       (editing?'<div class="clp-timeline-editor"><label for="clp-timeline-text">One plot beat per line. Optional movie time: 12:30 — They meet at the café.</label><textarea id="clp-timeline-text" rows="6" oninput="clProduction.timelineDraft(this.value)">'+escapeHtml(draft)+'</textarea><div class="clp-timeline-actions">'+button('Save timeline','timelineSave()')+button('Import Watch Along order','timelineImport()')+'</div><p class="clp-hint">Imported notes are an editable starting point. Put them in movie order before saving. Movie times are separate from the recording timer.</p></div>':'')+'</section>';
   }
   function timelineMove(delta){
+    if(guardExternal())return;
     const m=currentMovie(),timeline=movieTimeline(),data=read();if(!m)return;
     timeline.index=Math.max(0,Math.min(timeline.items.length,timeline.index+delta));
     data.timelines=data.timelines||{};data.timelines[m.id]=timeline;write(data);draw();
   }
   function timelineSave(){
+    if(guardExternal())return;
     const m=currentMovie();if(!m)return;
     const data=read(),old=movieTimeline(),text=document.getElementById('clp-timeline-text')?.value??data.timelineDrafts?.[m.id]??'';
     const available=new Map();for(const item of old.items){const k=(item.time||'')+'|'+item.text;if(!available.has(k))available.set(k,[]);available.get(k).push(item.id);}
@@ -154,6 +171,7 @@
     write(data);timelineEditing.delete(m.id);draw();
   }
   function timelineImport(){
+    if(guardExternal())return;
     const m=currentMovie();if(!m)return;
     const source=rundown(m),ordered=source.outlineItems?.length?source.outlineItems.map(i=>i.text):source.talkingPoints||[];
     const notes=String(source.notes||'').split(/\n+/).map(t=>t.replace(/^\s*[•*-]\s*/,'').trim()).filter(Boolean);
@@ -232,16 +250,17 @@
   window.clProduction={
     refreshDesk(){const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}},
     timelineEdit(){const m=currentMovie();if(!m)return;if(timelineEditing.has(m.id))timelineEditing.delete(m.id);else timelineEditing.add(m.id);draw();},
-    timelineDraft(text){const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data);},
+    timelineDraft(text){if(guardExternal())return;const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data);},
     timelineSave,
     timelineImport,
     timelineMove,
     timelineGo(index){if(!Number.isInteger(index))return;const timeline=movieTimeline();timelineMove(Math.max(0,Math.min(timeline.items.length-1,index))-timeline.index);},
-    followWatchMovie(){const id=watchMovieId();if(!id||!movieList().some(m=>m.id===id)||getSession()?.runningSince)return;const d=read();d.movieId=id;write(d);expandedSegment=null;},
+    followWatchMovie(){if(guardExternal())return;const id=watchMovieId();if(!id||!movieList().some(m=>m.id===id)||getSession()?.runningSince)return;const d=read();d.movieId=id;write(d);expandedSegment=null;},
     openWatchAlong(){const movie=currentMovie();if(!movie)return;try{localStorage.setItem('cheeseLouise:watchAlong:'+workspaceId()+':movie',movie.id)}catch{}if(window.hqWorkspace?.open)window.hqWorkspace.open('watchalong');else{currentTab='watchalong';render();}},
     expand(i){expandedSegment=expandedSegment===i?-1:i;draw();},
     view(v){view=v;draw();document.querySelectorAll('.clp-tabs button').forEach((b,i)=>b.classList.toggle('selected',['record','edit','socials'][i]===v));},
     movie(id){
+      if(guardExternal()){render();return;}
       if(!movieList().some(m=>m.id===id)||currentMovie()?.id===id)return;
       const previous=getSession();
       // Switching the movie during a take must never silently stop the HQ clock.
@@ -253,16 +272,17 @@
       if(previous)save(previous);
       const d=read();d.movieId=id;write(d);expandedSegment=null;render();
     },
-    recoverPause(){const s=getSession();if(!isPending(s))return;const total=sessionNow(s);pendingRecovery=null;s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;save(s);draw();},
-    recoverContinue(){const s=getSession();if(!isPending(s))return;if(!confirm('Only count the gap if the RØDECaster was recording continuously while HQ was closed. Otherwise choose Pause at checkpoint. Continue?'))return;pendingRecovery=null;s.checkpointAt=Date.now();save(s);draw();},
+    recoverPause(){if(guardExternal())return;const s=getSession();if(!isPending(s))return;const total=sessionNow(s);pendingRecovery=null;s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;save(s);draw();},
+    recoverContinue(){if(guardExternal())return;const s=getSession();if(!isPending(s))return;if(!confirm('Only count the gap if the RØDECaster was recording continuously while HQ was closed. Otherwise choose Pause at checkpoint. Continue?'))return;pendingRecovery=null;s.checkpointAt=Date.now();save(s);draw();},
     start(){update(s=>{if(!s.finished&&!s.runningSince){s.runningSince=Date.now();s.checkpointAt=s.runningSince;}});},
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;s.checkpointAt=null;}});},
     previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
     next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.checkpointAt=null;s.finished=true;}else{s.segment++;}});},
-    mark(){if(isPending(getSession())){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
+    mark(){if(guardExternal())return;if(isPending(getSession())){alert('Resolve the interrupted timer before adding markers. Your note has been kept.');return;}const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note}));},
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
     reset(){
+      if(guardExternal())return;
       const m=currentMovie(),active=getSession();if(!m||!active)return;
       if(!confirm('Start a new recording session? Your current recording and markers will be kept in Past recording sessions on this device.'))return;
       const data=read(),original=clone(data);
@@ -272,6 +292,7 @@
       if(commitSessionChange(data,original))draw();
     },
     restoreSession(archiveId){
+      if(guardExternal())return;
       const m=currentMovie(),active=getSession();if(!m||!active)return;
       if(active.runningSince){alert('Pause the recording timer before restoring an earlier session.');return;}
       const data=read(),history=data.sessionHistory?.[m.id]||[],index=history.findIndex(x=>x.archiveId===archiveId);
@@ -283,7 +304,7 @@
       data.sessions=data.sessions||{};data.sessions[m.id]=restored;data.session=restored;data.movieId=m.id;
       if(commitSessionChange(data,original))draw();
     },
-    social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
+    social(i,v){if(guardExternal())return;const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
     exportCsv(){const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-editing-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     exportReaper(){const s=getSession(),build=window.clReaperMarkers?.build;if(!s||!build){alert('REAPER marker export is unavailable. Reload HQ and try again.');return;}const data=build(s,segments,sessionNow(s));if(data.trim()==='#,Name,Start,End,Length'){alert('Start the HQ timer or add an editing marker before exporting.');return;}const blob=new Blob([data],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-reaper-'+String(s.title||'episode').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)+'-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     copyEdit(){copy(editingText());},
@@ -293,10 +314,11 @@
   // Persist a bounded checkpoint while the page is active. Hidden tabs can be
   // suspended without firing pagehide, especially on phones.
   function checkpointActive(force=false){
-    if(pendingRecovery||(!force&&document.visibilityState==='hidden'))return;
+    if(pendingRecovery||stale()||(!force&&document.visibilityState==='hidden'))return;
     const s=getSession();if(!s?.runningSince)return;
     s.checkpointAt=Date.now();save(s);
   }
+  window.addEventListener?.('storage',event=>{if(event.key!==key()&&event.key!==null)return;if(stale()&&currentTab==='recording')render();});
   document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')checkpointActive(true);});
   window.addEventListener?.('pagehide',()=>{if(document.visibilityState!=='hidden')checkpointActive(true);});
   setInterval(()=>checkpointActive(),5000);
