@@ -95,6 +95,19 @@ try{
    assert.ok((await agenda.innerText()).includes('very long production checklist'),'Agenda preserves complete event names');
   }
   if(route==='recording'){
+   const timeline=page.locator('.cl-auto');
+   assert.ok(await timeline.isVisible(),'Evidence-based timeline opens in Recording');
+   await timeline.getByRole('button',{name:'Add scene',exact:true}).click();
+   await timeline.getByLabel('Scene title',{exact:true}).fill('Fixture scene correction');
+   await timeline.getByLabel('Scene title',{exact:true}).blur();
+   await timeline.getByLabel('Nick’s notes',{exact:true}).fill('Preserve this manual observation');
+   await timeline.getByRole('button',{name:'Pick Up Here',exact:true}).click();
+   await timeline.getByText('Import authorized captions',{exact:true}).click();
+   await timeline.getByLabel('Caption file',{exact:true}).setInputFiles({name:'authorized.vtt',mimeType:'text/vtt',buffer:Buffer.from('WEBVTT\n\n00:01.000 --> 00:03.000\n<v Jenny>Fixture dialogue</v>')});
+   await page.waitForFunction(()=>document.querySelector('.cl-auto nav')?.textContent.includes('Caption excerpt'));
+   await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).click();
+   assert.equal(await timeline.getByLabel('Nick’s notes',{exact:true}).inputValue(),'Preserve this manual observation');
+   assert.equal(await timeline.getByLabel('Scene title',{exact:true}).inputValue(),'Fixture scene correction');
    assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
    await page.getByRole('heading',{name:'Your Bingo results',exact:true}).waitFor();
    await page.evaluate(()=>{
@@ -122,8 +135,9 @@ try{
    assert.equal(await page.locator('.clp-bingo-squares textarea').first().inputValue(),'The paperwork joke belongs before the reveal.');
    if(width>=1280){
     const positions=await page.locator('.clp-desk-columns>section').evaluateAll(els=>els.map(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y})));
-    assert.ok(positions[0].x<positions[1].x&&positions[1].x<positions[2].x,'Landscape desk has three side-by-side lanes');
-    assert.ok(Math.abs(positions[0].y-positions[2].y)<2,'Story, notes and Bingo share a top edge');
+    assert.ok(positions[0].x<positions[1].x,'Landscape desk keeps timeline and notes side by side');
+    assert.ok(Math.abs(positions[0].y-positions[1].y)<2,'Timeline and notes share a top edge');
+    assert.ok(positions[2].y>positions[1].y&&Math.abs(positions[2].x-positions[0].x)<2,'Bingo results sit below the discussion workspace');
    }
    assert.ok(await page.locator('.clp-cue-trait').first().evaluate(el=>el.getBoundingClientRect().height<45),'Traits use compact text rows');
 
