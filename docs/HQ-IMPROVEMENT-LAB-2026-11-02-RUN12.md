@@ -16,7 +16,7 @@
 
 **Tests added:** One regression test checks active recording timestamp, button/hint, blocked editable and dialog contexts, key modifiers, repeats, paused state and other views. The isolated test harness now supports keydown registration. Existing marker and REAPER export tests remain in place.
 
-**CI:** An initial run (https://github.com/Moldavite333/Cheese-Louise/actions/runs/41471535333) had 139 passes and one new-test failure because the mocked view had not been rendered before checking its hint. This was a **test setup error**, not a production code error; the test now explicitly renders the view. Final CI status must be confirmed on the latest head before describing this change as verified.
+**CI:** An initial run (https://github.com/Moldavite333/Cheese-Louise/actions/runs/41471535333) had 139 passes and one new-test failure because the mocked view had not been rendered before checking its hint. This was a **test setup error**, not a production code error; the test now explicitly renders the view. **Verified:** final code + log head `13875fc` passed **140/140 Node regression tests**, browser JavaScript syntax, assembled Chromium HQ, mobile/desktop cocktail tests, deployed songwriting readiness, and Grit browser tests in [GitHub Actions run 41471744868](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41471744868). This is CI verification only, not authenticated device or real REAPER import verification.
 
 ## Research and technical rationale
 - Riverside supports in-studio markers with optional comments and documents an **M** keyboard shortcut: https://support.riverside.com/hc/en-us/articles/5286816799645-Add-markers-while-recording
