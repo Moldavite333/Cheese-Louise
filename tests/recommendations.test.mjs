@@ -59,7 +59,8 @@ test('fresh picks exclude earlier batches and saved films and retain discovery h
  await c.discoverCheeseMovies(true);await c.discoverCheeseMovies(true);
  assert.equal(requests[0].name,'recommend-romantiverse');assert.equal(requests[1].body.batch,1);
  assert.ok(requests[1].body.exclude_ids.includes(10));assert.ok(requests[1].body.exclude_title_years.includes('already saved|2023'));
- assert.equal(requests[1].body.exclude_unknown_titles.length,0);
+ assert.ok(!requests[1].body.exclude_unknown_titles.includes('already saved'));
+ assert.ok(requests[1].body.exclude_unknown_titles.includes('fresh movie 0'),'Unknown-year recommendation is retained in history');
  assert.equal(requests[0].body.likes[0].weight,1.5);
  assert.equal(c.state.discoveryResults[0].tmdb_id,11);
 });
