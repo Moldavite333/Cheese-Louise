@@ -35,3 +35,6 @@
 3. **P1 discovery:** Source/date-aware metadata and streaming availability audits for Hallmark, Lifetime, MarVista, Reel One; no fabricated availability.
 4. **P1 Bingo:** Audit actual marked squares versus completed lines/winners and confirmed Cheese Grating in five-minute ending.
 5. **P2 production workflow:** Approved cold open → theme → welcome/banter → Cheesy Concoctions → movie discussion → Bingo/Cheese Grating → closing, using migration-safe segment IDs; then REAPER handoff and publishing checklist.
+
+## Targeted execution check (after source commit)
+The updated `recording-hub.js` was parsed and executed in an isolated JavaScript runtime with mocked browser storage, timers, and DOM. Three targeted behaviors passed: (1) external-tab write triggers a read-only banner and preserves an unfinished marker, (2) the original writer can pause and preserve its elapsed time, and (3) normal single-tab start/pause remains functional. This **does not replace Node's complete test suite or a real multi-tab browser test**. The GitHub Actions list still showed no new workflow run for the connector-written head; do not mark CI green.
