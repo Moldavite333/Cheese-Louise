@@ -64,9 +64,35 @@ test('legacy single-session data is preserved when another episode is selected',
  assert.equal(h.data().sessions.a.markers[0].note,'Legacy marker');
 });
 test('a completed final segment can reopen and finish without duplicate laps',()=>{
- const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<6;i++){h.advance(10000);p.next()}
- assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,5);assert.equal(h.data().session.laps.length,5);
- p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,6);assert.equal(h.data().session.elapsedMs,65000);
+ const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<7;i++){h.advance(10000);p.next()}
+ assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,6);assert.equal(h.data().session.laps.length,6);
+ p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,7);assert.equal(h.data().session.elapsedMs,75000);
+});
+test('new recordings follow the approved cold-open to five-minute Bingo plan without mandatory Horror-fied',()=>{
+ const h=harness(recording),p=h.context.clProduction;h.context.render();
+ assert.match(h.html(),/Cold open/);assert.match(h.html(),/Theme music/);
+ assert.match(h.html(),/Welcome &amp; banter/);assert.match(h.html(),/Bingo &amp; Cheese Grating/);
+ assert.match(h.html(),/Target 00:00:20/);assert.match(h.html(),/Target 00:05:00/);
+ assert.ok(!h.html().includes('Horror-fied'));
+ p.start();h.advance(20000);p.next();
+ assert.equal(h.data().session.segmentPlan,'approved-v2');
+ assert.equal(h.data().session.laps[0].name,'Cold open');
+ assert.equal(h.data().session.laps[0].durationMs,20000);
+});
+test('legacy six-segment recordings keep original lap names and REAPER segment cues',()=>{
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{},segment:3,laps:[
+  {name:'Opening & banter',startMs:0,durationMs:10000},
+  {name:'Cheesy Concoctions',startMs:10000,durationMs:10000},
+  {name:'Movie & tropes',startMs:20000,durationMs:10000}
+ ],markers:[],elapsedMs:30000,runningSince:null,finished:false}};
+ const h=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)}),p=h.context.clProduction;
+ vm.runInContext(reaper,h.context);h.context.render();
+ assert.match(h.html(),/Horror-fied/);assert.ok(!h.html().includes('Cold open'));
+ p.start();h.advance(5000);p.next();
+ assert.equal(h.data().session.laps[3].name,'Horror-fied');
+ assert.equal(h.data().session.segment,4);
+ const exported=h.context.clReaperMarkers.build(h.data().session,[{name:'unused'}],35000);
+ assert.match(exported,/SEGMENT: Horror-fied/);
 });
 test('next cannot create a zero-time lap before the timer starts',()=>{
  const h=harness(recording);h.context.clProduction.next();assert.equal(h.data().session.laps.length,0);assert.equal(h.data().session.segment,0);
