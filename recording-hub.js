@@ -16,7 +16,7 @@
     {id:'theme',name:'Theme music',targetSeconds:30,prompt:'Play the Cheese Louise theme.'},
     {id:'welcome',name:'Welcome & banter',targetSeconds:180,prompt:'Welcome listeners and catch up naturally.'},
     {id:'cocktail',name:'Cheesy Concoctions',targetSeconds:300,prompt:'Introduce and taste the movie-matched cocktail.'},
-    {id:'discussion',name:'Movie review & discussion',targetSeconds:1800,prompt:'Follow movie chronology and natural conversation; mention tropes when relevant.'},
+    {id:'discussion',name:'Movie review & discussion',targetSeconds:1500,prompt:'Follow movie chronology and natural conversation; mention tropes when relevant.'},
     {id:'bingo',name:'Bingo & Cheese Grating',targetSeconds:300,prompt:'Play the Bingo sting, reveal confirmed Cheese Grating, marked squares, winning lines and winners.'},
     {id:'closing',name:'Closing',targetSeconds:60,prompt:'Final thoughts and sign-off.'}
   ];
