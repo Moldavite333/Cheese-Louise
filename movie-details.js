@@ -96,6 +96,7 @@ function clSavedMovieDetailModal(){
       <p>${esc(m.summary||'No synopsis is available yet.')}</p>
     </section>
 
+    ${window.clMovieResearch?.html(m)||''}
     ${notes?`<section class="cl-movie-detail-section"><div class="kicker">Notes</div><div>${esc(notes).replace(/\n/g,'<br>')}</div></section>`:''}
 
     <section class="cl-movie-detail-section">
