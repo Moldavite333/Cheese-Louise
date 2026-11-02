@@ -24,3 +24,9 @@ This log tracks **reviewable incremental work**. Do not conflate a draft PR with
 4. **Final production packet:** After shared state and episode identity are settled, package rundown, credits, marked Bingo squares vs winning lines, edit markers, clips, cocktail and QC tasks into one handoff without redundant note copies.
 
 Keep the current notes-first landscape layout, Nick/Jenny-only HQ access, no-Horror exclusion, confirmed Cheese Traits, Cheese Grating, and human control over Bingo marking.
+
+## 2026-11-02 — Run 14: same-browser recording conflict detection
+
+**Reviewed:** Run 13 checkpoint recovery and draft PR #57. **Implemented on review branch:** compare-before-write protection and same-origin `storage` event detection for HQ recording state. A tab that observes another tab's production-workspace edit becomes read-only, preserving unsaved marker text and preventing stale timer checkpoints, timeline edits, markers and session changes. Three regression tests added. This is not atomic locking or phone/laptop synchronization.
+
+**Verification:** GitHub Actions for the new head had not been observed at the time of writing; prior Run 13 green CI does not validate this change. **No merge or deployment.** Full detail: [Run 14](HQ-IMPROVEMENT-LAB-2026-11-02-RUN14.md). Next: current-head CI, authenticated two-tab verification, then versioned cross-device synchronization and staged release gates.
