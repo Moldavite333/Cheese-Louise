@@ -22,7 +22,7 @@ function fixture({member=true,key=true,provider=200,cached=false,changeMovie=fal
   if(u.pathname.endsWith('/movies')){movieReads++;return json([{...movie,...(changeMovie&&movieReads>2?{summary:'A corrected and different movie summary.'}:{})}]);}
   if(u.pathname.endsWith('/cheese_traits'))return json([{id:'trope-1',name:'Family business rescue',category:'Business',recognition:{}}]);
   if(u.pathname.endsWith('/rpc/request_movie_research')){if(cached)return json(false);rows.set(mid,{movie_id:mid,workspace_id:wid,status:'queued',report:{},input_hash:body.p_input_hash});return json(true);}
-  if(u.pathname.endsWith('/rpc/claim_movie_research')){const row=rows.get(mid);if(row?.status!=='queued')return json([]);row.status='generating';row.lease_token='lease-fixture';return json([row]);}
+  if(u.pathname.endsWith('/rpc/claim_requested_movie_research')){const row=rows.get(mid);if(row?.status!=='queued')return json([]);row.status='generating';row.lease_token='lease-fixture';return json([row]);}
   if(u.pathname.endsWith('/movie_research_briefs')){if(options.method==='PATCH'){Object.assign(rows.get(mid),body);return json(options.headers?.Prefer==='return=representation'?[rows.get(mid)]:null);}return json([...rows.values()]);}
   if(u.pathname.endsWith('/movie_research_versions'))return new Response(null,{status:204});
   if(u.pathname==='/v1/responses'){
@@ -59,12 +59,15 @@ test('unsigned and nonmember requests cannot enqueue jobs or spend API credit',a
 test('signed user cannot invoke internal drain and internal credential cannot invoke browser actions',async()=>{
  const h=fixture();assert.equal((await h.call({action:'drain'})).status,400);assert.equal((await h.call({action:'prepare_library'},'service-fixture')).status,403);assert.equal(h.tasks.length,0);
 });
-test('jobs use saved movie identity, persist a shared brief and continue the durable queue',async()=>{
- const h=fixture();assert.equal((await h.call({movie:{title:'Injected title'}})).status,202);await h.finish();const row=h.rows.get(mid);assert.equal(row.status,'limited');assert.equal(row.report.identity.title,movie.title);assert.equal(row.lease_token,null);assert.ok(h.calls.some(c=>c.url.includes('movie_research_versions')));assert.ok(h.calls.some(c=>c.url.includes('/functions/v1/movie-research')&&c.options.headers.Authorization==='Bearer service-fixture'));
+test('explicit requests use saved identity, persist one brief and never continue the library queue',async()=>{
+ const h=fixture();assert.equal((await h.call({movie:{title:'Injected title'}})).status,202);await h.finish();const row=h.rows.get(mid);assert.equal(row.status,'limited');assert.equal(row.report.identity.title,movie.title);assert.equal(row.lease_token,null);assert.ok(h.calls.some(c=>c.url.includes('movie_research_versions')));assert.ok(!h.calls.some(c=>c.url.includes('/functions/v1/movie-research')));
  const publicBody=await (await h.call({action:'status'})).text();assert.ok(!publicBody.includes('service-fixture'));assert.ok(!publicBody.includes('input_hash'));assert.ok(!publicBody.includes('lease_token'));
 });
 test('cached briefs do not cause new AI calls and missing provider config is actionable',async()=>{
  const h=fixture({cached:true});await h.call();await h.finish();assert.ok(!h.calls.some(c=>c.url.includes('openai')));const missing=fixture({key:false});assert.equal((await missing.call()).status,503);assert.ok(!missing.calls.some(c=>c.url.includes('/rpc/')));
+});
+test('passive status reads and legacy library-generation requests never enqueue, claim or spend AI credit',async()=>{
+ const h=fixture();assert.equal((await h.call({action:'library_status'})).status,200);assert.equal((await h.call({action:'status'})).status,200);assert.equal((await h.call({action:'prepare_library'})).status,400);await h.finish();assert.equal(h.tasks.length,0);assert.ok(!h.calls.some(c=>c.url.includes('/rpc/')||c.url.includes('openai')));
 });
 test('provider failure is sanitized and a movie edit during generation rejects the stale result',async()=>{
  const h=fixture({provider:429});await h.call();await h.finish();assert.equal(h.rows.get(mid).status,'error');assert.ok(!JSON.stringify(h.rows.get(mid)).includes('PRIVATE PROVIDER'));const changed=fixture({changeMovie:true});await changed.call();await changed.finish();assert.equal(changed.rows.get(mid).status,'error');assert.equal(changed.rows.get(mid).error_code,'movie_changed_retry');
@@ -84,6 +87,9 @@ test('browser research caches shared reports, escapes movie material and keeps w
  let resolvePending;const store=new Map(),timers=[];const report=validateReport(output,movie,[source],[{id:'trope-1'}]);report.premise='<script>unsafe</script>';
  const ctx={console,Date,URL,Blob,workspace:{id:wid},session:{user:{id:'user'}},state:{movies:[movie],traits:[{id:'trope-1',name:'Business rescue'}]},setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},document:{visibilityState:'visible',querySelectorAll:()=>[]},db:{functions:{invoke:async()=>({data:{briefs:[{movie_id:mid,workspace_id:wid,status:'ready',report}]}})}}};ctx.window=ctx;vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../movie-research.js',import.meta.url),'utf8'),ctx);await ctx.clMovieResearch.prepare(mid);assert.match(ctx.clMovieResearch.html(movie),/&lt;script&gt;unsafe/);assert.match(ctx.clMovieResearch.html(movie),/Business rescue/);assert.match(ctx.clMovieResearch.text(mid),/STORY BEATS/);assert.ok(store.size>0);
  ctx.db.functions.invoke=()=>new Promise(resolve=>resolvePending=resolve);const pending=ctx.clMovieResearch.prepare(mid);ctx.workspace={id:'other-workspace'};resolvePending({data:{briefs:[{movie_id:mid,workspace_id:wid,status:'ready',report}]}});await pending;assert.equal(ctx.clMovieResearch.getReport(mid),null);
+});
+test('loading the movie library only reads saved research and labels paid generation explicitly',async()=>{
+ const actions=[],timers=[];const ctx={Date,URL,Blob,workspace:{id:wid},session:{user:{id:'user'}},state:{movies:[movie],traits:[]},setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){},localStorage:{getItem:()=>null,setItem(){}},document:{visibilityState:'visible',querySelectorAll:()=>[]},db:{functions:{invoke:async(name,{body})=>{actions.push(body.action);return {data:{briefs:[]}};}}}};ctx.window=ctx;vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../movie-research.js',import.meta.url),'utf8'),ctx);await timers.shift()();assert.deepEqual(actions,['library_status']);assert.match(ctx.clMovieResearch.html(movie),/Generate movie timeline \(uses API credits\)/);assert.ok(!actions.includes('prepare_library'));
 });
 test('undo stores scene deltas instead of copying large source evidence on every keystroke',()=>{
  const ctx={crypto:webcrypto,Date};vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../timeline-core.js',import.meta.url),'utf8'),ctx);const C=ctx.clTimelineCore;
