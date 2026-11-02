@@ -106,6 +106,16 @@ test('checked-trait view survives redraw and string-encoded movie credits are in
  assert.ok(h.html().includes('Talk order'));assert.ok(!h.html().includes('No Cheese Traits match that search.'));assert.ok(h.html().includes('Director: Director A'));
 });
 
+test('an edited rundown persists separately from Watch Notes and can be rebuilt deliberately',()=>{
+ const h=harness(watching);h.context.currentTab='watchalong';
+ h.context.watchAlongSaveRundown('Custom opening\nCustom closing');
+ assert.equal(JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a')).rundownText,'Custom opening\nCustom closing');
+ h.context.watchAlongGenerateRundown();
+ const saved=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.match(saved.rundownText,/CHEESE LOUISE — RECORDING RUNDOWN/);
+ assert.ok(!saved.rundownText.includes('Custom opening'));
+});
+
 test('live recording redraw keeps an unfinished marker note and its category',()=>{
  const h=harness(recording);h.elements.get('clp-marker-note').value='Do not lose this pickup';h.elements.get('clp-marker-type').value='Retake';h.context.render();assert.equal(h.elements.get('clp-marker-note').value,'Do not lose this pickup');assert.equal(h.elements.get('clp-marker-type').value,'Retake');
 });

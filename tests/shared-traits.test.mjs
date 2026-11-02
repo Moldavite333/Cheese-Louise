@@ -8,7 +8,7 @@ function harness(saved={}){
   let html='',fail=false,gate=null;
   const score={textContent:'5',dataset:{cheeseScoreMovie:'a'}},badge={textContent:''};
   const subtotals=[{textContent:'5'},{textContent:'5'}],subtotalCounts=[{textContent:''},{textContent:''}];
-  const elements=new Map([['watchRundownPreview',{textContent:''}],['watchTraitBody',{innerHTML:''}],['clp-body',{innerHTML:''}],['clp-marker-note',{value:'Keep typing',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}]]);
+  const elements=new Map([['watchRundownPreview',{value:''}],['watchTraitBody',{innerHTML:''}],['clp-body',{innerHTML:''}],['clp-marker-note',{value:'Keep typing',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}]]);
   const sync={textContent:''},retry={hidden:true};
   const ctx=vm.createContext({console:{...console,warn(){}},Map,Set,Date,Promise,workspace:{id:'w'},session:{user:{id:'u'}},me:()=> 'u',
     state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],score:5},{id:'b',title:'Movie B',selectedTraitIds:[],score:0}],traits:[{id:'t1',name:'Old flame',points:5,is_active:true},{id:'t2',name:'Bakery',points:9,is_active:true}]},
@@ -32,7 +32,7 @@ test('a Watch Along check immediately updates the score, card and rundown and sa
   h.ctx.watchAlongToggleTrait('t2');
   assert.equal(h.ctx.state.movies[0].score,14);assert.equal(h.score.textContent,'14');
   assert.ok(h.subtotals.every(el=>el.textContent==='14'));assert.ok(h.subtotalCounts.every(el=>el.textContent==='2 tropes checked'));
-  assert.match(h.badge.textContent,/14 points/);assert.match(h.elements.get('watchRundownPreview').textContent,/14 points from 2 confirmed/);
+  assert.match(h.badge.textContent,/14 points/);assert.match(h.elements.get('watchRundownPreview').value,/14 points from 2 confirmed/);
   await h.ctx.clMovieTraits.retry('a');assert.equal(h.server.get('a').has('t2'),true);
   assert.equal(h.ctx.clMovieTraits.status('a').pending,0);
   await h.ctx.clMovieTraits.set('a','t1',false);assert.equal(h.score.textContent,'9');
@@ -57,7 +57,7 @@ test('a failed save remains explicitly unsynced and can be retried without losin
 test('a shared refresh imports another device’s traits and replaces stale draft membership',async()=>{
   const h=harness();await h.ctx.loadAll();h.ctx.watchAlongSaveText('notes','Notes stay here');
   h.server.get('a').add('t2');await h.ctx.loadAll();
-  assert.equal(h.score.textContent,'14');assert.match(h.elements.get('watchRundownPreview').textContent,/Bakery/);
+  assert.equal(h.score.textContent,'14');assert.match(h.elements.get('watchRundownPreview').value,/Bakery/);
   h.server.get('a').delete('t1');await h.ctx.loadAll();assert.equal(h.score.textContent,'9');
   const draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:w:draft:a'));
   assert.deepEqual(draft.traitIds,['t2']);assert.equal(draft.notes,'Notes stay here');

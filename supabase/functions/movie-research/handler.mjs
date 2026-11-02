@@ -18,7 +18,10 @@ export function createHandler({env,fetcher=fetch,background,now=()=>Date.now()})
  async function rpc(name,body){return rest('rpc/'+name,{method:'POST',body:JSON.stringify(body)});}
  async function ai(payload,timeout){
   const r=await request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:env('MOVIE_RESEARCH_MODEL')||env('GRIT_LYRICS_MODEL')||'gpt-4.1',store:false,...payload})},timeout);
-  if(!r.ok)throw new Problem(r.status===429?'provider_busy':'provider_unavailable',502);
+  if(!r.ok){let error;try{error=(await r.json()).error;}catch{}
+   const code=['insufficient_quota','credit_balance_exhausted','billing_hard_limit_reached'].includes(error?.code)||error?.type==='insufficient_quota'?'api_credit_required':r.status===401?'provider_key_rejected':r.status===403?'provider_access_denied':r.status===429?'provider_rate_limited':'provider_unavailable';
+   throw new Problem(code,502);
+  }
   const data=await r.json();if(data.status!=='completed')throw new Problem('provider_incomplete',502);return data;
  }
  async function fingerprint(movie){const data=JSON.stringify({version:1,...identity(movie),summary:clean(movie.summary)}),digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(data));return [...new Uint8Array(digest)].map(n=>n.toString(16).padStart(2,'0')).join('');}
@@ -38,20 +41,14 @@ export function createHandler({env,fetcher=fetch,background,now=()=>Date.now()})
   try{
    const result=await ai({...researchPrompt(movie,cast),tools:[{type:'web_search'}],include:['web_search_call.action.sources'],max_tool_calls:4,max_output_tokens:4400},55000);
    sources.push(...webEvidence(result));
-  }catch{warnings.push('Extended web research was unavailable; this brief uses the available movie material.');}
+  }catch(e){if(['api_credit_required','provider_key_rejected','provider_access_denied','provider_rate_limited'].includes(e.message))throw e;warnings.push('Extended web research was unavailable; this brief uses the available movie material.');}
   if(!sources.length)throw new Problem('insufficient_sources',422);
   const response=await ai({instructions:synthesisPrompt(movie,sources,tropes),input:'Prepare this movie’s source-attributed production brief now.',max_output_tokens:7200,text:{format:{type:'json_schema',name:'movie_production_brief',strict:true,schema:reportSchema}}},50000);
   let output;try{output=JSON.parse(responseText(response));}catch{throw new Problem('invalid_research_output',502);}
   const report=validateReport(output,movie,sources,tropes);report.warnings.push(...warnings);return report;
  }
- async function kick(workspaceId){
-  // A signed server-to-server continuation processes the next durable queue item.
-  // Browser clients cannot call this administrative action.
-  const r=await request(base()+'/functions/v1/movie-research',{method:'POST',headers:admin(),body:JSON.stringify({action:'drain',workspace_id:workspaceId})},15000);
-  if(!r.ok)throw Error('continuation_unavailable');
- }
- async function drain(workspaceId){
-  const claims=await rpc('claim_movie_research',{p_workspace_id:workspaceId}),claim=claims?.[0];if(!claim)return;
+ async function drain(workspaceId,movieId){
+  const claims=await rpc('claim_requested_movie_research',{p_workspace_id:workspaceId,p_movie_id:movieId}),claim=claims?.[0];if(!claim)return;
   const query=new URLSearchParams({movie_id:'eq.'+claim.movie_id,workspace_id:'eq.'+workspaceId,lease_token:'eq.'+claim.lease_token,status:'eq.generating'});
   try{
    const movies=await rest('movies?'+new URLSearchParams({select:'id,workspace_id,title,summary,tmdb_id,tmdb_type,premiere_date,network,source_metadata,status',id:'eq.'+claim.movie_id,workspace_id:'eq.'+workspaceId,limit:'1'}));
@@ -68,9 +65,8 @@ export function createHandler({env,fetcher=fetch,background,now=()=>Date.now()})
    const code=error instanceof Problem?error.message:['identity_mismatch'].includes(error.message)?error.message:'research_failed';
    await rest('movie_research_briefs?'+query,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'error',error_code:code,lease_token:null,updated_at:new Date(now()).toISOString(),retry_after:new Date(now()+30*60000).toISOString()})}).catch(()=>{});
   }
-  await kick(workspaceId).catch(()=>{});
  }
- function start(workspaceId){const promise=drain(workspaceId).catch(()=>{});if(background)background(promise);return promise;}
+ function start(workspaceId,movieId){const promise=drain(workspaceId,movieId).catch(()=>{});if(background)background(promise);return promise;}
  return async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method==='GET')return json({version:1,ready:!!env('OPENAI_API_KEY')&&!!env('SUPABASE_SERVICE_ROLE_KEY'),ai_ready:!!env('OPENAI_API_KEY'),storage_ready:!!env('SUPABASE_SERVICE_ROLE_KEY'),metadata_ready:!!env('TMDB_READ_ACCESS_TOKEN')});
@@ -83,21 +79,21 @@ export function createHandler({env,fetcher=fetch,background,now=()=>Date.now()})
    if(!internal){headers={Authorization:auth,apikey:env('SUPABASE_ANON_KEY')||'','Content-Type':'application/json'};const r=await request(base()+'/auth/v1/user',{headers});if(!r.ok)throw new Problem('sign_in_required',401);user=await r.json();if(!user.id)throw new Problem('sign_in_required',401);}
    const raw=await req.text();if(raw.length>4096)throw new Problem('request_too_large',413);let input;try{input=JSON.parse(raw);}catch{throw new Problem('invalid_request');}
    if(!uuid(input.workspace_id))throw new Problem('invalid_workspace');
-   if(internal){if(input.action!=='drain')throw new Problem('internal_action_only',403);start(input.workspace_id);return json({status:'accepted'},202);}
-   if(!['prepare','prepare_library','status','library_status'].includes(input.action))throw new Problem('unknown_action');
+   if(internal)throw new Problem('internal_actions_disabled',403);
+   if(input.action==='prepare_library')throw new Problem('on_demand_only',400);
+   if(!['prepare','status','library_status'].includes(input.action))throw new Problem('unknown_action');
    const members=await rest('workspace_members?'+new URLSearchParams({select:'workspace_id',workspace_id:'eq.'+input.workspace_id,user_id:'eq.'+user.id,limit:'1'}),{},headers);if(!members?.length)throw new Problem('workspace_forbidden',403);
-   const library=input.action==='prepare_library'||input.action==='library_status';
+   const library=input.action==='library_status';
    if(!library&&!uuid(input.movie_id))throw new Problem('invalid_movie');
    const q=new URLSearchParams({select:'id,workspace_id,title,summary,tmdb_id,tmdb_type,premiere_date,network,source_metadata,status',workspace_id:'eq.'+input.workspace_id,limit:library?'100':'1'});if(!library)q.set('id','eq.'+input.movie_id);else q.set('order','created_at.desc');
    const movies=await rest('movies?'+q,{},headers);if(!library&&!movies?.length)throw new Problem('movie_not_found',404);
-   if(input.action==='prepare'||input.action==='prepare_library'){
+   if(input.action==='prepare'){
     if(!env('OPENAI_API_KEY')||!env('SUPABASE_SERVICE_ROLE_KEY'))throw new Problem('research_not_configured',503);
     for(const m of movies)if(m.status!=='passed'&&!globalThis.clMovieIsHorror?.(m))await rpc('request_movie_research',{p_movie_id:m.id,p_workspace_id:input.workspace_id,p_input_hash:await fingerprint(m),p_force:input.action==='prepare'&&input.force===true});
-    start(input.workspace_id);
+    start(input.workspace_id,input.movie_id);
    }
    const filter=new URLSearchParams({select:'movie_id,workspace_id,status,report,updated_at,retry_after,error_code',workspace_id:'eq.'+input.workspace_id});if(!library)filter.set('movie_id','eq.'+input.movie_id);
    const rows=await rest('movie_research_briefs?'+filter,{},headers);
-   if(input.action==='library_status'&&(rows||[]).some(r=>r.status==='queued'||r.status==='generating'&&Date.parse(r.updated_at)<now()-8*60000))start(input.workspace_id);
    return json({briefs:(rows||[]).map(publicRow)},input.action.startsWith('prepare')?202:200);
   }catch(error){return json({error:error instanceof Problem?error.message:'research_unavailable'},error instanceof Problem?error.status:500);}
  };
