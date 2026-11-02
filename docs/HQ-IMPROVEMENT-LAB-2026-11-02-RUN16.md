@@ -31,3 +31,10 @@ Implemented on the **existing draft PR #57 branch**:
 
 ## Status
 **Code modified and committed on review branch only. Tests added but not yet run on the new head.** No main merge, production deployment, production data change, or claim of live integration.
+
+## Subsequent integration and verified tests
+- While Run 16 was in progress, `main` advanced to `698fc309` with automatic movie research briefs, sourced discussion prompts, timeline undo deltas, and a new additive research migration. GitHub marked PR #57 conflicted again.
+- Integrated that exact main commit into the existing PR #57 branch with a two-parent merge commit `85de93696c10efd0bd92a49db0d02b6aa93657f1`. Preserved Run 16 seven-section plan and all previous recording safeguards; carried over the new research files and tests, merged the recording timeline's research panel, and loaded new scripts/styles in index.html. The branch is **zero commits behind main** at that commit; GitHub's raw PR endpoint reported `mergeable:true` with state `unstable` while CI was pending.
+- **Full CI on merge commit `85de936` passed:** [Actions run 41506145041](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41506145041) reported **177 Node tests passed, 0 failed**, browser syntax, assembled Chromium HQ, mobile/desktop cocktail and Grit checks all successful. This supersedes the earlier pending-test statement for the integrated code commit. The final progress-log-only commit may not have its own CI yet.
+- The automatic research feature is **code integrated, not verified live**. Its Supabase migration, backend function, actual AI API spend, authenticated research generation, and source quality still need staging/production verification. No claims of live research availability or cloud note synchronization.
+- Release remains **draft and unmerged**. Authenticated Nick/Jenny phone/laptop tests, actual REAPER import, movie identity/availability checks, backend-first recommendation deployment, and research rollout/cost review are outstanding.
