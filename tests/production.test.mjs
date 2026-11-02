@@ -232,7 +232,7 @@ test('M shortcut creates a live marker without stealing text entry or affecting 
  keydown(key());assert.equal(h.data().session.markers.length,1);
  assert.equal(h.data().session.markers[0].atMs,7500);
  assert.equal(prevented,1);
- h.context.render();assert.match(h.html(),/Press M to mark a moment/);
+ h.context.render();assert.match(h.html(),/Press M to mark a moment/);assert.match(h.html(),/aria-keyshortcuts="M"/);
  const ignored=[
    {target:{tagName:'INPUT'}},{target:{tagName:'TEXTAREA'}},{target:{tagName:'SELECT'}},
    {target:{tagName:'BUTTON'}},{target:{tagName:'DIV',isContentEditable:true}},
