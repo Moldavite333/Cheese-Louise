@@ -104,7 +104,9 @@ try{
    });
    assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('5 marked squares'));
    assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('1 completed Bingos'));
-   await page.locator('.clp-bingo-squares details').first().locator('summary').click();
+   assert.equal(await page.locator('.clp-bingo-board .clp-bingo-cell').count(),25,'The actual website card layout appears in HQ');
+   assert.equal(await page.locator('.clp-bingo-cell.is-bingo').count(),5,'Only the five squares forming the completed Bingo get gold borders');
+   await page.locator('.clp-bingo-cell').first().click();
    await page.locator('.clp-bingo-squares textarea').first().fill('The paperwork joke belongs before the reveal.');
    await page.locator('.clp-bingo-squares').getByRole('button',{name:'Add to talk order'}).first().click();
    assert.ok((await page.locator('.clp-desk-discussion').innerText()).includes('paperwork joke'));
@@ -116,6 +118,7 @@ try{
     clProduction.refreshDesk();
    });
    assert.ok((await page.locator('.clp-bingo-counts').innerText()).includes('0 completed Bingos'));
+   assert.equal(await page.locator('.clp-bingo-cell.is-bingo').count(),0,'Undo removes the winning-square highlight');
    assert.equal(await page.locator('.clp-bingo-squares textarea').first().inputValue(),'The paperwork joke belongs before the reveal.');
    if(width>=1280){
     const positions=await page.locator('.clp-desk-columns>section').evaluateAll(els=>els.map(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y})));
