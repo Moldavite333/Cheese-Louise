@@ -194,3 +194,28 @@ test('restored session exports REAPER markers without modifying its archived his
  assert.match(downloads[0].parts[0],/Funny \/ Clip/);
  assert.equal(JSON.stringify(h.data()),before);
 });
+
+
+test('switching movies while recording cannot silently pause or redirect the timer',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(2000);p.mark();
+ const before=h.data(),warningCount=h.alerts.length;
+ p.movie('b');
+ const blocked=h.data();
+ assert.equal(blocked.session.movieId,'a');
+ assert.equal(blocked.session.runningSince,before.session.runningSince);
+ assert.equal(blocked.session.elapsedMs,0);
+ assert.equal(blocked.session.markers.length,1);
+ assert.equal(blocked.sessions.b,undefined);
+ assert.equal(h.alerts.length,warningCount+1);
+ assert.match(h.alerts.at(-1),/Pause the recording timer before switching movies/);
+ assert.match(h.html(),/<option value="a" selected>/);
+ p.movie('a');
+ assert.equal(h.alerts.length,warningCount+1,'Selecting the current movie does not interrupt the take');
+ p.pause();p.movie('b');
+ const switched=h.data();
+ assert.equal(switched.movieId,'b');
+ assert.equal(switched.sessions.a.elapsedMs,2000);
+ assert.equal(switched.sessions.a.markers[0].atMs,2000);
+ assert.equal(switched.sessions.a.runningSince,null);
+});
