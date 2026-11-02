@@ -21,7 +21,7 @@
 
 ## Verification and release boundary
 - Review branch code commits: `eb28e2a`, `e0bedfe`, `3e6ffc5`.
-- GitHub Actions [run 41541959393](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41541959393) started on the final code commit. The Node production tests and browser JavaScript syntax checks completed successfully; assembled browser and other regression checks were still running when this log was written. Recheck final status before reporting full CI green.
+- **GitHub Actions [run 41541959393](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41541959393) completed successfully** on exact code commit `3e6ffc5`: **191/191 Node tests passed**, 0 failures; browser JavaScript syntax, assembled HQ Chromium checks, cocktail mobile/desktop checks, and Grit songwriting browser checks all passed. The subsequent documentation-only commit should be checked separately.
 - No actual Nick/Jenny cross-device workflow, live Bingo room, RØDECaster session, REAPER import, or deployed website was tested.
 - Keep PR #57 draft until full CI, backend-first recommendation compatibility, authenticated device tests, and REAPER GUI import have been verified.
 
