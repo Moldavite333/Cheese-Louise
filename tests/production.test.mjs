@@ -404,3 +404,14 @@ test('automatic scene metadata cannot overwrite the actual recording marker time
   assert.equal(marker.note,'Keep this moment');assert.equal(marker.scene_id,'scene-7');
   assert.equal(marker.movie_time_ms,12345);
 });
+
+test('checkpoint persistence of an unsaved marker does not duplicate it on a manual retry',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  p.start();h.advance(9000);h.block();p.mark();
+  h.unblock();h.intervals.get(5000)();
+  assert.equal(h.data().session.markers.length,1,'Checkpoint saved the pending marker');
+  assert.equal(h.data().session.markers[0].atMs,9000);
+  p.mark();
+  assert.equal(h.data().session.markers.length,1,'Retry must recognize the already-persisted marker ID');
+  assert.equal(h.elements.get('clp-marker-note').value,'');
+});
