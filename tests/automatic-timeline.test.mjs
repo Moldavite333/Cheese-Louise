@@ -6,14 +6,14 @@ import vm from 'node:vm';
 const core=readFileSync(new URL('../timeline-core.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../automatic-timeline.js',import.meta.url),'utf8');
 function harness(storage=new Map()){
- let blocked=false;const status={textContent:''};
- const ctx={crypto:webcrypto,Date,console,setTimeout,Blob,URL,localStorage:{getItem:k=>storage.get(k)||null,setItem(k,v){if(blocked)throw Error('quota');storage.set(k,v);}},document:{getElementById:()=>status},navigator:{clipboard:{writeText:async()=>{}}}};
+ let blocked=false,readsBlocked=false,downloaded;const status={textContent:''};
+ const ctx={crypto:webcrypto,Date,console,setTimeout:fn=>fn(),Blob:class{constructor(parts){downloaded=parts.join('');}},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},localStorage:{getItem(k){if(readsBlocked)throw Error('Storage access denied');return storage.get(k)||null;},setItem(k,v){if(blocked)throw Error('quota');storage.set(k,v);}},document:{getElementById:()=>status,createElement:()=>({click(){}})},navigator:{clipboard:{writeText:async()=>{}}}};
  ctx.window=ctx;vm.createContext(ctx);vm.runInContext(core,ctx);vm.runInContext(ui,ctx);
  const C=ctx.clTimelineCore,A=ctx.clAutomaticTimeline;
  const context={movie:{id:'m1',title:'Same title',year:2023,summary:'A shop owner returns home.'},workspace:'w1',notes:'Keep original note',legacy:[],confirmed:[],redraw(){}};
  const html=()=>A.html(context);html();
  const data=()=>JSON.parse(storage.get('cheeseLouise:timeline:v1:w1:m1')).doc;
- return {C,A,ctx,storage,status,context,html,data,block:()=>blocked=true};
+ return {C,A,ctx,storage,status,context,html,data,downloaded:()=>JSON.parse(downloaded),block:()=>blocked=true,blockReads:()=>readsBlocked=true};
 }
 const srt='1\n00:00:01,250 --> 00:00:04,500\n<v Jenny>Hello</v>\n\n2\n00:04:05,000 --> 00:04:06,000\n[Door closes]';
 test('caption timing, explicit speakers, sound cues and offsets survive parsing',()=>{
@@ -43,6 +43,12 @@ test('quota failure exposes unsaved state and preserves typed material for recov
 });
 test('concurrent tab edits are rejected without replacing newer disk material',()=>{
  const h=harness();h.A.edit('nick_notes','Initial');const other=harness(h.storage);other.A.edit('nick_notes','Other tab');h.A.edit('nick_notes','Stale write');assert.match(h.status.textContent,/Another tab/);assert.equal(h.data().scenes[0].nick_notes,'Other tab');
+});
+test('a stale-tab conflict keeps the rejected text and subsequent edits available for recovery',()=>{
+ const h=harness();h.A.edit('nick_notes','Initial');const other=harness(h.storage);other.A.edit('nick_notes','Other tab');h.A.edit('nick_notes','Recover this rejected edit');assert.match(h.html(),/Recover this rejected edit/);h.A.edit('shared_notes','Also recover this');assert.match(h.html(),/Also recover this/);h.A.backup();assert.equal(h.downloaded().doc.scenes[0].nick_notes,'Recover this rejected edit');assert.equal(h.downloaded().doc.scenes[0].shared_notes,'Also recover this');assert.equal(h.data().scenes[0].nick_notes,'Other tab');assert.notEqual(h.data().scenes[0].shared_notes,'Also recover this');
+});
+test('storage read denial keeps typed notes in memory without changing the persisted draft',()=>{
+ const h=harness();h.A.edit('nick_notes','Saved');h.blockReads();h.A.edit('nick_notes','Pending while storage is denied');assert.match(h.status.textContent,/Unsaved/);assert.match(h.html(),/Pending while storage is denied/);h.A.backup();assert.equal(h.downloaded().doc.scenes[0].nick_notes,'Pending while storage is denied');assert.equal(h.data().scenes[0].nick_notes,'Saved');
 });
 test('Jenny export includes evidence and confirmed movie tropes without Bingo claims',()=>{
  const {C}=harness(),d=C.create({id:'m'},'Opening','Shared note');d.scenes[0].jenny_notes='Jenny callback';const text=C.exportText(d,'Movie',['Hometown return']);assert.match(text,/Jenny callback/);assert.match(text,/Unknown/);assert.match(text,/Hometown return/);assert.match(text,/not Bingo results/);assert.match(text,/Additional notes/);

@@ -6,12 +6,14 @@
   function status(text){message=text;const node=document.getElementById('cl-auto-status');if(node)node.textContent=text;}
   function save(change,redraw=true,undo=false){
     try{
-      const value=read(),disk=JSON.parse(localStorage.getItem(key())||'null');
-      if(disk&&disk.doc.revision!==(value.pendingBase??value.doc.revision)){status('Another tab changed this timeline. Download recovery before reloading.');return false;}
+      const value=read();let disk,readFailed=false;
+      try{disk=JSON.parse(localStorage.getItem(key())||'null');}catch{readFailed=true;}
       const doc=C.clone(value.doc);change(doc);doc.scenes.forEach((s,i)=>s.sequence_index=i);C.validate(doc);doc.revision++;
       const next={doc,history:undo?value.history.slice(0,-1):[...value.history.slice(-19),value.doc]};
       // Keep pending text in memory if quota/storage fails; never claim it was saved.
       cache.set(key(),next);
+      if(readFailed){next.pendingBase=value.pendingBase??value.doc.revision;next.conflicted=value.conflicted;status('Unsaved — storage cannot be read. Download recovery before closing.');if(redraw)context.redraw();return false;}
+      if(value.conflicted||disk&&disk.doc.revision!==(value.pendingBase??value.doc.revision)){next.pendingBase=value.pendingBase??value.doc.revision;next.conflicted=true;status('Another tab changed this timeline. Your edits remain in memory. Download recovery before reloading.');if(redraw)context.redraw();return false;}
       try{localStorage.setItem(key(),JSON.stringify(next));status('Saved on this device · revision '+doc.revision);}catch{next.pendingBase=value.pendingBase??value.doc.revision;status('Unsaved — download recovery before closing.');if(redraw)context.redraw();return false;}
       if(redraw)context.redraw();return true;
     }catch(e){status(e.message);return false;}
