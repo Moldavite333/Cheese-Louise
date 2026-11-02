@@ -195,7 +195,7 @@
       const s=entry.session||{},date=new Date(entry.archivedAt).toLocaleString();
       const id=String(entry.archiveId||'');
       if(!/^[a-z0-9-]+$/i.test(id))return '';
-      return '<div><span><strong>'+escapeHtml(date)+'</strong> · '+clock(s.elapsedMs||0)+' · '+(s.markers||[]).length+' markers'+(s.finished?' · finished':'')+'</span>'+button('Restore','restoreSession(\\''+id+'\\')')+'</div>';
+      return '<div><span><strong>'+escapeHtml(date)+'</strong> · '+clock(s.elapsedMs||0)+' · '+(s.markers||[]).length+' markers'+(s.finished?' · finished':'')+'</span>'+button('Restore',"restoreSession('"+id+"')")+'</div>';
     }).join('')+'</div></details>';
   }
   function editHtml(){
