@@ -62,3 +62,27 @@
  .clp-note-legend{margin-bottom:10px}
  .clp-snapshot-label{flex-basis:100%}
 }
+.clp-movie-timeline{padding:12px;margin:0 0 14px;border:1px solid #7076a7;border-left:4px solid #b8befe;border-radius:9px;background:var(--panel,#1c202d)}
+.clp-timeline-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.clp-timeline-head h2{font-size:18px;line-height:1.2;margin:0 0 4px}
+.clp-timeline-head small{font-size:11px;color:var(--muted)}
+.clp-timeline-head button{min-height:44px;font-size:12px;padding:6px 10px}
+.clp-timeline-focus{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.clp-timeline-focus>div{padding:9px;border:1px solid var(--line,#555);border-radius:7px;min-width:0}
+.clp-timeline-focus>div:first-child{border-color:#b8befe;background:rgba(184,190,254,.08)}
+.clp-timeline-focus p{font-size:14px;line-height:1.4;margin:4px 0 0;overflow-wrap:anywhere}
+.clp-movie-timeline time{font-variant-numeric:tabular-nums;color:#c7cbff;font-weight:650}
+.clp-timeline-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.clp-timeline-actions button{min-height:44px;padding:7px 10px;font-size:12px}
+.clp-timeline-list{margin-top:10px}
+.clp-timeline-list summary{font-size:12px;cursor:pointer;padding:7px 0}
+.clp-timeline-list ol{list-style:none;padding:0;margin:4px 0;display:grid;gap:4px}
+.clp-timeline-list button{display:flex;gap:8px;align-items:baseline;width:100%;min-height:44px;padding:7px 9px;text-align:left;font-size:13px;line-height:1.4;overflow-wrap:anywhere;background:transparent;color:inherit;border:1px solid var(--line,#555);border-radius:6px}
+.clp-timeline-list button.current{border-color:#b8befe;background:rgba(184,190,254,.1)}
+.clp-timeline-list button.done{opacity:.65}
+.clp-timeline-number{min-width:20px;font-variant-numeric:tabular-nums}
+.clp-timeline-editor{margin-top:12px;border-top:1px solid var(--line,#555);padding-top:10px}
+.clp-timeline-editor label{display:block;font-size:12px;margin-bottom:6px}
+.clp-timeline-editor textarea{box-sizing:border-box;width:100%;padding:9px;font:inherit;font-size:14px;line-height:1.4;background:var(--panel-2,#25262c);color:var(--text,#fff);border:1px solid var(--line,#555);border-radius:7px;resize:vertical}
+.clp-movie-timeline .clp-hint{font-size:12px;line-height:1.4;margin:8px 0 0}
+@media(max-width:600px){.clp-timeline-focus{grid-template-columns:1fr}.clp-timeline-head{align-items:flex-start}.clp-timeline-actions button{flex:1}}

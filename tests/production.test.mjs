@@ -4,6 +4,34 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const recording=readFileSync(new URL('../recording-hub.js',import.meta.url),'utf8');
 const watching=readFileSync(new URL('../watch-along.js',import.meta.url),'utf8');
+
+test('movie timeline shows now and next, persists progress, and stays separate from recording time',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.timelineDraft('00:05 - Opening\n12:30 - Meeting\n1:02:00 - Reveal');p.timelineSave();p.start();h.advance(15000);
+ p.timelineMove(1);h.context.render();
+ assert.equal(h.data().timelines.a.items[1].time,'12:30');assert.equal(h.data().timelines.a.items[1].text,'Meeting');
+ assert.match(h.html(),/Now<\/span><p><time>12:30<\/time> Meeting/);assert.match(h.html(),/Next<\/span><p><time>1:02:00<\/time> Reveal/);
+ assert.equal(h.data().session.runningSince,100000);assert.equal(h.data().session.laps.length,0);p.mark();assert.equal(h.data().session.markers[0].atMs,15000);
+ const reloaded=harness(recording,Object.fromEntries(h.storage));reloaded.context.render();assert.match(reloaded.html(),/12:30<\/time> Meeting/);
+ p.timelineMove(99);assert.equal(h.data().timelines.a.index,3);p.timelineMove(-99);assert.equal(h.data().timelines.a.index,0);
+});
+
+test('timeline edits preserve current beat and isolate movies and unsaved drafts',()=>{
+ const h=harness(recording),p=h.context.clProduction;p.timelineDraft('Opening\nMeeting');p.timelineSave();p.timelineMove(1);
+ p.timelineDraft('New scene\nOpening\nMeeting');p.timelineSave();assert.equal(h.data().timelines.a.index,2);
+ p.movie('b');p.timelineDraft('Other movie');p.timelineSave();assert.equal(h.data().timelines.b.items.length,1);
+ p.movie('a');assert.equal(h.data().timelines.a.index,2);p.timelineDraft('<script>draft</script>');
+ const r=harness(recording,Object.fromEntries(h.storage));r.context.clProduction.timelineEdit();r.context.render();
+ assert.ok(r.html().includes('&lt;script&gt;draft&lt;/script&gt;'));assert.ok(!r.html().includes('<script>draft</script>'));assert.equal(r.data().timelines.a.items.length,3);
+});
+
+test('Watch Along import produces an editable timeline draft and preserves existing movie times',()=>{
+ const draft={outlineItems:[{id:'n1',type:'note',text:'Opening'},{id:'n2',type:'note',text:'Meeting'}],notes:'Meeting\nFinal reveal'};
+ const h=harness(recording,{'cheeseLouise:watchAlong:workspace-test:draft:a':JSON.stringify(draft)}),p=h.context.clProduction;
+ p.timelineDraft('00:05 - Opening');p.timelineSave();p.timelineImport();p.timelineImport();
+ assert.equal(h.data().timelines.a.items.length,1);assert.equal(h.data().timelineDrafts.a,'00:05 \u2014 Opening\nMeeting\nFinal reveal');
+ p.timelineSave();assert.equal(h.data().timelines.a.items.length,3);assert.equal(h.data().timelines.a.items[0].time,'00:05');
+});
 function harness(source,initial={}){
  const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
