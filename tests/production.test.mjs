@@ -48,9 +48,10 @@ function harness(source,initial={}){
  return {context,storage,elements,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
- const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.movie('b');
+ const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.pause();p.movie('b');
  assert.equal(h.data().sessions.a.markers.length,1);assert.equal(h.data().sessions.a.runningSince,null);
- p.start();h.advance(15000);p.mark();p.movie('a');p.copyEdit();
+ // The producer must explicitly pause before switching movies during a live take.
+ p.start();h.advance(15000);p.mark();p.pause();p.movie('a');p.copyEdit();
  assert.equal(h.data().sessions.a.markers[0].atMs,30000);assert.equal(h.data().sessions.b.markers[0].atMs,15000);
  const reloaded=harness(recording,Object.fromEntries(h.storage));reloaded.context.clProduction.movie('b');
  assert.equal(reloaded.data().sessions.a.markers.length,1);assert.equal(reloaded.data().sessions.b.markers.length,1);
