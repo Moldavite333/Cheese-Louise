@@ -59,10 +59,20 @@ test('voting Yes on a new discovery never writes a predicted score into verified
   assert.deepEqual(h.votes,[{id:'movie-1',value:'yes'}]);
 });
 
-test('explicit Add + confirm traits still saves the selected trait evidence',async()=>{
+test('adding from Radar never treats metadata-matched tropes as verified',async()=>{
+  const h=fixture();
+  const html=h.context.discoveryCard(h.candidate);
+  assert.match(html,/Add to Radar/);
+  assert.match(html,/Review 2 predicted Cheese Traits after watching/);
+  assert.doesNotMatch(html,/Add \+ confirm/);
+  await h.context.addDiscoveredMovie(558815);
+  assert.equal(h.insertedTraits.length,0);
+  assert.equal(h.getInserted().cheese_score,0);
+});
+
+test('legacy addDiscoveredMovie true argument cannot auto-confirm suggested tropes',async()=>{
   const h=fixture();
   await h.context.addDiscoveredMovie(558815,true);
-  assert.equal(h.insertedTraits.length,2);
-  assert.deepEqual(h.insertedTraits.map(x=>x.trait_id),['bakery','farmer']);
+  assert.equal(h.insertedTraits.length,0);
   assert.equal(h.getInserted().cheese_score,0);
 });
