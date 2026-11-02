@@ -20,6 +20,7 @@ Professional reference: [Riverside: add markers while recording](https://support
 
 ## Verification
 - **Passed:** Four targeted, executable V8 runtime checks against the exact updated `recording-hub.js` source: inactive/paused guard; failed-save retry; checkpoint/retry idempotence; scene metadata isolation.
+- **Passed:** 35/35 tests in `tests/production.test.mjs` executed through a V8 compatibility harness with simulated Node assertions and browser globals. This exercises the actual test bodies but is **not** an official Node test run or Chromium browser test.
 - **Added, not yet CI-verified:** Four Node regression tests for those cases.
 - **GitHub:** PR #57 remains draft. Compare reports zero commits behind `main` as of this run; GitHub reports mergeable.
 - **Not verified:** Full current-head GitHub Actions, authenticated Nick/Jenny laptop/phone sessions, actual REAPER GUI import, live Supabase research and recommendation backend. Connector-authored commits have not yet produced a PR workflow run for this head. Do not quote Run 16's 177 tests as Run 17's test count.
