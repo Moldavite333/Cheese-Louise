@@ -33,4 +33,6 @@ Metadata research: [TMDB movie details](https://developer.themoviedb.org/referen
 
 ## Validation
 
+November 2, 2026: 115/115 Node tests passed. The full browser fixture suite passed at 360, 768, 1024 and 1440 pixels using installed Edge with bundled Playwright. Initial Chromium launch failures were environmental; a note-field accessible-name issue discovered by the browser test was fixed. An existing Tools-menu focus assertion failed once and passed on rerun. The layout expectation now explicitly checks timeline/notes side by side and Bingo below, matching this specification. No production deployment has been made.
+
 Run `node --test tests/*.test.mjs` and the existing `node scripts/hq-browser-smoke.mjs` with Playwright available. New Node cases cover malformed captions, offsets, unknown timing, preserved notes, immutable caption ingestion, duplicate handling, evidence validation, scene operations, revision recovery, quota failure, concurrent tabs, export and workspace isolation. The browser runner now exercises actual caption-file upload and note preservation in Recording at its four existing viewport widths with synthetic data. No live movie records, user notes, captions or recordings are modified by these tests.
