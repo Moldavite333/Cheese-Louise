@@ -497,9 +497,9 @@ suggestTraits=async function(movieId){
   if(suggestions.length>18) lines.push('• +'+(suggestions.length-18)+' more possible traits');
   // A synopsis is not viewing evidence. Never bulk-write predicted traits.
   // The movie detail picker remains the explicit, per-trait verification path.
-  alert('Cheese Master predictions (not verified):\\n\\n'+lines.join('\\n')+
-    '\\n\\nPredicted Cheese Grating: '+suggestions.reduce(function(sum,m){return sum+Number(m.trait.points||0);},0)+
-    ' points.\\n\\nAfter watching, select only the traits you actually saw in the movie detail picker. Nothing has been added.');
+  alert('Cheese Master predictions (not verified):\n\n'+lines.join('\n')+
+    '\n\nPredicted Cheese Grating: '+suggestions.reduce(function(sum,m){return sum+Number(m.trait.points||0);},0)+
+    ' points.\n\nAfter watching, select only the traits you actually saw in the movie detail picker. Nothing has been added.');
 };
 window.suggestTraits=suggestTraits;
 
