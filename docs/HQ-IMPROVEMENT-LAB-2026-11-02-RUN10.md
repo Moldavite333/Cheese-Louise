@@ -21,7 +21,7 @@
 
 ## Verification and release gates
 - Code commits: `12710a6` (legacy import), `c7fabaad` (optimistic score), `7a8b10d` (four tests), `5c97b95` (cache refresh).
-- GitHub Actions on code head: https://github.com/Moldavite333/Cheese-Louise/actions/runs/41448808259
+- **Verified on code head `5c97b95`: 138/138 Node tests passed, zero failures; JS syntax, assembled Chromium HQ, mobile/desktop cocktail, deployed songwriting readiness and Grit browser checks all passed.** https://github.com/Moldavite333/Cheese-Louise/actions/runs/41448808259
 - Test cases: manual fallback writes 0; v1.1 numeric estimate is preserved as unverified summary text while official score stays 0; invalid estimate does not create false provenance; optimistic score preserves raw value and unknown IDs.
 - Authenticated Nick/Jenny device testing, actual REAPER CSV import, live search for *A Christmas Village*, Supabase backend-first release coordination, and cross-device recording sync remain outstanding.
 - **Do not merge or deploy automatically.** All changes remain part of draft PR #57.
