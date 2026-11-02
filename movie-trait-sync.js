@@ -10,10 +10,14 @@
   }
   function score(m){
     const byId=new Map((state.traits||[]).map(t=>[t.id,t]));
-    const ids=[...new Set(m.selectedTraitIds||[])].filter(id=>byId.has(id));
-    const selectedTraits=ids.map(id=>byId.get(id));
+    // Retain unknown trait IDs so the provenance audit can flag missing definitions.
+    const ids=[...new Set(m.selectedTraitIds||[])];
+    const selectedTraits=ids.map(id=>byId.get(id)).filter(Boolean);
     const total=selectedTraits.reduce((sum,t)=>sum+(Number(t.points)||0),0);
-    Object.assign(m,{selectedTraitIds:ids,selectedTraits,score:total,cheese_score:total});
+    const gratingAudit=window.clCheeseGratingIntegrity?.audit?.(m,ids,state.traits);
+    // Never overwrite the original stored cheese_score with an optimistic UI total.
+    Object.assign(m,{selectedTraitIds:ids,selectedTraits,score:gratingAudit?.confirmedScore??total});
+    if(gratingAudit)m.gratingAudit=gratingAudit;
   }
   function orderedIds(m,draft={}){
     const selected=new Set(m?.selectedTraitIds||[]);
