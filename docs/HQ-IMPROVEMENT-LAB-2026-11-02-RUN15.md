@@ -25,3 +25,19 @@
 3. P1: Source/date-aware streaming catalog verification across Hallmark, Lifetime, MarVista and Reel One.
 4. P1: Authoritative Bingo results import and verified Cheese Grating in the five-minute ending.
 5. P2: Migration-safe segment template for 20-second cold open, theme, welcome, cocktail, discussion and Bingo reveal; preserve existing lap history.
+
+## Codex-ready release acceptance matrix
+
+**P0 — integration QA (run on the exact merge head; no deployment):**
+1. Run `node --test tests/*.test.mjs` and `node scripts/hq-browser-smoke.mjs` with the project's documented Playwright browser setup. Capture test count, failures, commit SHA and Actions URL. Do not reuse earlier branch counts.
+2. On desktop widths 1024/1440 and mobile widths 360/768, open Recording. The evidence-first timeline must appear above the existing manual talk order; Nick/Jenny notes, movie scene navigation, timer, and Bingo must remain reachable without horizontal overflow.
+3. Import an authorized WebVTT/SRT fixture. Confirm captions are labeled navigation excerpts, timestamps are source-supported, and scene selection survives a redraw. Record a marker and verify `scene_id`, `movie_time_ms`, HQ `atMs`, type and note. Legacy markers without scene fields must still render and export to REAPER.
+4. Open two tabs on the same workspace, start a timer and add a marker in tab A, then attempt a stale write in tab B. Tab B must not overwrite A; its unfinished marker text must survive. Reload after a simulated interruption: no fabricated gap without explicit reconciliation.
+5. Test denied/quota-exceeded localStorage: timeline recovery download includes unsaved Nick/Jenny text; persistent records remain unchanged. Check keyboard focus, accessible labels and screen-reader status messages for conflicts.
+6. Test authorized/unauthorized account access and phone/laptop behavior. Browser-local timeline and session data must be explicitly described as **not synced**. Do not assume Jenny's phone sees Nick's laptop notes.
+7. Verify the exact saved-title `A Christmas Village` (2018, TMDB 558815), historical Cheese Grating discrepancy labels, no predicted-to-verified promotion, and authoritative Bingo marked-square/winning-line separation.
+8. Deploy the recommendation Edge Function to an isolated staging environment **before** its new client, verify year-aware identity and old-client compatibility, then test REAPER import and rollback. No production write, migration, or main merge until sign-off.
+
+**P1 — next Codex implementation after P0 passes:** Introduce workspace-scoped, authenticated `episode_documents` and `episode_revisions` with immutable revision IDs, optimistic concurrency (expected revision), Supabase RLS using the existing workspace-membership predicate, idempotent append-only recording markers, per-host note ownership, and explicit conflict-copy recovery. Start with Watch Along/timeline notes; do **not** put live timers under last-write-wins replication. Preserve device-local backup and offline edit queues. Test two authenticated hosts editing separate notes, concurrent edits to one note, offline reconnect, revoked membership, duplicate marker retries, and cross-workspace isolation. Treat authorized subtitle text as sensitive licensed input: no automatic external upload or public sharing.
+
+**P1/P2 — product roadmap, without duplicating implemented work:** Discovery source/region/date provenance and coverage metrics; authoritative Bingo import and five-minute Cheese Grating reveal; migration-safe episode segment IDs for cold open (~20s), theme, welcome/banter, cocktail, discussion, Bingo reveal and closing (Horror-fied optional, not mandatory); REAPER EDL/chapters with source-labelled suggested cuts; and publishing checklist/feedback. Keep the Recording desk landscape-first and prioritize conversation over dashboards.
