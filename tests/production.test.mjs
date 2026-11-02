@@ -35,17 +35,18 @@ test('Watch Along import produces an editable timeline draft and preserves exist
 });
 function harness(source,initial={}){
  const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
+ const listeners=new Map();
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
  const context={window:null,workspace:{id:'workspace-test'},session:{user:{id:'test'}},state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],source_metadata:'{"director":"Director A"}'},{id:'b',title:'Movie B',selectedTraitIds:[]}],traits:[{id:'t1',name:'Old flame',points:5,category:'Romance',is_active:true}]},selectedMovie:null,currentTab:'recording',
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(blocked)throw Error('Storage full');storage.set(k,v)},removeItem:k=>storage.delete(k)},
- document:{getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[]},
+ document:{getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},
  Date:class extends Date{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}},
  setInterval:()=>0,setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
  tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s;elements.get('clp-marker-note').value='';elements.get('clp-marker-type').value='Funny / Clip'},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
  context.window=context;vm.createContext(context);vm.runInContext(source,context);
- return {context,storage,elements,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
+ return {context,storage,elements,listeners,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
  const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.pause();p.movie('b');
@@ -219,4 +220,30 @@ test('switching movies while recording cannot silently pause or redirect the tim
  assert.equal(switched.sessions.a.elapsedMs,2000);
  assert.equal(switched.sessions.a.markers[0].atMs,2000);
  assert.equal(switched.sessions.a.runningSince,null);
+});
+
+test('M shortcut creates a live marker without stealing text entry or affecting paused sessions',()=>{
+ const h=harness(recording),p=h.context.clProduction,keydown=h.listeners.get('keydown');
+ assert.equal(typeof keydown,'function');
+ let prevented=0;
+ const key=(props={})=>({key:'m',target:{tagName:'DIV'},preventDefault(){prevented++},...props});
+ keydown(key());assert.equal(h.data().sessions,undefined,'No shortcut markers before recording');
+ p.start();h.advance(7500);
+ keydown(key());assert.equal(h.data().session.markers.length,1);
+ assert.equal(h.data().session.markers[0].atMs,7500);
+ assert.equal(prevented,1);
+ assert.match(h.html(),/Press M to mark a moment/);
+ const ignored=[
+   {target:{tagName:'INPUT'}},{target:{tagName:'TEXTAREA'}},{target:{tagName:'SELECT'}},
+   {target:{tagName:'BUTTON'}},{target:{tagName:'DIV',isContentEditable:true}},
+   {target:{tagName:'DIV',closest:()=>({})}},{ctrlKey:true},{metaKey:true},
+   {altKey:true},{shiftKey:true},{repeat:true},{isComposing:true},{defaultPrevented:true}
+ ];
+ for(const props of ignored)keydown(key(props));
+ assert.equal(h.data().session.markers.length,1,'Typing, modifiers, dialogs and repeats do not add markers');
+ assert.equal(prevented,1,'Ignored keys are not intercepted');
+ h.context.currentTab='watchalong';keydown(key());h.context.currentTab='recording';
+ p.view('edit');keydown(key());p.view('record');p.pause();keydown(key());
+ assert.equal(h.data().session.markers.length,1,'Only active recording desk accepts shortcut');
+ assert.equal(prevented,1);
 });
