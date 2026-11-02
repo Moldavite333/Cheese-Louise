@@ -9,7 +9,7 @@
 The current Recording desk still defaulted to six segments: Opening & banter, Cheesy Concoctions, Movie & tropes, **mandatory Horror-fied**, Cheese Grating & Bingo (7 minutes), Closing. This contradicted Nick and Jenny's approved sequence and overloaded the ending.
 
 Implemented on the **existing draft PR #57 branch**:
-1. New sessions now have seven identified sections: Cold open (20s), Theme (30s), Welcome & banter (3m), Cheesy Concoctions (5m), Movie review & discussion (25m), Bingo & Cheese Grating (5m), Closing (1m). Target total: **44m50s**. These are guidance, not enforced limits.
+1. New sessions now have seven identified sections: Cold open (20s), Theme (30s), Welcome & banter (3m), Cheesy Concoctions (5m), Movie review & discussion (30m), Bingo & Cheese Grating (5m), Closing (1m). Target total: **44m50s**. These are guidance, not enforced limits.
 2. The cold-open cue encourages a natural, unscripted Romantiverse joke/question. The movie cue follows chronology; Bingo is a five-minute **end reveal**, distinguishing marked squares from winning lines, with no on-mic gameplay.
 3. `segmentPlan:'approved-v2'` is saved on new sessions. Old sessions lacking that field retain the original six-section plan, names, lap indices, archived history, and REAPER export semantics. **No historical session migration or data rewrite.**
 4. Recording UI, Next/Previous, segment timing and REAPER export select the session's own plan. The active plan's target duration displays in HH:MM:SS, including the 20-second cold open.
