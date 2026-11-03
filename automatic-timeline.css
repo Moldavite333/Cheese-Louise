@@ -14,3 +14,13 @@
 .cl-story-trope-picker{border:1px solid var(--line,#42565a);border-radius:6px;font-size:12px}.cl-story-trope-picker label{display:flex;align-items:center;gap:8px;min-height:35px}.cl-story-trope-picker input{width:auto;margin:0;accent-color:#efc766}
 @media(min-width:900px){.clp-desk-columns{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important}.clp-desk-story{grid-column:1/-1;display:flex;flex-direction:column}.clp-desk-story>.clp-host-cue{order:2}.clp-desk-story>.cl-story-research-reference{order:3}.clp-desk-bingo{grid-column:1/-1!important}.clp-bingo-groups{grid-template-columns:1fr 1fr}.cl-story-track ol{grid-auto-columns:210px}.clp .cl-story-track .cl-story-card{height:160px}.cl-story-detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:4px 16px}.cl-story-detail>header,.cl-story-detail>.cl-story-shared,.cl-story-detail>.cl-story-insights,.cl-story-detail>details,.cl-story-detail>.cl-story-editor{grid-column:1/-1}.cl-story-summary{grid-column:1;grid-row:2}.cl-story-meta{grid-column:1;grid-row:3}.cl-story-bookmarks{grid-column:1;grid-row:4}.cl-story-hosts{grid-column:2;grid-row:2/5;margin-top:0;align-self:start}.cl-story-insights{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:599px){.cl-storyboard{padding:11px}.cl-story-track ol{grid-auto-columns:min(76vw,270px)}.cl-story-hosts,.cl-story-insights,.cl-story-editor-times{grid-template-columns:1fr}.cl-story-navigation{gap:7px}.clp .cl-story-navigation button{font-size:11px;padding:8px 5px}.cl-story-heading{align-items:flex-start}.cl-story-detail-heading h3{font-size:17px}.cl-story-detail-heading>button{flex-shrink:0}.cl-storyboard textarea{font-size:16px}}
+
+/* Scene-at-a-glance cues: keep the full summary and evidence in the selected detail. */
+.cl-story-next-cue{margin:0 0 9px;padding:0 2px;font-size:12px;color:var(--muted,#b8c5c6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-story-next-cue strong{color:#efc766}
+.cl-story-excerpt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset}
+.cl-story-card-foot{flex-wrap:wrap;row-gap:4px}
+.cl-story-card-foot>.cl-story-host-nick{background:#245061;color:#c0e7f1}
+.cl-story-card-foot>.cl-story-host-jenny{background:#573b61;color:#f0d2f5}
+.cl-story-card-foot>.cl-story-linked-tropes{background:#3b492b;color:#e6edbf}
+.cl-story-card-foot>small{max-width:100%;overflow:hidden;text-overflow:ellipsis}
