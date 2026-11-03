@@ -20,7 +20,7 @@ Inspected the existing `automatic-timeline.js`, `automatic-timeline.css`, `recor
 - JS source parsed successfully during code transformation; code and tests committed on the review branch.
 - Initial CI on `54fccafe` ran **192/193 tests** and found a mistaken test fixture selection: the fixture already contained a Watch Along observations scene between the synopsis and the newly added scene. The test was corrected to select the actual preceding scene. No production behavior was changed to accommodate that test.
 - Corrected test commit: `6877646`; asset-version commit: `8baa467`.
-- **Full CI on the final code head must be checked before claiming a pass.** [Current code-head workflow](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41550208077).
+- **Verified:** [final code-head workflow 41550208077](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41550208077) and [documentation-head workflow 41550292915](https://github.com/Moldavite333/Cheese-Louise/actions/runs/41550292915) both completed successfully: **193/193 Node tests passed**, JavaScript syntax, assembled HQ Chromium, cocktail mobile/desktop, and Grit browser checks green. The first failed fixture was corrected before these passing runs.
 - No authenticated live laptop/phone test, REAPER import, Supabase deployment, PR merge, or production deployment was performed.
 
 ### Research and design guardrails
