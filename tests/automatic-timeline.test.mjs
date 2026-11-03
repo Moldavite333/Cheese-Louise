@@ -92,7 +92,7 @@ test('storyboard announces the next scene without inventing a timestamp',()=>{
  const h=harness();
  h.A.add();
  h.A.edit('title','Town festival setup');
- h.A.select(0);
+ h.A.select(h.data().scenes.length-2);
  const html=h.html();
  assert.match(html,/Up next:<\/strong> Town festival setup/);
  assert.match(html,/Time unknown/);
