@@ -42,3 +42,7 @@ PR #57 integrated the evidence-first movie timeline and automatic movie research
 **Verification boundary:** The full current-head GitHub Actions workflow has not run yet; the earlier 177-test pass does not validate Run 17. GitHub currently reports the draft PR mergeable and zero commits behind `main`. No main merge, production deployment, backend migration or real-device test. [Run 17 full log and prioritized acceptance matrix](HQ-IMPROVEMENT-LAB-2026-11-02-RUN17.md).
 
 **Next:** Run full current-head CI; validate on Nick's laptop, Jenny's phone, two tabs, and actual REAPER import before any release. Then implement versioned shared episode state rather than another local-only recording feature.
+
+## 2026-11-02 — Run 22: production Cheese Grating schema mismatch (P0)
+
+Read-only Supabase inspection confirmed `movies.cheese_score <= 100` even though Cheese Grating is an **uncapped** sum of verified trope points. One movie's linked-trait sum is **105**, differing from its stored legacy score by **16**; the existing recompute trigger can fail above 100. Added a **review-branch-only**, schema-only migration to remove the upper cap and a static regression test. No production data or schema was changed, and existing legacy scores were not backfilled. The trigger also does not recalculate when a trope's point value changes; reconciliation requires a separate, audited design. Next: staging Postgres migration tests, then conflict-safe shared scene-note sync. [Run 22 investigation, implementation and acceptance criteria](HQ-IMPROVEMENT-LAB-2026-11-02-RUN22.md).
