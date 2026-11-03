@@ -7,6 +7,17 @@ export const favorites=[
  {title:'The Spirit of Christmas',year:2015}, {title:"Something's Brewing",year:2023}
 ];
 export const norm=v=>String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(a|an|the) /,'');
+export const releaseYear=movie=>{
+ const values=[movie?.year,movie?.release_date,movie?.premiere_date];
+ for(const value of values){const match=String(value??'').match(/^(?:19|20)\d{2}/);if(match)return Number(match[0]);}
+ return null;
+};
+export const identityKey=movie=>{const title=norm(movie?.title),year=releaseYear(movie);return title&&year?title+'|'+year:null;};
+export function excludedByIdentity(movie,ids,titleYears,unknownTitles){
+ const title=norm(movie?.title),key=identityKey(movie);
+ if(ids.has(Number(movie?.id??movie?.tmdb_id))||unknownTitles.has(title))return true;
+ return key?titleYears.has(key):[...titleYears].some(value=>value.startsWith(title+'|'));
+}
 export const themes=[
  {name:'time-travel romance',rx:/\b(time travel|time loop|back in time|travels? (?:back|through time|from \d{4} to \d{4})|transported (?:back|to (?:the past|\d{4}|present day))|new reality|alternate reality|parallel reality|wakes? up \d+ years earlier|re-live|relive|hourglass)\b/i,weight:18},
  {name:'magical romance',rx:/\b(magic|magical|magically|enchanted|nutcracker|spell|supernatural|body.switching|body.swap|wish (?:comes true|is granted)|wishes come true|grants? (?:her|his|a) wish)\b/i,weight:15},

@@ -98,3 +98,44 @@ test('a slow old request cannot overwrite a more recent cached query',async()=>{
  const pending=c.runRomantiverseSearch('winter');await c.runRomantiverseSearch('autumn');finish();await pending;
  assert.equal(c.state.romantiverseSearchResults[0].title,'autumn');
 });
+
+test('saved exact-title search result remains discoverable and opens the saved Radar record',async()=>{
+ const h=setup(),c=h.context;
+ c.searchText='A Christmas Village';
+ c.movieFilters={mode:'saved'};
+ c.state.movies=[{id:'saved-village',tmdb_id:9047392,tmdb_type:'movie',title:'A Christmas Village'}];
+ h.respond(async()=>({data:{results:[{tmdb_id:9047392,tmdb_type:'movie',title:'A Christmas Village',premiere_date:'2018-11-18',genres:['Romance']}],expanded_terms:[]}}));
+ await c.runRomantiverseSearch('A Christmas Village');
+ const html=c.romantiverseSearchPanel();
+ assert.match(html,/Already in your Radar: A Christmas Village/);
+ assert.match(html,/openRomantiverseSavedMovie\(9047392\)/);
+ c.openRomantiverseSavedMovie(9047392);
+ assert.equal(c.selectedMovie,'saved-village');
+});
+
+test('exact-title search reports a match outside year filters without leaking unrelated matches',async()=>{
+ const h=setup(),c=h.context;
+ c.searchText='A Christmas Village';
+ c.movieFilters={mode:'all',yearMin:2025,yearMax:2026};
+ h.respond(async()=>({data:{results:[
+  {tmdb_id:2018,tmdb_type:'movie',title:'A Christmas Village',premiere_date:'2018-11-18',genres:['Romance']},
+  {tmdb_id:2019,tmdb_type:'movie',title:'A Different Christmas',premiere_date:'2018-11-19',genres:['Romance']}
+ ],expanded_terms:[]}}));
+ await c.runRomantiverseSearch('A Christmas Village');
+ assert.equal(c.romantiverseSearchVisibleResults().length,0);
+ const exact=c.romantiverseSearchExactMatches('A Christmas Village');
+ assert.equal(exact.filtered.length,1);
+ assert.equal(exact.filtered[0].tmdb_id,2018);
+ assert.match(c.romantiverseSearchPanel(),/Exact title match outside your current filters/);
+ assert.match(c.romantiverseSearchPanel(),/No other external matches/);
+});
+
+test('horror metadata remains excluded even for an exact-title search',async()=>{
+ const h=setup(),c=h.context;
+ c.searchText='A Christmas Village';
+ c.movieFilters={mode:'all',yearMin:2025};
+ h.respond(async()=>({data:{results:[{tmdb_id:27,tmdb_type:'movie',title:'A Christmas Village',premiere_date:'2018-11-18',genre_ids:[27]}],expanded_terms:[]}}));
+ await c.runRomantiverseSearch('A Christmas Village');
+ assert.equal(c.romantiverseSearchExactMatches('A Christmas Village').filtered.length,0);
+ assert.doesNotMatch(c.romantiverseSearchPanel(),/Exact title match outside your current filters/);
+});

@@ -71,3 +71,31 @@ test('scene trope links require a confirmed movie trait and remain user-confirme
 test('merging scenes retains marker associations without modifying original recording timestamps',()=>{
  const h=harness();const second=h.data().scenes[1].scene_id;h.context.recordingMarkers=[{scene_id:second,atMs:12345,type:'Retake',note:'Keep this marker'}];h.A.merge();assert.match(h.html(),/Keep this marker/);assert.equal(h.context.recordingMarkers[0].atMs,12345);h.A.undo();assert.equal(h.data().scenes[1].scene_id,second);
 });
+
+test('scene cards expose host notes and only manually linked confirmed movie tropes',()=>{
+ const h=harness();
+ h.context.confirmedTraits=[{id:'known',name:'Business rescue'}];
+ h.context.traits=h.context.confirmedTraits;
+ h.A.edit('nick_notes','Nick spotted the odd detail');
+ h.A.edit('jenny_notes','Jenny spotted another detail');
+ h.A.trope('unknown',true);
+ assert.doesNotMatch(h.html(),/cl-story-linked-tropes/);
+ h.A.trope('known',true);
+ const html=h.html();
+ assert.match(html,/class="cl-story-host-nick">Nick<\/span>/);
+ assert.match(html,/class="cl-story-host-jenny">Jenny<\/span>/);
+ assert.match(html,/class="cl-story-linked-tropes" aria-label="1 confirmed movie trope linked to this scene">1 trope<\/span>/);
+ h.A.trope('known',false);
+ assert.doesNotMatch(h.html(),/cl-story-linked-tropes/);
+});
+test('storyboard announces the next scene without inventing a timestamp',()=>{
+ const h=harness();
+ h.A.add();
+ h.A.edit('title','Town festival setup');
+ h.A.select(h.data().scenes.length-2);
+ const html=h.html();
+ assert.match(html,/Up next:<\/strong> Town festival setup/);
+ assert.match(html,/Time unknown/);
+ h.A.step(1);
+ assert.doesNotMatch(h.html(),/cl-story-next-cue/);
+});

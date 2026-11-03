@@ -406,14 +406,14 @@ discoveryCard = function(c){
       <div class="subtle">${esc(date)}${meta?` · ${esc(meta)}`:''}</div>
       <div class="subtle provider-line">${esc(providerText)}</div>
       <p>${esc(c.summary||'No synopsis yet.')}</p>
-      <div class="new-find-score"><strong>Romantiverse Estimate</strong><span class="cheese-score">🧀 ${est.score}</span></div>
+      <div class="new-find-score"><strong>Predicted Cheese Grating</strong><span class="cheese-score">🧀 ${est.score}</span></div>
+       <div class="subtle">Synopsis-based prediction only. Confirm each trait after watching.</div>
       <div class="subtle">${esc(confidence)}</div>
       ${est.traits.length?`<div class="pills">${est.matches.slice(0,5).map(m=>`<span class="pill trait-pill">${esc(m.trait.name)} <b>+${m.trait.points}</b></span>`).join('')}${est.traits.length>5?`<span class="pill">+${est.traits.length-5} more</span>`:''}</div>`:''}
       <details class="new-find-why"><summary>Why does the Romantiverse Interpreter think that?</summary>${rvMatchDetailsHtml(est)}</details>
       ${why.length?`<details class="new-find-why"><summary>Why is this on my radar?</summary><div class="pills">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></details>`:''}
       <div class="new-find-actions">
-        <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},true)">${est.traits.length?`Add + accept ${est.traits.length} likely traits`:'Add to Radar'}</button>
-        ${est.traits.length?`<button class="secondary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add only</button>`:''}
+         <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add to Radar</button>
         <button class="secondary" onclick="hideDiscoveredMovie(${Number(c.tmdb_id)})">Hide for now</button>
         <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">TMDB ↗</a>
       </div>
@@ -429,16 +429,9 @@ suggestTraits = async function(movieId){
   if(!suggestions.length){
     return alert('The Romantiverse Interpreter did not find any new likely Cheese Traits in this synopsis yet. You can still score the movie manually.');
   }
-
   const lines = suggestions.map(m=>`• ${m.trait.name} (+${m.trait.points}) — ${rvConfidenceLabel(m.confidence)}: ${m.reason}`);
-  if(!confirm(`Romantiverse Interpreter suggests:\n\n${lines.join('\n')}\n\nEstimated added cheese: +${suggestions.reduce((s,m)=>s+Number(m.trait.points||0),0)}\n\nAdd all of these? You can remove any of them afterward.`)) return;
-
-  const rows = suggestions.map(m=>({workspace_id:workspace.id,movie_id:movieId,trait_id:m.trait.id,selected_by:me()}));
-  const {error} = await db.from('movie_traits').insert(rows);
-  if(error) return alert(error.message);
-  await logActivity(`accepted ${suggestions.length} Romantiverse Interpreter suggestion${suggestions.length===1?'':'s'} for ${movie.title}.`,'movie',movieId);
-  await loadAll();
-  render();
+  // A synopsis-based guess must never create verified movie_traits rows.
+  alert(`Romantiverse Interpreter predictions (unverified):\n\n${lines.join('\n')}\n\nSelect each trait you actually observed in the movie detail picker after watching. Nothing has been added.`);
 };
 window.suggestTraits = suggestTraits;
 window.romantiverseAnalyze = romantiverseAnalyze;

@@ -389,13 +389,17 @@ function cheeseMasterAnalyze(source){
   if(concepts.has('festival') && (source?.holiday || /\bchristmas\b|\bholiday\b/.test(text))) compoundBonus+=2;
 
   const raw=matches.reduce(function(sum,m){ return sum+Number(m.trait.points||0); },0);
-  const score=Math.max(0,Math.min(100,Math.round(weighted+compoundBonus)));
+  // Predicted Cheese Grating sums suggested points without a 100-point cap.
+  // Weighted match quality remains separate and is not a verified score.
+  const matchScore=Math.max(0,Math.min(100,Math.round(weighted+compoundBonus)));
+  const score=Math.max(0,raw);
   const confidence=matches.length ? matches.reduce(function(sum,m){ return sum+m.confidence; },0)/matches.length : 0;
   return {
     traits:matches.map(function(m){ return m.trait; }),
     matches:matches,
     score:score,
     rawScore:raw,
+    matchScore:matchScore,
     confidence:confidence,
     confidenceLabel:matches.length?cmTier(confidence):'Not enough data',
     concepts:[...concepts],
@@ -491,32 +495,19 @@ suggestTraits=async function(movieId){
     return '• '+m.trait.name+' (+'+m.trait.points+') — '+cmTier(m.confidence)+' '+Math.round(m.confidence*100)+'%: '+((m.evidence||[])[0]||m.reason);
   });
   if(suggestions.length>18) lines.push('• +'+(suggestions.length-18)+' more possible traits');
-  if(!confirm('Cheese Master found '+suggestions.length+' possible traits.\n\n'+lines.join('\n')+'\n\nEstimated Cheese Rating: '+analysis.score+'/100\n\nAdd all of these? You can remove anything it got wrong; removals teach it too.')) return;
-
-  const rows=suggestions.map(function(m){
-    return {
-      workspace_id:workspace.id,
-      movie_id:movieId,
-      trait_id:m.trait.id,
-      selected_by:me(),
-      selection_source:'cheese_master',
-      confidence:m.confidence,
-      evidence:{engine:CHEESE_MASTER_VERSION,reason:m.reason,evidence:m.evidence||[]}
-    };
-  });
-  const res=await db.from('movie_traits').insert(rows);
-  if(res.error) return alert(res.error.message);
-  for(const m of suggestions) await cmRecordFeedback(movie,m.trait,'accepted',m,movieId);
-  await logActivity('accepted '+suggestions.length+' Cheese Master suggestion'+(suggestions.length===1?'':'s')+' for '+movie.title+'.','movie',movieId);
-  await loadAll(); render();
+  // A synopsis is not viewing evidence. Never bulk-write predicted traits.
+  // The movie detail picker remains the explicit, per-trait verification path.
+  alert('Cheese Master predictions (not verified):\n\n'+lines.join('\n')+
+    '\n\nPredicted Cheese Grating: '+suggestions.reduce(function(sum,m){return sum+Number(m.trait.points||0);},0)+
+    ' points.\n\nAfter watching, select only the traits you actually saw in the movie detail picker. Nothing has been added.');
 };
 window.suggestTraits=suggestTraits;
 
 const cmOriginalAddDiscoveredMovie=addDiscoveredMovie;
-addDiscoveredMovie=async function(tmdbId,applyTraits){
+addDiscoveredMovie=async function(tmdbId){
   const candidate=(state.discoveryResults||[]).find(function(x){ return Number(x.tmdb_id)===Number(tmdbId); });
-  const analysis=candidate?cheeseMasterAnalyze(candidate):null;
-  await cmOriginalAddDiscoveredMovie(tmdbId,applyTraits);
+  // Ignore legacy true arguments: metadata suggestions cannot verify movie_traits.
+  await cmOriginalAddDiscoveredMovie(tmdbId,false);
   if(!candidate||!workspace) return;
   const saved=(state.movies||[]).find(function(m){ return Number(m.tmdb_id)===Number(tmdbId); });
   if(!saved) return;
@@ -536,17 +527,6 @@ addDiscoveredMovie=async function(tmdbId,applyTraits){
   };
   await db.from('movies').update({source_metadata:metadata,updated_at:new Date().toISOString()}).eq('id',saved.id);
 
-  if(applyTraits && analysis){
-    const accepted=analysis.matches.filter(function(m){ return m.confidence>=0.68; });
-    for(const m of accepted){
-      await db.from('movie_traits').update({
-        selection_source:'cheese_master',
-        confidence:m.confidence,
-        evidence:{engine:CHEESE_MASTER_VERSION,reason:m.reason,evidence:m.evidence||[]}
-      }).eq('movie_id',saved.id).eq('trait_id',m.trait.id);
-      await cmRecordFeedback(candidate,m.trait,'accepted',m,saved.id);
-    }
-  }
   await loadAll();
   selectedMovie=saved.id;
   render();

@@ -39,6 +39,7 @@
       notes: '',
       rules: '',
       rundownText: '',
+      rundownGeneratedText: '',
       outline: '',
       outlineItems: [],
       updatedAt: new Date().toISOString()
@@ -227,19 +228,26 @@
       '',
       ...watchMovieCredits(movie),
       '',
-      'OPENING / CHEESY CONCOCTIONS',
-      '• Opening banter and cocktail',
+      'COLD OPEN (ABOUT 20 SECONDS)',
+      '• Your Romantiverse opening question or joke',
+      '',
+      'THEME MUSIC',
+      '• Play theme',
+      '',
+      'WELCOME & BANTER',
+      '• Introduce the episode and settle into conversation',
+      '',
+      'CHEESY CONCOCTIONS',
+      '• Movie-matched cocktail and reactions',
       '',
       'MOVIE DISCUSSION',
       '• Brief premise, not a scene-by-scene recap',
       ...traits.map((t,i) => (i+1)+'. '+t.name+' (+'+Number(t.points||0)+')'),
       ...(notes.length ? ['', 'THINGS WE NOTICED', ...notes.map(n => '• '+n)] : []),
       '',
-      'CHEESE GRATING',
+      'BINGO & CHEESE GRATING (ABOUT FIVE MINUTES)',
       score+' points from '+confirmedTraits.length+' confirmed movie traits',
-      '',
-      'HORROR-FIED / BINGO',
-      '• Mini-game and Bingo results',
+      '• Reveal actual marked squares, winning lines and winners; do not play on mic',
       '',
       'CLOSING',
       '• Final thoughts and sign-off'
@@ -251,15 +259,27 @@
     return saved || watchRundownText(movie, draft);
   }
 
-  window.watchAlongGenerateRundown = function() {
+  function updateRundownFromNotes(force=false) {
     const movie = watchMovie();
     const draft = getDraft(movie);
     if (!movie || !draft) return;
-    draft.rundownText = watchRundownText(movie, draft);
+    // Automatic note changes may update a generated draft, but never replace
+    // a manually edited or legacy rundown. Rebuild is an explicit action.
+    const saved = String(draft.rundownText || '');
+    const generated = String(draft.rundownGeneratedText || '');
+    if (!force && saved.trim() && saved !== generated) return;
+    const next = watchRundownText(movie, draft);
+    draft.rundownText = next;
+    draft.rundownGeneratedText = next;
     putDraft(draft);
     const preview = document.getElementById('watchRundownPreview');
-    if (preview) preview.value = draft.rundownText;
+    if (preview) preview.value = next;
+  }
+  window.watchAlongGenerateRundown = function() {
+    if (!confirm('Replace your edited rundown with a fresh version from Watch Notes and talk order?')) return;
+    updateRundownFromNotes(true);
   };
+  window.watchAlongRefreshRundown = function() { updateRundownFromNotes(false); };
 
   window.watchAlongSaveRundown = function(value) {
     const movie = watchMovie();
@@ -459,7 +479,7 @@
     const body = document.getElementById('watchTraitBody');
     if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
     refreshWatchOutline(movie, draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongRefreshSharedTraits = function(movieId){
@@ -475,7 +495,7 @@
     const status=window.clMovieTraits?.status(movieId);
     const label=document.querySelector('[data-watch-trait-sync]');if(label&&status)label.textContent=status.text;
     const retry=document.querySelector('[data-watch-trait-retry]');if(retry)retry.hidden=!status?.error;
-    refreshWatchOutline(movie,draft);watchAlongGenerateRundown();
+    refreshWatchOutline(movie,draft);watchAlongRefreshRundown();
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -484,7 +504,7 @@
     if (!draft || !['notes','rules'].includes(field)) return;
     draft[field] = value;
     putDraft(draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongQuickAdd = function() {
@@ -500,7 +520,7 @@
     if (notes) notes.value = draft.notes;
     input.value = '';
     input.focus();
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongQuickKey = function(event) {
@@ -570,7 +590,7 @@
     putDraft(draft);
     const body=document.getElementById('watchTraitBody');
     if(body && watchTraitQuery==='__selected__') body.innerHTML=watchAlongOrderedSelectedHtml(movie,draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongAddCheckedTraitsToOutline = function() {

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const recording=readFileSync(new URL('../recording-hub.js',import.meta.url),'utf8');
+const reaper=readFileSync(new URL('../reaper-marker-export.js',import.meta.url),'utf8');
 const watching=readFileSync(new URL('../watch-along.js',import.meta.url),'utf8');
 
 test('movie timeline shows now and next, persists progress, and stays separate from recording time',()=>{
@@ -32,24 +33,27 @@ test('Watch Along import produces an editable timeline draft and preserves exist
  assert.equal(h.data().timelines.a.items.length,1);assert.equal(h.data().timelineDrafts.a,'00:05 \u2014 Opening\nMeeting\nFinal reveal');
  p.timelineSave();assert.equal(h.data().timelines.a.items.length,3);assert.equal(h.data().timelines.a.items[0].time,'00:05');
 });
-function harness(source,initial={}){
- const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
+function harness(source,initial={},initialNow=100000){
+ const storage=initial instanceof Map?initial:new Map(Object.entries(initial));let now=initialNow,html='',blocked=false;const alerts=[];
+ const listeners=new Map(),windowListeners=new Map(),intervals=new Map();
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
  const context={window:null,workspace:{id:'workspace-test'},session:{user:{id:'test'}},state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],source_metadata:'{"director":"Director A"}'},{id:'b',title:'Movie B',selectedTraitIds:[]}],traits:[{id:'t1',name:'Old flame',points:5,category:'Romance',is_active:true}]},selectedMovie:null,currentTab:'recording',
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(blocked)throw Error('Storage full');storage.set(k,v)},removeItem:k=>storage.delete(k)},
- document:{getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[]},
+ document:{visibilityState:'visible',getElementById:id=>elements.get(id)||null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},
+ addEventListener:(type,fn)=>windowListeners.set(type,fn),
  Date:class extends Date{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}},
- setInterval:()=>0,setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
+ setInterval:(fn,ms)=>{intervals.set(ms,fn);return ms},setTimeout:()=>0,clearTimeout(){},confirm:()=>true,alert:s=>alerts.push(s),prompt:()=>null,
  tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s;elements.get('clp-marker-note').value='';elements.get('clp-marker-type').value='Funny / Clip'},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
  context.window=context;vm.createContext(context);vm.runInContext(source,context);
- return {context,storage,elements,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
+ return {context,storage,elements,listeners,windowListeners,intervals,alerts,advance:ms=>{now+=ms},now:()=>now,html:()=>html,block:()=>{blocked=true},unblock:()=>{blocked=false},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
- const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.movie('b');
+ const h=harness(recording),p=h.context.clProduction;p.start();h.advance(30000);p.mark();p.pause();p.movie('b');
  assert.equal(h.data().sessions.a.markers.length,1);assert.equal(h.data().sessions.a.runningSince,null);
- p.start();h.advance(15000);p.mark();p.movie('a');p.copyEdit();
+ // The producer must explicitly pause before switching movies during a live take.
+ p.start();h.advance(15000);p.mark();p.pause();p.movie('a');p.copyEdit();
  assert.equal(h.data().sessions.a.markers[0].atMs,30000);assert.equal(h.data().sessions.b.markers[0].atMs,15000);
  const reloaded=harness(recording,Object.fromEntries(h.storage));reloaded.context.clProduction.movie('b');
  assert.equal(reloaded.data().sessions.a.markers.length,1);assert.equal(reloaded.data().sessions.b.markers.length,1);
@@ -60,9 +64,35 @@ test('legacy single-session data is preserved when another episode is selected',
  assert.equal(h.data().sessions.a.markers[0].note,'Legacy marker');
 });
 test('a completed final segment can reopen and finish without duplicate laps',()=>{
- const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<6;i++){h.advance(10000);p.next()}
- assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,5);assert.equal(h.data().session.laps.length,5);
- p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,6);assert.equal(h.data().session.elapsedMs,65000);
+ const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<7;i++){h.advance(10000);p.next()}
+ assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,6);assert.equal(h.data().session.laps.length,6);
+ p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,7);assert.equal(h.data().session.elapsedMs,75000);
+});
+test('new recordings follow the approved cold-open to five-minute Bingo plan without mandatory Horror-fied',()=>{
+ const h=harness(recording),p=h.context.clProduction;h.context.render();
+ assert.match(h.html(),/Cold open/);assert.match(h.html(),/Theme music/);
+ assert.match(h.html(),/Welcome &amp; banter/);assert.match(h.html(),/Bingo &amp; Cheese Grating/);
+ assert.match(h.html(),/Target 00:00:20/);assert.match(h.html(),/Target 00:05:00/);assert.match(h.html(),/Target 00:30:00/);
+ assert.ok(!h.html().includes('Horror-fied'));
+ p.start();h.advance(20000);p.next();
+ assert.equal(h.data().session.segmentPlan,'approved-v2');
+ assert.equal(h.data().session.laps[0].name,'Cold open');
+ assert.equal(h.data().session.laps[0].durationMs,20000);
+});
+test('legacy six-segment recordings keep original lap names and REAPER segment cues',()=>{
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{},segment:3,laps:[
+  {name:'Opening & banter',startMs:0,durationMs:10000},
+  {name:'Cheesy Concoctions',startMs:10000,durationMs:10000},
+  {name:'Movie & tropes',startMs:20000,durationMs:10000}
+ ],markers:[],elapsedMs:30000,runningSince:null,finished:false}};
+ const h=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)}),p=h.context.clProduction;
+ vm.runInContext(reaper,h.context);h.context.render();
+ assert.match(h.html(),/Horror-fied/);assert.ok(!h.html().includes('Cold open'));
+ p.start();h.advance(5000);p.next();
+ assert.equal(h.data().session.laps[3].name,'Horror-fied');
+ assert.equal(h.data().session.segment,4);
+ const exported=h.context.clReaperMarkers.build(h.data().session,[{name:'unused'}],35000);
+ assert.match(exported,/SEGMENT: Horror-fied/);
 });
 test('next cannot create a zero-time lap before the timer starts',()=>{
  const h=harness(recording);h.context.clProduction.next();assert.equal(h.data().session.laps.length,0);assert.equal(h.data().session.segment,0);
@@ -128,3 +158,308 @@ test('Watch Along handoff preserves previous sessions and never switches a runni
  running.context.clProduction.followWatchMovie();assert.equal(running.data().movieId,'a');assert.equal(running.data().session.runningSince,100000);
 });
 
+test('starting a new recording archives the old session with elapsed time and markers',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(12500);p.mark();p.reset();
+ const d=h.data();
+ assert.equal(d.session.elapsedMs,0);
+ assert.equal(d.session.markers.length,0);
+ assert.equal(d.sessionHistory.a.length,1);
+ assert.equal(d.sessionHistory.a[0].session.elapsedMs,12500);
+ assert.equal(d.sessionHistory.a[0].session.runningSince,null);
+ assert.equal(d.sessionHistory.a[0].session.markers[0].note,'Keep this moment');
+ p.view('edit');h.context.render();
+ assert.match(h.html(),/Past recording sessions \(1\)/);
+ assert.match(h.html(),/Restore/);
+ const reload=harness(recording,Object.fromEntries(h.storage));
+ assert.equal(reload.data().sessionHistory.a[0].session.markers.length,1);
+});
+
+test('restoring an archived recording preserves the active session and keeps movies separate',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(5000);p.mark();p.reset();
+ const first=h.data().sessionHistory.a[0].archiveId;
+ p.start();h.advance(8000);p.mark();p.pause();
+ p.restoreSession(first);
+ const d=h.data();
+ assert.equal(d.session.elapsedMs,5000);
+ assert.equal(d.session.markers[0].atMs,5000);
+ assert.equal(d.sessionHistory.a.length,1);
+ assert.equal(d.sessionHistory.a[0].session.elapsedMs,8000);
+ p.movie('b');p.reset();
+ assert.equal((h.data().sessionHistory.b||[]).length,0);
+ p.movie('a');p.copyEdit();assert.equal(h.data().sessions.a.elapsedMs,5000);
+});
+
+test('restoring is blocked while recording and storage failure cannot discard a session',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(3000);p.mark();p.reset();
+ const archive=h.data().sessionHistory.a[0].archiveId;
+ p.start();h.advance(2000);
+ p.restoreSession(archive);
+ assert.equal(h.data().session.runningSince,103000);
+ assert.ok(h.alerts.some(a=>a.includes('Pause the recording timer')));
+ p.pause();
+ const before=JSON.stringify(h.data());
+ h.block();p.reset();
+ assert.equal(JSON.stringify(h.data()),before);
+ assert.ok(h.alerts.some(a=>a.includes('previous recording remains active')));
+});
+
+test('editing view exports REAPER marker CSV without changing saved recording data',()=>{
+ const h=harness(recording),p=h.context.clProduction;vm.runInContext(reaper,h.context);
+ const downloads=[];h.context.Blob=class {constructor(parts,options){this.parts=parts;this.type=options.type}};
+ h.context.URL={createObjectURL:blob=>{downloads.push(blob);return 'blob:local'},revokeObjectURL(){}};
+ h.context.document.createElement=()=>({click(){}});
+ p.start();h.advance(3500);p.mark();p.view('edit');h.context.render();
+ assert.match(h.html(),/Download REAPER markers/);const before=JSON.stringify(h.data());
+ p.exportReaper();assert.equal(downloads.length,1);
+ assert.match(downloads[0].parts[0],/#,Name,Start,End,Length/);
+ assert.match(downloads[0].parts[0],/\[Funny \/ Clip\]/);
+ assert.equal(JSON.stringify(h.data()),before);
+});
+
+test('restored session exports REAPER markers without modifying its archived history',()=>{
+ const h=harness(recording),p=h.context.clProduction;vm.runInContext(reaper,h.context);
+ const downloads=[];h.context.Blob=class {constructor(parts,options){this.parts=parts;this.type=options.type}};
+ h.context.URL={createObjectURL:blob=>{downloads.push(blob);return 'blob:local'},revokeObjectURL(){}};
+ h.context.document.createElement=()=>({click(){}});
+ p.start();h.advance(4500);p.mark();p.reset();
+ const archived=h.data().sessionHistory.a[0].archiveId;
+ p.restoreSession(archived);
+ const before=JSON.stringify(h.data());
+ p.exportReaper();
+ assert.equal(downloads.length,1);
+ assert.match(downloads[0].parts[0],/Funny \/ Clip/);
+ assert.equal(JSON.stringify(h.data()),before);
+});
+
+
+test('switching movies while recording cannot silently pause or redirect the timer',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(2000);p.mark();
+ const before=h.data(),warningCount=h.alerts.length;
+ p.movie('b');
+ const blocked=h.data();
+ assert.equal(blocked.session.movieId,'a');
+ assert.equal(blocked.session.runningSince,before.session.runningSince);
+ assert.equal(blocked.session.elapsedMs,0);
+ assert.equal(blocked.session.markers.length,1);
+ assert.equal(blocked.sessions.b,undefined);
+ assert.equal(h.alerts.length,warningCount+1);
+ assert.match(h.alerts.at(-1),/Pause the recording timer before switching movies/);
+ assert.match(h.html(),/<option value="a" selected>/);
+ p.movie('a');
+ assert.equal(h.alerts.length,warningCount+1,'Selecting the current movie does not interrupt the take');
+ p.pause();p.movie('b');
+ const switched=h.data();
+ assert.equal(switched.movieId,'b');
+ assert.equal(switched.sessions.a.elapsedMs,2000);
+ assert.equal(switched.sessions.a.markers[0].atMs,2000);
+ assert.equal(switched.sessions.a.runningSince,null);
+});
+
+test('M shortcut creates a live marker without stealing text entry or affecting paused sessions',()=>{
+ const h=harness(recording),p=h.context.clProduction,keydown=h.listeners.get('keydown');
+ assert.equal(typeof keydown,'function');
+ let prevented=0;
+ const key=(props={})=>({key:'m',target:{tagName:'DIV'},preventDefault(){prevented++},...props});
+ keydown(key());assert.equal(h.data().sessions,undefined,'No shortcut markers before recording');
+ p.start();h.advance(7500);
+ keydown(key());assert.equal(h.data().session.markers.length,1);
+ assert.equal(h.data().session.markers[0].atMs,7500);
+ assert.equal(prevented,1);
+ h.context.render();assert.match(h.html(),/Press M to mark a moment/);assert.match(h.html(),/aria-keyshortcuts="M"/);
+ const ignored=[
+   {target:{tagName:'INPUT'}},{target:{tagName:'TEXTAREA'}},{target:{tagName:'SELECT'}},
+   {target:{tagName:'BUTTON'}},{target:{tagName:'DIV',isContentEditable:true}},
+   {target:{tagName:'DIV',closest:()=>({})}},{ctrlKey:true},{metaKey:true},
+   {altKey:true},{shiftKey:true},{repeat:true},{isComposing:true},{defaultPrevented:true}
+ ];
+ for(const props of ignored)keydown(key(props));
+ assert.equal(h.data().session.markers.length,1,'Typing, modifiers, dialogs and repeats do not add markers');
+ assert.equal(prevented,1,'Ignored keys are not intercepted');
+ h.context.currentTab='watchalong';keydown(key());h.context.currentTab='recording';
+ p.view('edit');keydown(key());p.view('record');p.pause();keydown(key());
+ assert.equal(h.data().session.markers.length,1,'Only active recording desk accepts shortcut');
+ assert.equal(prevented,1);
+});
+
+test('crash recovery freezes the timer at its last saved checkpoint until explicitly resolved',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(12000);h.intervals.get(5000)();
+ p.mark();assert.equal(h.data().session.markers[0].atMs,12000);
+ const stored=Object.fromEntries(h.storage);
+ const restarted=harness(recording,stored,h.now()+3600000),q=restarted.context.clProduction;
+ restarted.context.render();
+ assert.match(restarted.html(),/Verify the interrupted recording timer/);
+ assert.match(restarted.html(),/00:00:12/);
+ assert.match(restarted.html(),/disabled aria-keyshortcuts="M"/,'Marker button disabled during recovery');
+ assert.equal(restarted.data().session.runningSince,100000,'Reload does not silently mutate the session');
+ restarted.elements.get('clp-marker-note').value='Unsaved recovery note';
+ q.mark();assert.equal(restarted.data().session.markers.length,1,'Pending recovery blocks edits');
+ assert.equal(restarted.elements.get('clp-marker-note').value,'Unsaved recovery note','Interrupted session preserves unsaved marker text');
+ q.recoverPause();
+ assert.equal(restarted.data().session.runningSince,null);
+ assert.equal(restarted.data().session.elapsedMs,12000,'Closed-browser gap is not invented');
+ assert.equal(restarted.data().session.markers[0].atMs,12000);
+ restarted.context.render();assert.doesNotMatch(restarted.html(),/Verify the interrupted recording timer/);
+ const again=harness(recording,Object.fromEntries(restarted.storage),restarted.now()+60000);
+ again.context.render();assert.doesNotMatch(again.html(),/Verify the interrupted recording timer/);
+ assert.equal(again.data().session.elapsedMs,12000);
+});
+
+test('explicit continuous-recorder confirmation counts a gap, while legacy sessions remain conservative',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(5000);h.intervals.get(5000)();
+ const r=harness(recording,Object.fromEntries(h.storage),h.now()+30000),q=r.context.clProduction;
+ q.recoverContinue();
+ assert.equal(r.data().session.runningSince,100000);
+ assert.equal(r.data().session.checkpointAt,r.now());
+ q.mark();assert.equal(r.data().session.markers[0].atMs,35000);
+ q.pause();assert.equal(r.data().session.elapsedMs,35000);
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{},segment:0,laps:[],markers:[],elapsedMs:8000,runningSince:100000,finished:false}};
+ const old=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)},100000+7200000);
+ old.context.render();assert.match(old.html(),/Verify the interrupted recording timer/);
+ old.context.clProduction.recoverPause();assert.equal(old.data().session.elapsedMs,8000,'No checkpoint means no speculative gap');
+});
+
+test('hidden and pagehide checkpoint without pausing a live take',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ p.start();h.advance(9000);
+ h.context.document.visibilityState='hidden';h.listeners.get('visibilitychange')();
+ assert.equal(h.data().session.checkpointAt,109000);
+ h.advance(60000);h.intervals.get(5000)();
+ assert.equal(h.data().session.checkpointAt,109000,'Background throttling cannot invent checkpoints');
+ h.windowListeners.get('pagehide')({persisted:false});
+ assert.equal(h.data().session.checkpointAt,109000,'Pagehide after hidden does not count background gap');
+ assert.equal(h.data().session.runningSince,100000,'Leaving HQ does not silently stop the RØDECaster');
+ const r=harness(recording,Object.fromEntries(h.storage),h.now());
+ r.context.clProduction.recoverPause();assert.equal(r.data().session.elapsedMs,9000);
+});
+
+test('second HQ tab becomes read-only after an external recording write',()=>{
+ const shared=new Map(),a=harness(recording,shared),b=harness(recording,shared);
+ const p=a.context.clProduction,q=b.context.clProduction;
+ p.start();a.advance(10000);p.mark();
+ const key='cheeseLouise:production:v1:workspace-test',latest=shared.get(key);
+ b.windowListeners.get('storage')({key,newValue:latest});
+ assert.match(b.html(),/workspace changed in another HQ tab/i);
+ b.elements.get('clp-marker-note').value='Keep this unsaved draft';
+ q.mark();q.recoverPause();q.timelineDraft('Do not overwrite timeline');q.start();
+ assert.equal(shared.get(key),latest,'Second tab cannot overwrite recording or timeline');
+ assert.equal(b.elements.get('clp-marker-note').value,'Keep this unsaved draft');
+ b.intervals.get(5000)();
+ assert.equal(shared.get(key),latest,'Stale tab cannot write timer checkpoints');
+ p.pause();
+ assert.equal(a.data().session.elapsedMs,10000,'Original tab remains usable');
+ assert.ok(b.alerts.some(v=>v.includes('read-only')));
+});
+test('missed storage event is detected before marker text or saved session can be overwritten',()=>{
+ const shared=new Map(),a=harness(recording,shared),b=harness(recording,shared);
+ a.context.clProduction.start();
+ b.elements.get('clp-marker-note').value='Unsaved clip idea';
+ b.context.clProduction.mark();
+ assert.equal(b.elements.get('clp-marker-note').value,'Unsaved clip idea');
+ assert.equal(a.data().session.markers.length,0);
+ b.context.render();
+ assert.match(b.html(),/read-only to protect your notes/);
+ const latest=shared.get('cheeseLouise:production:v1:workspace-test');
+ b.context.clProduction.reset();
+ assert.equal(shared.get('cheeseLouise:production:v1:workspace-test'),latest);
+ const fresh=harness(recording,Object.fromEntries(shared),a.now()+10000);
+ fresh.context.render();
+ assert.doesNotMatch(fresh.html(),/workspace changed in another HQ tab/i,'Reload starts a fresh review of current saved state');
+ assert.match(fresh.html(),/Verify the interrupted recording timer/,'Existing interrupted-timer safeguard remains');
+});
+test('unrelated storage events do not lock HQ and same-tab saves remain usable',()=>{
+ const h=harness(recording),p=h.context.clProduction;
+ h.windowListeners.get('storage')({key:'unrelated',newValue:'new'});
+ p.start();h.advance(8000);p.pause();
+ assert.equal(h.data().session.elapsedMs,8000);
+ assert.doesNotMatch(h.html(),/workspace changed in another HQ tab/i);
+});
+
+
+test('marker button cannot invent a timestamp while paused or before the timer starts',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  h.context.render();assert.match(h.html(),/disabled aria-keyshortcuts="M"/);
+  p.mark();assert.equal(h.data().session,undefined);
+  assert.equal(h.elements.get('clp-marker-note').value,'Keep this moment');
+  p.start();h.advance(4000);p.mark();assert.equal(h.data().session.markers.length,1);
+  p.pause();h.elements.get('clp-marker-note').value='Pickup while paused';
+  p.mark();assert.equal(h.data().session.markers.length,1,'Paused take cannot acquire a false audio timestamp');
+  assert.equal(h.elements.get('clp-marker-note').value,'Pickup while paused');
+  h.context.render();assert.match(h.html(),/disabled aria-keyshortcuts="M"/);
+});
+
+test('storage failure retains marker note and retry saves the same timestamp without duplication',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  p.start();h.advance(7200);h.block();p.mark();
+  assert.equal(h.data().session.markers.length,0,'Failed write did not persist the marker');
+  assert.equal(h.elements.get('clp-marker-note').value,'Keep this moment','Unsaved text remains available');
+  h.advance(8000);h.unblock();p.mark();
+  assert.equal(h.data().session.markers.length,1,'Retry must not create a second marker');
+  assert.equal(h.data().session.markers[0].atMs,7200,'Retry preserves original audio position');
+  assert.equal(h.data().session.markers[0].note,'Keep this moment');
+  assert.equal(h.elements.get('clp-marker-note').value,'');
+});
+
+test('automatic scene metadata cannot overwrite the actual recording marker time, category, or note',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  h.context.clAutomaticTimeline={selected:()=>({scene_id:'scene-7',movie_time_ms:12345,atMs:999999,type:'Retake',note:'Wrong'})};
+  p.start();h.advance(5500);p.mark();
+  const marker=h.data().session.markers[0];
+  assert.equal(marker.atMs,5500);assert.equal(marker.type,'Funny / Clip');
+  assert.equal(marker.note,'Keep this moment');assert.equal(marker.scene_id,'scene-7');
+  assert.equal(marker.movie_time_ms,12345);
+});
+
+test('checkpoint persistence of an unsaved marker does not duplicate it on a manual retry',()=>{
+  const h=harness(recording),p=h.context.clProduction;
+  p.start();h.advance(9000);h.block();p.mark();
+  h.unblock();h.intervals.get(5000)();
+  assert.equal(h.data().session.markers.length,1,'Checkpoint saved the pending marker');
+  assert.equal(h.data().session.markers[0].atMs,9000);
+  p.mark();
+  assert.equal(h.data().session.markers.length,1,'Retry must recognize the already-persisted marker ID');
+  assert.equal(h.elements.get('clp-marker-note').value,'');
+});
+
+
+test('manual rundown survives automatic Watch Notes edits until an explicit rebuild',()=>{
+ const h=harness(watching);h.context.currentTab='watchalong';
+ h.context.watchAlongSaveText('notes','Initial observation');
+ let draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.match(draft.rundownText,/Initial observation/);
+ assert.equal(draft.rundownGeneratedText,draft.rundownText);
+ h.context.watchAlongSaveRundown('Custom cold open and revised ending');
+ h.context.watchAlongSaveText('notes','A completely new observation');
+ draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.equal(draft.rundownText,'Custom cold open and revised ending');
+ h.context.watchAlongGenerateRundown();
+ draft=JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a'));
+ assert.match(draft.rundownText,/A completely new observation/);
+ assert.ok(!draft.rundownText.includes('Custom cold open'));
+ assert.ok(draft.rundownText.includes('COLD OPEN (ABOUT 20 SECONDS)'));
+ assert.ok(draft.rundownText.includes('BINGO & CHEESE GRATING (ABOUT FIVE MINUTES)'));
+ assert.ok(!draft.rundownText.includes('HORROR-FIED'));
+});
+
+test('recording freezes the saved rundown during a take and updates only after pause',()=>{
+ const key='cheeseLouise:watchAlong:workspace-test:draft:a';
+ const h=harness(recording,{[key]:JSON.stringify({rundownText:'Original saved rundown',notes:'Opening note'})}),p=h.context.clProduction;
+ p.start();
+ h.context.render();
+ assert.match(h.html(),/Saved episode rundown \(read-only\)/);
+ assert.match(h.html(),/Original saved rundown/);
+ h.storage.set(key,JSON.stringify({rundownText:'Edited while recording',notes:'Opening note'}));
+ h.context.render();
+ assert.ok(!h.html().includes('Edited while recording'));
+ p.refreshSnapshot();
+ assert.equal(h.data().session.snapshot.savedRundownText,'Original saved rundown');
+ p.pause();p.refreshSnapshot();
+ assert.equal(h.data().session.snapshot.savedRundownText,'Edited while recording');
+ h.context.render();assert.match(h.html(),/Edited while recording/);
+ assert.equal(h.data().session.laps.length,0);
+});
