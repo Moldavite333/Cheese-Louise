@@ -1,12 +1,12 @@
 // The Bingo editorial catalog defines discovery membership. TMDB may enrich an exact identity, never add candidates.
 export const CATALOG_URL='https://bingo.cheeselouisepod.com/catalog/movies.json';
-export const norm=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+export const norm=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/['']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 const hash=value=>{let n=2166136261;for(const c of value){n^=c.charCodeAt(0);n=Math.imul(n,16777619)}return n>>>0||1;};
 export function eligibleCatalog(m){
  if(!m?.title||m.is_demo||m.season==='Horror')return false;
  const genres=[...(m.genres||[]),...(m.genre_ids||[])].map(x=>String(typeof x==='object'?x.id||x.name:x));
  if(genres.some(x=>['16','27','99','28','53','80','10752'].includes(x)||/animation|horror|documentary|thriller|crime/i.test(x)))return false;
- return !/\b(mysteries|mystery|detective|murder|killer|cinderella|spookley|square pumpkin)\b/i.test(m.title);
+ return !/\b(mysteries|mystery|detective|murder|killer|spookley|square pumpkin)\b/i.test(m.title);
 }
 export function catalogRows(body){
  if(body?.version!==1||!Array.isArray(body.movies))throw Error('The shared Bingo movie catalog could not be read.');
