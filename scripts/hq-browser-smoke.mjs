@@ -15,7 +15,7 @@ try{
  await page.route('**/fixture-poster.svg',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#416c57"/><text x="20" y="140" fill="white">MOVIE POSTER</text></svg>'}));
  await page.addInitScript(()=>{
   const makeQuery=()=>{const query=new Proxy({then(resolve){return Promise.resolve(resolve({data:[],error:null}))}},{get(target,key){if(key in target)return target[key];if(key==='single'||key==='maybeSingle')return async()=>({data:null,error:null});return ()=>query}});return query};
-  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'tmdb_recommendation',title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
+  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'bingo_catalog',title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
  });
  await page.goto(origin,{waitUntil:'networkidle'});
  await page.evaluate(()=>{
@@ -124,6 +124,7 @@ try{
    assert.equal(await timeline.getByLabel('Scene title',{exact:true}).inputValue(),'Fixture scene correction');
    await timeline.getByRole('button',{name:'Done editing',exact:true}).click();
    await timeline.getByLabel('Jenny’s notes',{exact:true}).fill('Jenny’s separate scene note');
+   assert.equal(await timeline.locator('.cl-story-delete').count(),await timeline.locator('.cl-story-card').count(),'Every scene card exposes its own delete control');
    const currentScene=await page.evaluate(()=>clAutomaticTimeline.selected().scene_id);
    await timeline.getByRole('button',{name:'← Previous scene',exact:true}).click();
    await timeline.getByRole('button',{name:'Next scene →',exact:true}).click();
@@ -219,4 +220,5 @@ try{
  }
  console.log('HQ real-browser fixtures passed at phone, tablet, small laptop, and desktop widths. No live user data was accessed.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
+
 

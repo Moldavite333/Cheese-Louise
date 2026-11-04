@@ -215,17 +215,18 @@ async function addDiscoveredMovie(id,applyTraits){
   if(existing){ selectedMovie=existing.id; render(); return; }
 
   const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official';
-  const originLabel=isHallmark?'Hallmark official catalog':'TMDB movie search';
+  const isCatalog=c.source_type==='bingo_catalog';
+  const originLabel=isCatalog?'Romantiverse Bingo editorial catalog':isHallmark?'Hallmark official catalog':'TMDB movie search';
   let originalMeta=c.source_metadata||{};if(typeof originalMeta==='string'){try{originalMeta=JSON.parse(originalMeta)||{}}catch{originalMeta={}}}
   const sourceMetadata={
-    ...originalMeta,source_type:isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
     official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
     production_companies:(c.production_companies?.length?c.production_companies:c.production_company)||originalMeta.production_companies||originalMeta.production_company||[],
     stars:c.stars?.length?c.stars:originalMeta.stars||[],cast:c.cast?.length?c.cast:c.stars?.length?c.stars:originalMeta.cast||[],director:c.director||originalMeta.director||null,
     genres:c.genres?.length?c.genres:originalMeta.genres||[],keywords:c.keywords?.length?c.keywords:originalMeta.keywords||[],external_ids:c.external_ids||originalMeta.external_ids||{},
     year:Number(c.year)||Number(String(c.premiere_date||'').slice(0,4))||null,season:c.season||null,holiday:c.holiday||null,
     identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
-    data_sources:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
+    data_sources:isCatalog?['Romantiverse Bingo editorial catalog']:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
   };
   const payload={
     workspace_id:workspace.id,title:c.title,network:c.network||(isHallmark?'Hallmark Channel':null),cheese_score:0,status:'needs_review',summary:c.summary||null,
@@ -270,3 +271,4 @@ window.discoveryHydratePosters=discoveryHydratePosters;
 window.addDiscoveredMovie=addDiscoveredMovie;
 window.hideDiscoveredMovie=hideDiscoveredMovie;
 window.toggleDiscoveryExpanded=toggleDiscoveryExpanded;
+

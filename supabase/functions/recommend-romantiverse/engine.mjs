@@ -37,8 +37,7 @@ export function eligible(movie){
  const romance=g.has(10749)||/\b(romance|romantic|falls? in love|falling in love|finds? love|love interest|romantic connection)\b/i.test(body)||
   (g.has(10770)&&quirky&&/\b(husband|wife|ex-wife|ex-husband|boyfriend|girlfriend|fiance|marriage|dating)\b/i.test(body));
  if(!romance)return false;
- return g.has(10770)||trusted.test(names(movie.production_companies).join(' '))||
-  (g.has(10749)&&g.has(35)&&quirky);
+ return g.has(10770)||trusted.test(names(movie.production_companies).join(' '));
 }
 function overlap(a,b){const set=new Set(a);return [...new Set(b)].filter(x=>set.has(x));}
 function keywords(movie){return names(movie.keywords?.keywords||movie.keywords).map(norm).filter(x=>!['christmas','holiday','romance','tv movie','romantic comedy','woman director','based on novel or book'].includes(x));}
@@ -90,3 +89,4 @@ export function diversify(rows,limit){
  }
  return chosen;
 }
+
