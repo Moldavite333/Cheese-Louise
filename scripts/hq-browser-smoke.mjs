@@ -144,6 +144,16 @@ try{
    assert.ok(track.content>track.width,'Scene cards scroll inside the storyboard instead of stretching the page');
    assert.ok(await timeline.locator('.cl-story-card').first().evaluate(el=>el.getBoundingClientRect().height>=150),'Scene cards have readable touch targets');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Storyboard fits viewport '+width);
+    const sceneDelete=timeline.locator('.cl-story-detail-heading').getByRole('button',{name:'Delete scene',exact:true});
+    page.once('dialog',dialog=>dialog.dismiss());await sceneDelete.click();
+    assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Cancel preserves scene');
+    page.once('dialog',dialog=>dialog.accept());await sceneDelete.click();
+    assert.ok(await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).isDisabled(),'Deletion clears bookmark');
+    await timeline.locator('.cl-story-footer > button').click();
+    assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Undo restores scene identity');
+    assert.equal(await timeline.getByLabel('Jenny’s notes',{exact:true}).inputValue(),'Jenny’s separate scene note','Undo restores host notes');
+    assert.ok(await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).isEnabled(),'Undo restores bookmark');
+
    assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
    await page.getByRole('heading',{name:'Your Bingo results',exact:true}).waitFor();
    await page.evaluate(()=>{
