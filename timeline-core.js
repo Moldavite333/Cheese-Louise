@@ -72,12 +72,14 @@
     const next=clone(doc),refs=new Map();
     for(const source of report.sources||[]){const ref=id();refs.set(source.id,ref);next.sources.push({id:ref,kind:'research',label:source.title,text:source.text,url:source.url,provenance:source.provenance,created_at:report.generated_at});}
     for(const beat of report.story_beats||[]){
+      // Keep removed research beats out of later refreshes until explicit Undo.
+      const normalize=v=>String(v||'').toLocaleLowerCase().replace(/\s+/g,' ').trim();
+      if((next.deleted_scenes||[]).some(s=>s.research_origin&&(s.research_origin.beat_id===beat.id||normalize(s.title)===normalize(beat.title)||normalize(s.summary)===normalize(beat.summary))))continue;
       const sourceRefs=(beat.source_ids||[]).map(x=>refs.get(x)).filter(Boolean);if(!sourceRefs.length)continue;
       const item=scene(doc.movie_id,beat.summary,sourceRefs[0]);item.title=beat.title;item.source_references=sourceRefs;
       item.discussion_prompts=(report.discussion||[]).filter(d=>d.source_ids.some(ref=>beat.source_ids.includes(ref))).slice(0,3).map(d=>d.question);
       item.trope_candidates=(report.trope_candidates||[]).filter(d=>d.source_ids.some(ref=>beat.source_ids.includes(ref))).map(t=>({trope_id:t.trope_id,state:'Source-supported candidate',why:t.why}));
       item.research_origin={generated_at:revision,beat_id:beat.id};
-      const normalize=v=>String(v||'').toLocaleLowerCase().replace(/\s+/g,' ').trim();
       const existing=next.scenes.find(s=>s.research_origin&&(s.research_origin.beat_id===beat.id||normalize(s.title)===normalize(beat.title)||normalize(s.summary)===normalize(beat.summary)));
       if(existing){
         const locked=existing.review_status==='User-confirmed',manual=new Set(existing.manual_fields||[]);
