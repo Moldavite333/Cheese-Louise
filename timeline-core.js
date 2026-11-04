@@ -64,7 +64,18 @@
       if(s.timestamp_status==='Exact caption time'&&!doc.sources.some(ref=>s.source_references.includes(ref.id)&&ref.kind==='captions'))throw Error('Exact timing requires captions.');
     }return doc;
   }
-  function exportText(doc,title,confirmed=[]){return [title,'CHEESE LOUISE · JENNY’S RUNDOWN',doc.mode,'Opening → Cocktail → Movie discussion → Cheese Grating & Bingo → Closing','',...doc.scenes.flatMap((s,i)=>[`${i+1}. ${stamp(s.start_time_ms)} · ${s.title}`,s.summary,`[${s.evidence_status}; ${s.timestamp_status}; ${s.review_status}]`,s.characters.length?'Characters: '+s.characters.join(', '):'',s.shared_notes,s.jenny_notes,'Additional notes: __________________','']), 'Confirmed movie tropes (not Bingo results):',...confirmed,'','Bingo: use the authoritative results panel.'].filter(x=>x!==undefined).join('\n');}
+  function importLegacy(doc,items=[],draft=''){
+    const next=clone(doc);if(next.legacy_migration_v1)return next;
+    const ref=id();next.sources.push({id:ref,kind:'user-note',label:'Legacy timeline and unsaved draft backup',text:JSON.stringify({items,draft}),created_at:new Date().toISOString()});
+    const seen=new Set([...next.scenes,...(next.deleted_scenes||[])].map(s=>JSON.stringify([s.start_time_ms,s.summary])));
+    const pending=String(draft||'').split(/\n/).filter(x=>x.trim()).map(line=>{const m=line.trim().match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:[—–-]\s*|\s+)(.+)$/);return {time:m?.[1]||'',text:m?.[2]||line.trim()};});
+    for(const item of [...items,...pending]){if(!String(item.text||'').trim())continue;let ms=null;try{if(item.time)ms=time(item.time);}catch{}
+      const fingerprint=JSON.stringify([ms,item.text]);if(seen.has(fingerprint))continue;seen.add(fingerprint);
+      const s=scene(next.movie_id,item.text,ref);s.evidence_status='Unverified';s.review_status='Needs review';s.start_time_ms=ms;s.timestamp_status=ms===null?'Unknown':'Approximate';next.scenes.push(s);
+    }
+    next.legacy_migration_v1=true;next.scenes.forEach((s,i)=>s.sequence_index=i);next.selected=next.selected||next.scenes[0]?.scene_id||null;return validate(next);
+  }
+  function exportText(doc,title,confirmed=[]){return [title,'CHEESE LOUISE · JENNY’S RUNDOWN',doc.mode,...(globalThis.clEpisodeFormat?.headings()||[]),'',...doc.scenes.flatMap((s,i)=>[(i+1)+'. '+stamp(s.start_time_ms)+' · '+s.title,s.summary,'['+s.evidence_status+'; '+s.timestamp_status+'; '+s.review_status+']',s.characters.length?'Characters: '+s.characters.join(', '):'',s.nick_notes?'Nick: '+s.nick_notes:'',s.jenny_notes?'Jenny: '+s.jenny_notes:'',s.shared_notes?'Shared: '+s.shared_notes:'','Additional notes: __________________','']), 'Confirmed movie tropes (not Bingo results):',...confirmed,'','Bingo: use the authoritative results panel.'].filter(x=>x!==undefined).join('\n');}
   function mergeResearch(doc,report){
     if(report?.schema_version!==1||report.movie_id!==doc.movie_id)throw Error('Research does not match this movie.');
     const revision=report.generated_at;
@@ -93,7 +104,7 @@
     next.research_imports=[...(next.research_imports||[]),revision];next.research_brief={characters:clone(report.characters||[]),research_gaps:clone(report.research_gaps||[]),generated_at:revision};next.mode=next.mode==='Caption navigation draft'?next.mode:'Plot outline';next.scenes.forEach((s,i)=>s.sequence_index=i);next.selected=next.selected||next.scenes[0]?.scene_id;return validate(next);
   }
   const originalExport=exportText;
-  function exportWithResearch(doc,title,confirmed=[]){const base=originalExport(doc,title,confirmed);return base+'\n\n'+doc.scenes.flatMap((s,i)=>s.discussion_prompts.length?[`DISCUSSION · ${i+1}. ${s.title}`,...s.discussion_prompts,'']:[]).join('\n')+(doc.research_brief?'\nCHARACTER NOTES\n'+doc.research_brief.characters.map(c=>c.name+': '+c.motivation+'\n'+c.discussion_angle).join('\n\n')+'\n\nCHECK WHILE WATCHING\n'+doc.research_brief.research_gaps.join('\n'):'');}
+  function exportWithResearch(doc,title,confirmed=[]){const base=globalThis.clEpisodeFormat?globalThis.clEpisodeFormat.build({title,tropes:confirmed,discussion:doc.scenes.flatMap((s,i)=>[(i+1)+'. '+stamp(s.start_time_ms)+' · '+s.title,s.summary,'['+s.evidence_status+'; '+s.timestamp_status+'; '+s.review_status+']',s.nick_notes?'Nick: '+s.nick_notes:'',s.jenny_notes?'Jenny: '+s.jenny_notes:'',s.shared_notes?'Shared: '+s.shared_notes:'','Additional notes: __________________'])}):originalExport(doc,title,confirmed);return base+'\n\n'+doc.scenes.flatMap((s,i)=>s.discussion_prompts.length?[`DISCUSSION · ${i+1}. ${s.title}`,...s.discussion_prompts,'']:[]).join('\n')+(doc.research_brief?'\nCHARACTER NOTES\n'+doc.research_brief.characters.map(c=>c.name+': '+c.motivation+'\n'+c.discussion_angle).join('\n\n')+'\n\nCHECK WHILE WATCHING\n'+doc.research_brief.research_gaps.join('\n'):'');}
   function undoDelta(before,after){
     const old=new Map(before.scenes.map(s=>[s.scene_id,s])),fresh=new Map(after.scenes.map(s=>[s.scene_id,s]));
     const changed=before.scenes.filter(s=>JSON.stringify(s)!==JSON.stringify(fresh.get(s.scene_id)));
@@ -107,5 +118,5 @@
     return {undo_delta:1,changed:clone(changed),added,top,missing,...(JSON.stringify(orderBefore)!==JSON.stringify(orderAfter)?{order:orderBefore}:{})};
   }
   function applyUndoDelta(doc,delta){const next=clone(doc),map=new Map(next.scenes.map(s=>[s.scene_id,s]));for(const id of delta.added)map.delete(id);for(const s of delta.changed)map.set(s.scene_id,clone(s));next.scenes=(delta.order||next.scenes.map(s=>s.scene_id)).map(id=>map.get(id)).filter(Boolean);Object.assign(next,clone(delta.top));for(const key of delta.missing)delete next[key];return next;}
-  globalThis.clTimelineCore={time,stamp,captions,scene,create,ingest,validate,mergeResearch,undoDelta,applyUndoDelta,exportText:exportWithResearch,clone};
+  globalThis.clTimelineCore={time,stamp,captions,scene,create,importLegacy,ingest,validate,mergeResearch,undoDelta,applyUndoDelta,exportText:exportWithResearch,clone};
 })();

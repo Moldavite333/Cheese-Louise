@@ -8,8 +8,8 @@ const server=createServer(async(req,res)=>{try{const pathname=new URL(req.url,'h
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch();await mkdir('artifacts',{recursive:true});
 try{
- for(const width of [360,768,1024,1440]){
- const page=await browser.newPage({viewport:{width,height:960}}),errors=[];
+ for(const width of [360,768,1024,1366,1440]){
+ const browserContext=await browser.newContext({viewport:{width,height:width===1366?768:960}});const page=await browserContext.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin===origin)return route.continue();return route.fulfill({status:200,contentType:'text/javascript',body:''})});
  await page.route('**/fixture-poster.svg',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#416c57"/><text x="20" y="140" fill="white">MOVIE POSTER</text></svg>'}));
@@ -154,6 +154,23 @@ try{
     assert.equal(await timeline.getByLabel('Jenny’s notes',{exact:true}).inputValue(),'Jenny’s separate scene note','Undo restores host notes');
     assert.ok(await timeline.getByRole('button',{name:'Return to bookmark',exact:true}).isEnabled(),'Undo restores bookmark');
 
+   const nick=timeline.getByLabel('Nick’s notes',{exact:true});
+   await nick.focus();await nick.press('Control+End');await page.keyboard.type(' A paragraph typed as a single revision.');
+   assert.ok(await nick.evaluate(el=>el===document.activeElement),'Typing retains focus and mobile keyboard');
+   assert.equal(await nick.evaluate(el=>el.selectionStart), (await nick.inputValue()).length,'Caret stays at end');
+   await timeline.locator('.cl-story-footer > button').click();
+   assert.equal(await timeline.getByLabel('Nick’s notes',{exact:true}).inputValue(),'Preserve this manual observation','One undo restores the paragraph');
+   await page.getByRole('button',{name:'Build / edit episode rundown',exact:true}).click();
+   const inline=page.locator('#clp-rundown-text');assert.ok(await inline.isVisible());
+   assert.match(await inline.inputValue(),/Producer-adjusted opening/,'Previously edited rundown is authoritative');
+   await inline.fill('Revised on recording desk — retained for Jenny');
+   await page.evaluate(()=>hqWorkspace.open('watchalong'));
+   assert.equal(await page.locator('#watchRundownPreview').inputValue(),'Revised on recording desk — retained for Jenny');
+   page.once('dialog',d=>d.accept());await page.evaluate(()=>watchAlongGenerateRundown());
+   const rebuilt=await page.locator('#watchRundownPreview').inputValue();
+   assert.match(rebuilt,/Nick: Preserve this manual observation/);assert.match(rebuilt,/Jenny: Jenny’s separate scene note/);assert.match(rebuilt,/Cold open · 0:20/);assert.match(rebuilt,/Cheese Grating & Bingo results · 5:00/);assert.doesNotMatch(rebuilt,/HORROR-FIED/);
+   await page.evaluate(()=>watchAlongUndoRundown());assert.equal(await page.locator('#watchRundownPreview').inputValue(),'Revised on recording desk — retained for Jenny');
+   await page.evaluate(()=>hqWorkspace.open('recording'));
    assert.ok(await page.getByRole('heading',{name:'Recording notes',exact:true}).isVisible());
    await page.getByRole('heading',{name:'Your Bingo results',exact:true}).waitFor();
    await page.evaluate(()=>{
@@ -225,6 +242,24 @@ try{
  page.once('dialog',d=>d.dismiss());await page.keyboard.press('Escape');assert.ok(await dialog.isVisible(),'Cancel keeps editor open');
  let prompts=0;page.on('dialog',async d=>{prompts++;await d.accept()});await page.keyboard.press('Escape');assert.equal(prompts,1,'Accepting Escape prompts once');assert.equal(await page.getByRole('dialog').count(),0);
  await page.screenshot({path:'artifacts/hq-editor-'+width+'.png',fullPage:true});
+ if(width===1366){
+  await page.evaluate(()=>hqWorkspace.open('recording'));
+  const other=await page.context().newPage();
+  await other.route('**/timeline-conflict-fixture',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><script src="/timeline-core.js"></script><script src="/automatic-timeline.js"></script><main id="fixture"></main>'}));
+  await other.goto(origin+'/timeline-conflict-fixture');
+  await other.evaluate(()=>{window.fixtureContext={workspace:'fixture-workspace',movie:{id:'fixture-movie',title:'Autumn at the Orchard'},notes:'',legacy:[],redraw(){document.getElementById('fixture').innerHTML=clAutomaticTimeline.html(fixtureContext);}};fixtureContext.redraw();});
+  await page.evaluate(()=>clAutomaticTimeline.edit('nick_notes','Laptop edit survives tab conflict'));
+  await other.evaluate(()=>clAutomaticTimeline.edit('jenny_notes','Stale phone-sized tab draft'));
+  assert.match(await other.locator('#cl-auto-status').innerText(),/Another tab/);
+  const disk=await page.evaluate(()=>JSON.parse(localStorage.getItem('cheeseLouise:timeline:v1:fixture-workspace:fixture-movie')).doc);
+  assert.ok(disk.scenes.some(s=>s.nick_notes==='Laptop edit survives tab conflict'));
+  assert.ok((await other.evaluate(()=>clAutomaticTimeline.snapshot())).scenes.some(s=>s.jenny_notes==='Stale phone-sized tab draft'));
+  page.once('dialog',d=>d.accept());await page.evaluate(()=>clAutomaticTimeline.remove());
+  const count=await page.evaluate(()=>clAutomaticTimeline.snapshot().scenes.length);
+  await other.evaluate(()=>clAutomaticTimeline.undo());
+  assert.equal(await other.evaluate(()=>JSON.parse(localStorage.getItem('cheeseLouise:timeline:v1:fixture-workspace:fixture-movie')).doc.scenes.length),count,'Stale tab undo cannot resurrect a deletion');
+  await other.close();
+ }
  assert.deepEqual(errors,[],'No JavaScript errors at '+width);
  await page.close();
  }

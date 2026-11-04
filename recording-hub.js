@@ -1,7 +1,7 @@
 // Cheese Louise HQ — Recording & Production Hub (local-first)
 (() => {
   const prefix='cheeseLouise:production:v1:';
-  const segments=[
+  const legacySegments=[
     {name:'Opening & banter',target:3,prompt:'Introductions, catch-up, natural opening.'},
     {name:'Cheesy Concoctions',target:5,prompt:'Make the drink, taste it, react, and move into the movie.'},
     {name:'Movie & tropes',target:22,prompt:'Brief premise, then discuss your chosen tropes and observations.'},
@@ -9,6 +9,7 @@
     {name:'Cheese Grating & Bingo results',target:7,prompt:'Give the Cheese Grating, play the Bingo sting, and announce the winners.'},
     {name:'Closing',target:3,prompt:'Final thoughts and sign-off.'}
   ];
+  const sessionSegments=s=>window.clEpisodeFormat?.forSession(s)||legacySegments;
   let view='record',tick=null;
   const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clock=ms=>{const s=Math.floor(Math.max(0,ms)/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map((n,i)=>i===0?String(n).padStart(2,'0'):String(n).padStart(2,'0')).join(':');};
@@ -43,8 +44,8 @@
     return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
   const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
-  function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
-  function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
+  function makeSession(movie){return {formatVersion:window.clEpisodeFormat?2:1,segmentId:window.clEpisodeFormat?'cold_open':'opening',movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
+  function getSession(){const d=read(),m=currentMovie();if(!m)return null;const s=d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));if(s.formatVersion===2&&s.segmentId){const i=sessionSegments(s).findIndex(x=>x.id===s.segmentId);if(i>=0)s.segment=i;}return s;}
   function update(fn){const s=getSession();if(!s)return;fn(s);save(s);draw();}
   const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
@@ -69,6 +70,7 @@
     ].map(([k,v])=>'<p><strong>'+k+':</strong> '+escapeHtml(names(v))+'</p>').join('');
   }
   function rundownSection(n,s){
+    if(s.formatVersion===2)return '<p>'+escapeHtml(sessionSegments(s)[n]?.prompt||'')+'</p>';
     if(n===0)return '<p>Introduce yourselves, share a quick story and settle into the conversation.</p>';
     if(n===1)return '<p>Introduce, taste and react to the Cheesy Concoction.</p>';
     if(n===2)return '<p>Give a brief premise, then use your talk order and Watch Along cards below.</p>';
@@ -89,59 +91,17 @@
   function cueCard(text,index,type,label){
     return '<li class="clp-cue clp-cue-'+type+'"><span class="clp-cue-number" aria-hidden="true">'+(index+1)+'</span><div><span class="clp-cue-label">'+escapeHtml(label)+'</span><p>'+escapeHtml(text)+'</p></div></li>';
   }
-  const timelineEditing=new Set();
   function movieTimeline(){
     const m=currentMovie(),data=read(),raw=data.timelines?.[m?.id]||{};
     const items=Array.isArray(raw.items)?raw.items.filter(i=>i&&typeof i.text==='string'&&i.text.trim()):[];
     return {items,index:Math.max(0,Math.min(items.length,Number.isInteger(raw.index)?raw.index:0))};
   }
-  function timelineLines(items){return items.map(i=>(i.time?i.time+' — ':'')+i.text).join('\n');}
-  function timelineLabel(item){return (item?.time?'<time>'+escapeHtml(item.time)+'</time> ':'')+escapeHtml(item?.text||'');}
   function movieTimelineHtml(){
-    const advanced=window.clAutomaticTimeline?.html({movie:currentMovie(),workspace:workspaceId(),notes:rundown(currentMovie()).notes,confirmed:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)).map(t=>t.name),legacy:movieTimeline().items,traits:((typeof state!=='undefined'?state.traits:[])||[]),recordingMarkers:getSession()?.markers||[],confirmedTraits:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)),redraw:draw});
+    const advanced=window.clAutomaticTimeline?.html({movie:currentMovie(),workspace:workspaceId(),notes:rundown(currentMovie()).notes,confirmed:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)).map(t=>t.name),legacy:movieTimeline().items,legacyDraft:read().timelineDrafts?.[currentMovie().id],traits:((typeof state!=='undefined'?state.traits:[])||[]),recordingMarkers:getSession()?.markers||[],confirmedTraits:((typeof state!=='undefined'?state.traits:[])||[]).filter(t=>(currentMovie().selectedTraitIds||[]).includes(t.id)),redraw:draw});
     if(advanced)return '<details class="cl-story-research-reference"><summary>Movie research & generation</summary>'+(window.clMovieResearch?.html(currentMovie())||'')+'</details>'+advanced;
-    const m=currentMovie(),data=read(),timeline=movieTimeline(),{items,index}=timeline;
-    const editing=timelineEditing.has(m.id),draft=data.timelineDrafts?.[m.id]??timelineLines(items);
-    const current=items[index],next=items[index+1];
-    return (window.clMovieResearch?.html(currentMovie())||'')+(advanced||'')+'<section class="clp-movie-timeline" aria-labelledby="clp-timeline-title"><div class="clp-timeline-head"><div><h2 id="clp-timeline-title">Manual talk order</h2><small>Story order · '+(items.length?Math.min(index+1,items.length)+' of '+items.length+(index===items.length?' · complete':''):'No beats added yet')+'</small></div>'+button(editing?'Close editor':'Edit timeline','timelineEdit()')+'</div>'+
-      (items.length?'<div class="clp-timeline-focus" aria-live="polite"><div><span class="clp-cue-label">'+(current?'Now':'Finished')+'</span><p>'+ (current?timelineLabel(current):'All movie beats covered.')+'</p></div><div><span class="clp-cue-label">Next</span><p>'+(next?timelineLabel(next):current?'End of movie timeline':'No remaining beats')+'</p></div></div><div class="clp-timeline-actions">'+button('Previous beat','timelineMove(-1)',index===0?'disabled':'')+button(current?'Done · next beat':'Timeline complete','timelineMove(1)',!current?'disabled':'')+'</div><details class="clp-timeline-list"><summary>All '+items.length+' story beats</summary><ol>'+items.map((item,n)=>'<li><button type="button" class="'+(n===index?'current':n<index?'done':'')+'" '+(n===index?'aria-current="step"':'')+' onclick="clProduction.timelineGo('+n+')"><span class="clp-timeline-number">'+(n<index?'✓':n+1)+'</span><span>'+timelineLabel(item)+'</span></button></li>').join('')+'</ol></details>':'<p class="clp-hint">Add the movie’s plot beats in story order to see where you are and what happens next.</p>')+
-      (editing?'<div class="clp-timeline-editor"><label for="clp-timeline-text">One plot beat per line. Optional movie time: 12:30 — They meet at the café.</label><textarea id="clp-timeline-text" rows="6" oninput="clProduction.timelineDraft(this.value)">'+escapeHtml(draft)+'</textarea><div class="clp-timeline-actions">'+button('Save timeline','timelineSave()')+button('Import Watch Along order','timelineImport()')+'</div><p class="clp-hint">Imported notes are an editable starting point. Put them in movie order before saving. Movie times are separate from the recording timer.</p></div>':'')+'</section>';
+    return '<section class="cl-auto" role="alert"><h2>Timeline unavailable</h2><p>Reload HQ to restore the scene editor. Existing scenes and legacy drafts remain saved; a second timeline will not be created.</p></section>';
   }
-  function timelineMove(delta){
-    const m=currentMovie(),timeline=movieTimeline(),data=read();if(!m)return;
-    timeline.index=Math.max(0,Math.min(timeline.items.length,timeline.index+delta));
-    data.timelines=data.timelines||{};data.timelines[m.id]=timeline;write(data);draw();
-  }
-  function timelineSave(){
-    const m=currentMovie();if(!m)return;
-    const data=read(),old=movieTimeline(),text=document.getElementById('clp-timeline-text')?.value??data.timelineDrafts?.[m.id]??'';
-    const available=new Map();for(const item of old.items){const k=(item.time||'')+'|'+item.text;if(!available.has(k))available.set(k,[]);available.get(k).push(item.id);}
-    const items=String(text).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map((line,n)=>{
-      const match=line.match(/^\[?((?:\d{1,2}:)?\d{1,3}:[0-5]\d)\]?\s*(?:[—–-]\s*)?(.+)$/);
-      const time=match?match[1]:'',text=match?match[2].trim():line;
-      const reused=available.get(time+'|'+text)?.shift();
-      return {id:reused||'beat-'+Date.now()+'-'+n+'-'+Math.random().toString(36).slice(2,7),time,text};
-    });
-    const currentId=old.items[old.index]?.id,existingIndex=currentId?items.findIndex(i=>i.id===currentId):-1;
-    data.timelines=data.timelines||{};data.timelines[m.id]={items,index:existingIndex>=0?existingIndex:Math.min(old.index,items.length)};
-    data.timelineDrafts=data.timelineDrafts||{};delete data.timelineDrafts[m.id];
-    write(data);timelineEditing.delete(m.id);draw();
-  }
-  function timelineImport(){
-    const m=currentMovie();if(!m)return;
-    const source=rundown(m),ordered=source.outlineItems?.length?source.outlineItems.map(i=>i.text):source.talkingPoints||[];
-    const notes=String(source.notes||'').split(/\n+/).map(t=>t.replace(/^\s*[•*-]\s*/,'').trim()).filter(Boolean);
-    const lines=[...new Set([...ordered,...notes].map(t=>String(t).trim()).filter(Boolean))];
-    if(!lines.length){alert('No Watch Along outline or notes found for this movie on this device.');return;}
-    const data=read();data.timelineDrafts=data.timelineDrafts||{};
-    const existing=data.timelineDrafts[m.id]??timelineLines(movieTimeline().items);
-    const merged=existing.split(/\n+/).filter(Boolean);
-    const identity=line=>line.replace(/^\[?(?:(?:\d{1,2}:)?\d{1,3}:[0-5]\d)\]?\s*(?:[—–-]\s*)?/,'').trim().toLowerCase();
-    const seen=new Set(merged.map(identity));
-    for(const line of lines)if(!seen.has(identity(line))){merged.push(line);seen.add(identity(line));}
-    data.timelineDrafts[m.id]=merged.join('\n');
-    write(data);timelineEditing.add(m.id);draw();
-  }
+
   function recordingNotes(s){
     const latest=rundown(currentMovie()),saved=s.snapshot||{},knownTraits=new Set((state.traits||[]).map(t=>t.name));
     const snap=latest.hasDraft?latest:{...saved,talkingPoints:window.clMovieTraits?[...new Set([...(saved.talkingPoints||[]).filter(text=>!knownTraits.has(text)),...latest.talkingPoints])]:(saved.talkingPoints||latest.talkingPoints),grating:latest.grating,confirmedCount:latest.confirmedCount};
@@ -162,22 +122,23 @@
       '<details class="clp-credit-reference"><summary>Movie credits & research reference</summary>'+movieCredits(currentMovie())+'</details></section>';
   }
   function recordHtml(){
-    const s=getSession(),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
+    const s=getSession(),segments=sessionSegments(s),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
     const focused=expandedSegment!==null&&expandedSegment>=0?expandedSegment:i;
     const rows=segments.map((seg,n)=>{
       const lap=s.laps[n],active=n===i;
-      return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):'Target '+seg.target+':00')+'</small></button>';
+      return '<button class="clp-segment-choice '+(active?'current':'')+'" aria-pressed="'+(focused===n)+'" onclick="clProduction.expand('+n+')"><span>'+(lap?'✓':n+1)+'. '+escapeHtml(seg.name)+(active?' · NOW':'')+'</span><small>'+(lap?clock(lap.durationMs):seg.seconds===0?'Theme cue':'Target '+clock((seg.seconds??seg.target*60)*1000).slice(3))+'</small></button>';
     }).join('');
-    return '<div class="clp-note-access"><a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div><div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
+    const episodeRundown=window.clEpisodeRundown?'<details id="clp-episode-rundown" data-clp-detail="episode-rundown"><summary>Editable episode rundown</summary><textarea id="clp-rundown-text" aria-label="Editable episode rundown" rows="12" oninput="clProduction.saveRundown(this.value)">'+escapeHtml(window.clEpisodeRundown.text(currentMovie()))+'</textarea><p id="clp-rundown-status" role="status">Shared with Watch Along on this device. Rebuild there only when you want to replace your edits.</p></details>':'';
+    return '<div class="clp-note-access">'+button('Build / edit episode rundown','openRundown()')+'<a href="#clp-watch-observations">Jump to Watch Along notes ↓</a>'+button('Open Watch Along','openWatchAlong()')+'</div>'+episodeRundown+'<div class="clp-record-grid"><section class="clp-record-primary"><div class="clp-compact-timer" aria-label="Recording timing"><div><span>Total</span><strong id="clp-total">'+clock(total)+'</strong></div><div><span>Segment</span><strong id="clp-segtime">'+clock(segTime)+'</strong></div><small>'+escapeHtml(segments[i].name)+'</small></div><div class="clp-meter"><i id="clp-progress" style="width:'+Math.min(100,total/2700000*100)+'%"></i></div>'+
       '<details class="clp-segment-map"><summary>Episode segments <span>'+escapeHtml(segments[i].name)+'</span></summary><div class="clp-segment-choices">'+rows+'</div><p class="clp-hint">Browse a cue without changing the running segment.</p></details>'+
       '<div class="clp-desk-columns"><section class="clp-desk-story" aria-label="Movie position"><div class="clp-host-cue"><span class="clp-cue-label">Segment cue · '+escapeHtml(segments[focused].name)+'</span>'+rundownSection(focused,s)+'</div>'+movieTimelineHtml()+'</section><section class="clp-desk-discussion" aria-label="Discussion notes">'+recordingNotes(s)+'</section><section class="clp-desk-bingo" aria-label="Bingo card results">'+(window.clRecordingBingo?window.clRecordingBingo.html(currentMovie()):'<p class="clp-hint">Loading Bingo results…</p>')+'</section></div>'+
-      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
+      '<div class="clp-sticky-actions clp-actions">'+(s.runningSince?button('Pause','pause()'):button(s.finished?'Finished':s.elapsedMs||s.laps.length?'Resume':'Start timer','start()',s.finished?'disabled':''))+button('Quick marker','mark()')+button('Previous','previous()',i===0?'disabled':'')+button(i===segments.length-1?'Finish & save':'Lap & next','next()',s.finished?'disabled':'')+'</div></section><aside class="clp-record-aside"><h3>Editing markers</h3><div class="clp-marker"><label>Type <select id="clp-marker-type"><option>Funny / Clip</option><option>Edit or Cut</option><option>Retake</option><option>Technical Issue</option></select></label><input id="clp-marker-note" data-movie="'+escapeHtml(s.movieId)+'" placeholder="Optional note"><button onclick="clProduction.mark()">Mark moment</button></div><div class="clp-list">'+s.markers.slice(-5).reverse().map(m=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span></div>').join('')+'</div>'+(s.finished?'<p class="clp-done">Session finished and saved.</p>':'')+'<div class="clp-foot">'+button('Update from Watch Along','refreshSnapshot()',s.runningSince?'disabled':'')+button('New session','reset()')+'</div><p class="clp-hint">Update while paused to bring in your latest notes and talk order.</p></aside></div>';
   }
   function editHtml(){
     const s=getSession();return '<h2>Editing sheet</h2><p>All timestamps are relative to when you started the HQ timer. Start the RØDECaster recording at the same moment for accurate alignment.</p>'
       +'<h3>Segment boundaries</h3><div class="clp-list">'+(s.laps||[]).map(l=>'<div><span>'+clock(l.startMs)+' — '+escapeHtml(l.name)+'</span><strong>'+clock(l.durationMs)+'</strong></div>').join('')+'</div>'
-      +'<h3>Markers</h3><div class="clp-list">'+(s.markers||[]).map((m,i)=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span><button onclick="clProduction.deleteMarker('+i+')">Remove</button></div>').join('')+'</div>'
-      +'<div class="clp-actions">'+button('Download CSV','exportCsv()')+button('Copy editing sheet','copyEdit()')+'</div>';
+      +'<h3>Markers</h3><div class="clp-list">'+(s.markers||[]).map((m,i)=>'<div><span>'+clock(m.atMs)+' · '+escapeHtml(m.type)+(m.note?' · '+escapeHtml(m.note):'')+'</span><button onclick="clProduction.editMarker('+i+')">Edit note</button><button onclick="clProduction.deleteMarker('+i+')">Remove</button></div>').join('')+'</div>'
+      +'<div class="clp-actions">'+button('Undo marker deletion','undoMarker()',!s.removedMarkers?.length?'disabled':'')+button('Download CSV','exportCsv()')+button('Copy editing sheet','copyEdit()')+'</div>';
   }
   function socialHtml(){
     const s=getSession(),m=currentMovie(),d=read(),done=d.socials?.[m.id]||{},tasks=['Teaser prepared','Cocktail post prepared','Episode release post prepared','Funny clip selected','Bingo link checked','Posts scheduled'];
@@ -192,23 +153,21 @@
   async function copy(t){try{await navigator.clipboard.writeText(t);alert('Copied.')}catch{prompt('Copy this text:',t)}}
   window.clProduction={
     refreshDesk(){const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}},
-    timelineEdit(){const m=currentMovie();if(!m)return;if(timelineEditing.has(m.id))timelineEditing.delete(m.id);else timelineEditing.add(m.id);draw();},
-    timelineDraft(text){const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data);},
-    timelineSave,
-    timelineImport,
-    timelineMove,
-    timelineGo(index){if(!Number.isInteger(index))return;const timeline=movieTimeline();timelineMove(Math.max(0,Math.min(timeline.items.length-1,index))-timeline.index);},
     followWatchMovie(){const id=watchMovieId();if(!id||!movieList().some(m=>m.id===id)||getSession()?.runningSince)return;const d=read();d.movieId=id;write(d);expandedSegment=null;},
+    saveRundown(value){try{window.clEpisodeRundown.save(currentMovie(),value);}catch{alert('Rundown could not be saved. Copy your text before closing.');}},
+    openRundown(){const panel=document.getElementById('clp-episode-rundown');if(panel){panel.open=true;document.getElementById('clp-rundown-text')?.focus();}else this.openWatchAlong();},
     openWatchAlong(){const movie=currentMovie();if(!movie)return;try{localStorage.setItem('cheeseLouise:watchAlong:'+workspaceId()+':movie',movie.id)}catch{}if(window.hqWorkspace?.open)window.hqWorkspace.open('watchalong');else{currentTab='watchalong';render();}},
     expand(i){expandedSegment=expandedSegment===i?-1:i;draw();},
     view(v){view=v;draw();document.querySelectorAll('.clp-tabs button').forEach((b,i)=>b.classList.toggle('selected',['record','edit','socials'][i]===v));},
     movie(id){if(!movieList().some(m=>m.id===id))return;const previous=getSession();if(previous){if(previous.runningSince){previous.elapsedMs=sessionNow(previous);previous.runningSince=null;}save(previous);}const d=read();d.movieId=id;write(d);expandedSegment=null;render();},
     start(){update(s=>{if(!s.finished&&!s.runningSince)s.runningSince=Date.now();});},
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;}});},
-    previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}});},
-    next(){expandedSegment=null;update(s=>{if(s.finished)return;const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.finished=true;}else{s.segment++;}});},
+    previous(){expandedSegment=null;update(s=>{if(s.finished){s.finished=false;s.laps.pop();}else if(s.segment>0&&s.laps.length){s.laps.pop();s.segment--;}s.segmentId=sessionSegments(s)[s.segment].id;});},
+    next(){expandedSegment=null;update(s=>{if(s.finished)return;const segments=sessionSegments(s);const total=sessionNow(s),start=startOfSegment(s);if(total<=start&&!s.runningSince)return;s.laps.push({segmentId:segments[s.segment].id,name:segments[s.segment].name,startMs:start,durationMs:Math.max(0,total-start)});if(s.segment===segments.length-1){s.elapsedMs=total;s.runningSince=null;s.finished=true;}else{s.segment++;}s.segmentId=segments[s.segment].id;});},
     mark(){const type=document.getElementById('clp-marker-type')?.value||'Funny / Clip',note=document.getElementById('clp-marker-note')?.value||'';const input=document.getElementById('clp-marker-note');if(input)input.value='';update(s=>s.markers.push({atMs:sessionNow(s),type,note,...(window.clAutomaticTimeline?.selected()||{})}));},
-    deleteMarker(i){update(s=>s.markers.splice(i,1));},
+    editMarker(i){const s=getSession(),m=s.markers[i];if(!m)return;const note=prompt('Edit marker note (recording time is retained):',m.note||'');if(note!==null)update(d=>{if(d.markers[i])d.markers[i].note=note;});},
+    deleteMarker(i){update(s=>{if(!s.markers[i])return;s.removedMarkers=[...(s.removedMarkers||[]).slice(-19),{index:i,marker:s.markers[i]}];s.markers.splice(i,1);});},
+    undoMarker(){update(s=>{const removed=s.removedMarkers?.pop();if(removed)s.markers.splice(Math.min(removed.index,s.markers.length),0,removed.marker);});},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
     reset(){if(confirm('Start a new session? The current session and its markers will be replaced. Export the editing sheet first.'))update(s=>Object.assign(s,makeSession(currentMovie())));},
     social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},

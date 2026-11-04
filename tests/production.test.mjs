@@ -5,33 +5,11 @@ import vm from 'node:vm';
 const recording=readFileSync(new URL('../recording-hub.js',import.meta.url),'utf8');
 const watching=readFileSync(new URL('../watch-along.js',import.meta.url),'utf8');
 
-test('movie timeline shows now and next, persists progress, and stays separate from recording time',()=>{
- const h=harness(recording),p=h.context.clProduction;
- p.timelineDraft('00:05 - Opening\n12:30 - Meeting\n1:02:00 - Reveal');p.timelineSave();p.start();h.advance(15000);
- p.timelineMove(1);h.context.render();
- assert.equal(h.data().timelines.a.items[1].time,'12:30');assert.equal(h.data().timelines.a.items[1].text,'Meeting');
- assert.match(h.html(),/Now<\/span><p><time>12:30<\/time> Meeting/);assert.match(h.html(),/Next<\/span><p><time>1:02:00<\/time> Reveal/);
- assert.equal(h.data().session.runningSince,100000);assert.equal(h.data().session.laps.length,0);p.mark();assert.equal(h.data().session.markers[0].atMs,15000);
- const reloaded=harness(recording,Object.fromEntries(h.storage));reloaded.context.render();assert.match(reloaded.html(),/12:30<\/time> Meeting/);
- p.timelineMove(99);assert.equal(h.data().timelines.a.index,3);p.timelineMove(-99);assert.equal(h.data().timelines.a.index,0);
+test('missing scene module shows recovery instead of a competing legacy timeline',()=>{
+ const initial={'cheeseLouise:production:v1:workspace-test':JSON.stringify({movieId:'a',timelines:{a:{items:[{text:'Original beat'}]}},timelineDrafts:{a:'Unfinished draft'}})};
+ const h=harness(recording,initial);h.context.render();assert.match(h.html(),/Timeline unavailable/);assert.doesNotMatch(h.html(),/Manual talk order/);assert.equal(h.storage.get('cheeseLouise:production:v1:workspace-test'),initial['cheeseLouise:production:v1:workspace-test']);
 });
 
-test('timeline edits preserve current beat and isolate movies and unsaved drafts',()=>{
- const h=harness(recording),p=h.context.clProduction;p.timelineDraft('Opening\nMeeting');p.timelineSave();p.timelineMove(1);
- p.timelineDraft('New scene\nOpening\nMeeting');p.timelineSave();assert.equal(h.data().timelines.a.index,2);
- p.movie('b');p.timelineDraft('Other movie');p.timelineSave();assert.equal(h.data().timelines.b.items.length,1);
- p.movie('a');assert.equal(h.data().timelines.a.index,2);p.timelineDraft('<script>draft</script>');
- const r=harness(recording,Object.fromEntries(h.storage));r.context.clProduction.timelineEdit();r.context.render();
- assert.ok(r.html().includes('&lt;script&gt;draft&lt;/script&gt;'));assert.ok(!r.html().includes('<script>draft</script>'));assert.equal(r.data().timelines.a.items.length,3);
-});
-
-test('Watch Along import produces an editable timeline draft and preserves existing movie times',()=>{
- const draft={outlineItems:[{id:'n1',type:'note',text:'Opening'},{id:'n2',type:'note',text:'Meeting'}],notes:'Meeting\nFinal reveal'};
- const h=harness(recording,{'cheeseLouise:watchAlong:workspace-test:draft:a':JSON.stringify(draft)}),p=h.context.clProduction;
- p.timelineDraft('00:05 - Opening');p.timelineSave();p.timelineImport();p.timelineImport();
- assert.equal(h.data().timelines.a.items.length,1);assert.equal(h.data().timelineDrafts.a,'00:05 \u2014 Opening\nMeeting\nFinal reveal');
- p.timelineSave();assert.equal(h.data().timelines.a.items.length,3);assert.equal(h.data().timelines.a.items[0].time,'00:05');
-});
 function harness(source,initial={}){
  const storage=new Map(Object.entries(initial));let now=100000,html='',blocked=false;const alerts=[];
  const elements=new Map([['clp-marker-note',{value:'Keep this moment',getAttribute:()=> 'a'}],['clp-marker-type',{value:'Funny / Clip'}],['watchTraitBody',{innerHTML:''}]]);
@@ -43,7 +21,7 @@ function harness(source,initial={}){
  tabs:()=>'<nav></nav>',render:()=>{},shell:s=>{html=s;elements.get('clp-marker-note').value='';elements.get('clp-marker-type').value='Funny / Clip'},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},
  esc:s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
  navigator:{clipboard:{writeText:async s=>{context.copied=s}}}};
- context.window=context;vm.createContext(context);vm.runInContext(source,context);
+ context.window=context;vm.createContext(context);vm.runInContext(readFileSync(new URL('../episode-format.js',import.meta.url),'utf8'),context);vm.runInContext(source,context);
  return {context,storage,elements,alerts,advance:ms=>{now+=ms},html:()=>html,block:()=>{blocked=true},data:()=>JSON.parse(storage.get('cheeseLouise:production:v1:workspace-test')||'{}')};
 }
 test('recording sessions and editing markers survive switching episodes and a reload',()=>{
@@ -60,9 +38,9 @@ test('legacy single-session data is preserved when another episode is selected',
  assert.equal(h.data().sessions.a.markers[0].note,'Legacy marker');
 });
 test('a completed final segment can reopen and finish without duplicate laps',()=>{
- const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<6;i++){h.advance(10000);p.next()}
- assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,5);assert.equal(h.data().session.laps.length,5);
- p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,6);assert.equal(h.data().session.elapsedMs,65000);
+ const h=harness(recording),p=h.context.clProduction;p.start();for(let i=0;i<7;i++){h.advance(10000);p.next()}
+ assert.equal(h.data().session.finished,true);p.previous();assert.equal(h.data().session.finished,false);assert.equal(h.data().session.segment,6);assert.equal(h.data().session.laps.length,6);
+ p.start();h.advance(5000);p.next();assert.equal(h.data().session.laps.length,7);assert.equal(h.data().session.elapsedMs,75000);
 });
 test('next cannot create a zero-time lap before the timer starts',()=>{
  const h=harness(recording);h.context.clProduction.next();assert.equal(h.data().session.laps.length,0);assert.equal(h.data().session.segment,0);
@@ -128,3 +106,28 @@ test('Watch Along handoff preserves previous sessions and never switches a runni
  running.context.clProduction.followWatchMovie();assert.equal(running.data().movieId,'a');assert.equal(running.data().session.runningSince,100000);
 });
 
+
+test('marker revisions and deletion undo retain original recording time across reload',()=>{
+ const h=harness(recording),p=h.context.clProduction;p.start();h.advance(12345);p.mark();h.context.prompt=()=> 'Revised pickup';p.editMarker(0);const at=h.data().session.markers[0].atMs;
+ p.deleteMarker(0);assert.equal(h.data().session.markers.length,0);const r=harness(recording,Object.fromEntries(h.storage));r.context.clProduction.undoMarker();assert.equal(r.data().session.markers[0].atMs,at);assert.equal(r.data().session.markers[0].note,'Revised pickup');
+});
+test('new sessions use stable section IDs, reload keeps current cue and old sessions keep Horror-fied',()=>{
+ const h=harness(recording),p=h.context.clProduction;p.start();h.advance(20000);p.next();assert.equal(h.data().session.segmentId,'theme');assert.equal(h.data().session.laps[0].segmentId,'cold_open');
+ const r=harness(recording,Object.fromEntries(h.storage));r.context.render();assert.match(r.html(),/Theme music/);assert.equal(r.data().session.runningSince,100000);
+ const legacy={movieId:'a',session:{movieId:'a',title:'Movie A',snapshot:{},segment:3,laps:[{name:'Original opening',startMs:0,durationMs:500}],markers:[],elapsedMs:5000,runningSince:null,finished:false}};
+ const old=harness(recording,{'cheeseLouise:production:v1:workspace-test':JSON.stringify(legacy)});old.context.render();assert.match(old.html(),/Horror-fied/);old.context.clProduction.start();old.advance(1000);old.context.clProduction.next();assert.equal(old.data().session.laps[1].name,'Horror-fied');assert.equal(old.data().session.laps[0].name,'Original opening');
+});
+test('rundown includes episode cocktail and all approved cues; explicit rebuild is reversible after reload',()=>{
+ const h=harness(watching);h.context.state.episodes=[{movie_id:'a',cocktail_id:'drink'}];h.context.state.cocktails=[{id:'drink',name:'Orchard spritz',ingredients:'Apple juice and soda',method:'Stir over ice'}];
+ const text=h.context.clEpisodeRundown.text(h.context.state.movies[0]);assert.match(text,/Orchard spritz/);assert.match(text,/Apple juice and soda/);assert.match(text,/Cold open · 0:20/);assert.match(text,/Cheese Grating & Bingo results · 5:00/);assert.ok(!text.includes('Horror-fied'));
+ h.context.watchAlongSaveRundown('Our edited script');h.context.watchAlongGenerateRundown();const r=harness(watching,Object.fromEntries(h.storage));r.context.watchAlongUndoRundown();assert.equal(r.context.clEpisodeRundown.text(r.context.state.movies[0]),'Our edited script');
+});
+
+test('automatic Watch notes refresh never prompts or overwrites an edited or intentionally empty rundown',()=>{
+ const h=harness(watching);h.context.watchAlongSaveRundown('Our script');h.context.confirm=()=>{throw Error('Unexpected confirmation while typing');};h.context.watchAlongSaveText('notes','A new observation');assert.equal(h.context.clEpisodeRundown.text(h.context.state.movies[0]),'Our script');h.context.watchAlongSaveRundown('');h.context.watchAlongSaveText('notes','Another observation');assert.equal(h.context.clEpisodeRundown.text(h.context.state.movies[0]),'');
+});
+test('same-field rundown tab conflict preserves both versions and quota failure retains local draft',()=>{
+ const h=harness(watching);const movie=h.context.state.movies[0];h.context.watchAlongSaveRundown('Initial');h.context.clEpisodeRundown.text(movie);
+ const other=harness(watching);other.context.localStorage=h.context.localStorage;other.context.clEpisodeRundown.text(other.context.state.movies[0]);other.context.watchAlongSaveRundown('Other tab version');h.context.watchAlongSaveRundown('My conflicted draft');assert.equal(JSON.parse(h.storage.get('cheeseLouise:watchAlong:workspace-test:draft:a')).rundownText,'Other tab version');assert.equal(h.context.clEpisodeRundown.text(movie),'My conflicted draft');
+ const quota=harness(watching);quota.block();quota.context.watchAlongSaveRundown('Unsaved but recoverable');assert.equal(quota.context.clEpisodeRundown.text(quota.context.state.movies[0]),'Unsaved but recoverable');
+});
