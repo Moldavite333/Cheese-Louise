@@ -28,7 +28,7 @@ discoverCheeseMovies=async function(force=false){
   if(error)throw error;if(data?.error)throw new Error(data.error);
   if(!Array.isArray(data?.results))throw new Error('Movie recommendations returned an incomplete response.');
   const known=new Set((state.movies||[]).map(m=>clRecNorm(m.title))),seen=new Set(history.ids.map(Number));
-  state.discoveryResults=data.results.filter(m=>!clMovieIsHorror(m)&&!known.has(clRecNorm(m.title))&&!seen.has(Number(m.tmdb_id)));
+  state.discoveryResults=data.results.filter(m=>m.source_type==='bingo_catalog'&&!clMovieIsHorror(m)&&!known.has(clRecNorm(m.title))&&!seen.has(Number(m.tmdb_id)));
   clRecommendationMeta=data;discoveryLoaded=true;
   const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),batch:(history.batch+1)%10000};
   clRecMemoryHistory.set(clRecStorageKey(),next);
@@ -48,7 +48,7 @@ window.clBroadenFinder=()=>{
 };
 window.clRecStartOver=()=>{clRecMemoryHistory.delete(clRecStorageKey());try{localStorage.removeItem(clRecStorageKey());}catch{}discoverCheeseMovies(true);};
 discoveryPanel=function(){
- const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">Quirky, magical romances based on your favorite movies. Fresh picks skip earlier batches on this browser.</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Find fresh picks</button></div>';
+ const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">Made-for-TV romances from the same movie catalog as Bingo. Fresh picks skip earlier batches on this browser.</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Find fresh picks</button></div>';
  if(discoveryLoading)return '<div class="new-find-panel card card-pad">'+title+'<div class="discovery-loading"><span class="discovery-spinner">♥</span> Matching your favorites and finding a fresh batch with posters…</div></div>';
  if(discoveryError)return '<div class="new-find-panel card card-pad">'+title+'<div class="empty" role="status">'+esc(discoveryError)+'<p><button class="secondary" onclick="discoverCheeseMovies(true)">Try again</button></p></div></div>';
  if(!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<button class="primary" onclick="discoverCheeseMovies(true)">Find movies for us</button></div>';
@@ -112,3 +112,4 @@ if(typeof movieMatchesCheeseFilters==='function'){
  const previous=movieMatchesCheeseFilters;
  movieMatchesCheeseFilters=movie=>!clMovieIsHorror(movie)&&previous(movie);
 }
+

@@ -106,7 +106,7 @@ function romantiverseSearchPanel(){
   const visible=loaded?romantiverseSearchVisibleResults():[];
 
   if(romantiverseSearchLoading){
-    return taste+'<div class="rom-search-panel card card-pad"><div class="rom-search-head"><div><div class="kicker">Searching the Romantiverse</div><strong>“'+esc(label)+'”</strong></div><span class="discovery-spinner">🧀</span></div><div class="subtle">Checking multiple TMDB title, synopsis, keyword and concept searches…</div></div>';
+    return taste+'<div class="rom-search-panel card card-pad"><div class="rom-search-head"><div><div class="kicker">Searching the Romantiverse</div><strong>“'+esc(label)+'”</strong></div><span class="discovery-spinner">🧀</span></div><div class="subtle">Searching the shared Romantiverse Bingo movie catalog…</div></div>';
   }
 
   if(romantiverseSearchError && loaded){
@@ -124,7 +124,7 @@ function romantiverseSearchPanel(){
     (terms.length?'<div class="rom-search-expansion"><span class="subtle">Also looking for:</span><div class="pills">'+terms.map(t=>'<span class="pill">'+esc(t)+'</span>').join('')+'</div></div>':'')+
     '<div class="results-line"><strong>'+visible.length+'</strong> external match'+(visible.length===1?'':'es')+' from '+state.romantiverseSearchResults.length+' unique finds after filters, hidden titles and saved movies</div>'+
     '<div class="new-find-grid">'+(visible.map(romantiverseSearchCard).join('')||'<div class="empty card card-pad">No external matches survive the current filters. Clear a filter or try a broader idea.</div>')+'</div>'+
-    '<div class="subtle rom-search-attribution">Search source: TMDB · streaming availability: JustWatch via TMDB · Cheese Louise expands related concepts before ranking.</div>'+
+    '<div class="subtle rom-search-attribution">Search source: Romantiverse Bingo editorial catalog. Exact title/year matches may supply additional movie metadata.</div>'+
   '</div>';
 }
 
@@ -134,96 +134,23 @@ function refreshRomantiverseSearchPanel(){
 }
 
 async function runRomantiverseSearch(rawQuery,force=false,forUs=false){
-  const query=romantiverseFilterQuery(rawQuery);
-  romantiverseSearchForUs=forUs;
-  romantiverseSearchWarning='';
-  const loadedQuery=forUs?'__taste__':query;
-  const seq=++romantiverseSearchSequence;
-  if(query.length<2&&!forUs){
-    romantiverseSearchLoading=false;
-    romantiverseSearchError='';
-    romantiverseSearchLoadedQuery='';
-    romantiverseSearchExpandedTerms=[];
-    state.romantiverseSearchResults=[];
-    refreshRomantiverseSearchPanel();
-    return;
-  }
-
-  // Fan out only bounded, related searches; ordinary title searches keep exact-title priority.
-  const themes=typeof clTasteWeights==='function'?clTasteWeights().filter(t=>t.weight>0).sort((a,b)=>b.weight-a.weight):[];
-  const queries=forUs?themes.map(t=>t.query):[query];
-  const related={christmas:['magical christmas','holiday romance'],autumn:['pumpkin','harvest festival'],fall:['autumn','pumpkin'],coffee:['cafe','barista'],bakery:['baker','baking'],magic:['magical romance','time travel romance']};
-  if(!forUs&&related[query.toLowerCase()])queries.push(...related[query.toLowerCase()]);
-  if(!queries.length)queries.push('romantic comedy');
-  const cacheKey=queries.join('|').toLowerCase();
-  if(!force && romantiverseSearchCache.has(cacheKey)&&Date.now()-romantiverseSearchCache.get(cacheKey).cached_at<600000){
-    const cached=romantiverseSearchCache.get(cacheKey);
-    state.romantiverseSearchResults=cached.results||[];
-    romantiverseSearchExpandedTerms=cached.expanded_terms||[];
-    romantiverseSearchLoadedQuery=loadedQuery;
-    romantiverseSearchWarning=cached.warning||'';
-    romantiverseSearchError='';
-    romantiverseSearchLoading=false;
-    refreshRomantiverseSearchPanel();
-    return;
-  }
-
-  romantiverseSearchLoading=true;
-  romantiverseSearchError='';
-  romantiverseSearchLoadedQuery=loadedQuery;
-  refreshRomantiverseSearchPanel();
-
-  let deadline;
-  try{
-    const responses=await Promise.race([
-      (async()=>{
-        const results=[];
-        for(let i=0;i<queries.length;i+=3){
-          if(seq!==romantiverseSearchSequence)return [];
-          results.push(...await Promise.allSettled(queries.slice(i,i+3).map(query=>db.functions.invoke('search-romantiverse',{body:{query,max_results:36}}))));
-        }
-        return results;
-      })(),
-      new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('Movie search timed out. Try again.')),45000)})
-    ]);
-    if(seq!==romantiverseSearchSequence) return;
-    const successful=responses.filter(r=>r.status==='fulfilled'&&!r.value.error&&!r.value.data?.error&&Array.isArray(r.value.data?.results));
-    if(!successful.length)throw new Error('Movie searches could not complete. Try again.');
-    const unique=new Map();
-    for(const response of successful)for(const movie of response.value.data.results){
-      if(!movie.tmdb_id)continue;
-      const key=(movie.tmdb_type||'movie')+':'+movie.tmdb_id;
-      const old=unique.get(key);
-      if(!old||Number(movie.search_score||0)>Number(old.search_score||0))unique.set(key,movie);
-    }
-    const warning=successful.length<queries.length?'Some searches failed; showing the searches that completed. Try again for wider coverage.':'';
-    const payload={
-      results:[...unique.values()],
-      expanded_terms:[...new Set(successful.flatMap(r=>r.value.data.expanded_terms||[]))],
-      warning,
-      cached_at:Date.now()
-    };
-    if(romantiverseSearchCache.size>=40)romantiverseSearchCache.delete(romantiverseSearchCache.keys().next().value);
-    romantiverseSearchCache.set(cacheKey,payload);
-    state.romantiverseSearchResults=payload.results;
-    romantiverseSearchExpandedTerms=payload.expanded_terms;
-    romantiverseSearchLoadedQuery=loadedQuery;
-    romantiverseSearchWarning=warning;
-  }catch(err){
-    if(seq!==romantiverseSearchSequence) return;
-    state.romantiverseSearchResults=[];
-    romantiverseSearchExpandedTerms=[];
-    romantiverseSearchError=err?.message||String(err);
-    romantiverseSearchLoadedQuery=loadedQuery;
-  }finally{
-    clearTimeout(deadline);
-    if(seq===romantiverseSearchSequence){
-      romantiverseSearchLoading=false;
-      refreshRomantiverseSearchPanel();
-    }
-  }
+ const query=romantiverseFilterQuery(rawQuery),seq=++romantiverseSearchSequence;
+ romantiverseSearchForUs=forUs;romantiverseSearchWarning='';
+ const loadedQuery=forUs?'__taste__':query;
+ if(query.length<2&&!forUs){romantiverseSearchLoading=false;romantiverseSearchError='';romantiverseSearchLoadedQuery='';romantiverseSearchExpandedTerms=[];state.romantiverseSearchResults=[];refreshRomantiverseSearchPanel();return;}
+ romantiverseSearchLoading=true;romantiverseSearchError='';romantiverseSearchLoadedQuery=loadedQuery;refreshRomantiverseSearchPanel();
+ try{
+  const filters={holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax};
+  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
+  if(seq!==romantiverseSearchSequence)return;
+  if(error||data?.error)throw Error(data?.error||error?.message||'The Cheese Louise movie catalog could not load.');
+  if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');
+  state.romantiverseSearchResults=data.results.filter(c=>c.source_type==='bingo_catalog'&&!clMovieIsHorror(c));
+  romantiverseSearchExpandedTerms=data.expanded_terms||[];
+  romantiverseSearchWarning='Searching the same editorial catalog as Romantiverse Bingo. General movie matches are excluded.';
+ }catch(error){if(seq!==romantiverseSearchSequence)return;state.romantiverseSearchResults=[];romantiverseSearchExpandedTerms=[];romantiverseSearchError=error.message||String(error);}
+ finally{if(seq===romantiverseSearchSequence){romantiverseSearchLoading=false;refreshRomantiverseSearchPanel();}}
 }
-
 function scheduleRomantiverseSearch(value){
   clearTimeout(romantiverseSearchTimer);
   romantiverseSearchSequence++;
@@ -301,3 +228,4 @@ for(const name of ['setHolidayFilter','setSeasonFilter']){
  const previous=window[name];
  window[name]=function(value){const result=previous?.(value);scheduleRomantiverseSearch(searchText);return result};
 }
+

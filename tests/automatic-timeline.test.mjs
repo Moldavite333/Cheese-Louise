@@ -7,7 +7,7 @@ const core=readFileSync(new URL('../timeline-core.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../automatic-timeline.js',import.meta.url),'utf8');
 function harness(storage=new Map()){
  let blocked=false,readsBlocked=false,downloaded;const status={textContent:''};
- const ctx={crypto:webcrypto,Date,console,setTimeout:fn=>fn(),Blob:class{constructor(parts){downloaded=parts.join('');}},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},localStorage:{getItem(k){if(readsBlocked)throw Error('Storage access denied');return storage.get(k)||null;},setItem(k,v){if(blocked)throw Error('quota');storage.set(k,v);}},document:{getElementById:()=>status,createElement:()=>({click(){}})},navigator:{clipboard:{writeText:async()=>{}}}};
+ const ctx={crypto:webcrypto,Date,console,confirm:()=>true,setTimeout:fn=>fn(),Blob:class{constructor(parts){downloaded=parts.join('');}},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},localStorage:{getItem(k){if(readsBlocked)throw Error('Storage access denied');return storage.get(k)||null;},setItem(k,v){if(blocked)throw Error('quota');storage.set(k,v);}},document:{getElementById:()=>status,createElement:()=>({click(){}})},navigator:{clipboard:{writeText:async()=>{}}}};
  ctx.window=ctx;vm.createContext(ctx);vm.runInContext(core,ctx);vm.runInContext(ui,ctx);
  const C=ctx.clTimelineCore,A=ctx.clAutomaticTimeline;
  const context={movie:{id:'m1',title:'Same title',year:2023,summary:'A shop owner returns home.'},workspace:'w1',notes:'Keep original note',legacy:[],confirmed:[],redraw(){}};
@@ -16,6 +16,12 @@ function harness(storage=new Map()){
  return {C,A,ctx,storage,status,context,html,data,downloaded:()=>JSON.parse(downloaded),block:()=>blocked=true,blockReads:()=>readsBlocked=true};
 }
 const srt='1\n00:00:01,250 --> 00:00:04,500\n<v Jenny>Hello</v>\n\n2\n00:04:05,000 --> 00:04:06,000\n[Door closes]';
+test('each scene card exposes delete; deleting another scene preserves selection and undo restores its notes',()=>{
+ const h=harness();h.A.add();h.A.edit('nick_notes','Keep this recoverable note');const added=h.data().selected;h.A.select(0);const selected=h.data().selected;
+ assert.match(h.html(),/cl-story-delete/);h.A.remove(added);assert.equal(h.data().selected,selected);assert.ok(!h.data().scenes.some(s=>s.scene_id===added));
+ h.A.undo();assert.equal(h.data().scenes.find(s=>s.scene_id===added).nick_notes,'Keep this recoverable note');
+ h.ctx.confirm=()=>false;const count=h.data().scenes.length;h.A.remove(added);assert.equal(h.data().scenes.length,count);
+});
 test('caption timing, explicit speakers, sound cues and offsets survive parsing',()=>{
  const {C}=harness(),cues=C.captions(srt,500);assert.equal(cues[0].start,1750);assert.equal(cues[0].speaker,'Jenny');assert.equal(cues[1].text,'[Door closes]');
  const vtt=C.captions('WEBVTT\n\nNOTE permitted\nannotation\n\na\n00:01.000 --> 00:02.000 align:start\nHello');assert.equal(vtt[0].start,1000);
@@ -71,3 +77,4 @@ test('scene trope links require a confirmed movie trait and remain user-confirme
 test('merging scenes retains marker associations without modifying original recording timestamps',()=>{
  const h=harness();const second=h.data().scenes[1].scene_id;h.context.recordingMarkers=[{scene_id:second,atMs:12345,type:'Retake',note:'Keep this marker'}];h.A.merge();assert.match(h.html(),/Keep this marker/);assert.equal(h.context.recordingMarkers[0].atMs,12345);h.A.undo();assert.equal(h.data().scenes[1].scene_id,second);
 });
+

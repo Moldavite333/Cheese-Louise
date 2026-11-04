@@ -1,0 +1,2340 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-01",
+  "source": "Editorial title listings; release years, distributors and seasons require independent verification. No inferred scene evidence.",
+  "movies": [
+    {
+      "id": "wikidata-q96776808",
+      "title": "A Beautiful Place to Die: A Martha's Vineyard Mystery",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96776808",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-a-biltmore-christmas-2023",
+      "title": "A Biltmore Christmas",
+      "release_year": 2023,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/a-biltmore-christmas",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "editorial-a-carpenter-christmas-romance-2024",
+      "title": "A Carpenter Christmas Romance",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-carpenter-christmas-romance",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-christmas-arrangement-2018",
+      "title": "A Christmas Arrangement",
+      "release_year": 2018,
+      "season": "Christmas",
+      "source_name": "Peacock official movie page",
+      "source_url": "https://www.peacocktv.com/watch-online/movies/a-christmas-arrangement/ab1e7581-bd47-3650-b018-4b7fd097ee59",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified"
+    },
+    {
+      "id": "wikidata-q109978514",
+      "title": "A Christmas Carousel",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/christmas/new-years-eve-marathon-movies-a-christmas-carousel",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-christmas-cookbook-2025",
+      "title": "A Christmas Cookbook",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-christmas-cookbook",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "hallmark-a-christmas-detour-2015",
+      "title": "A Christmas Detour",
+      "release_year": 2015,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [
+          "travel_disruption"
+        ],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "machine_inferred_unverified",
+      "source_url": "https://www.hallmarkchannel.com/a-christmas-detour",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "catalog-a-christmas-melody-2015",
+      "title": "A Christmas Melody",
+      "release_year": 2015,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/a-christmas-melody",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "editorial-a-christmas-princess-2019",
+      "title": "A Christmas Princess",
+      "release_year": 2019,
+      "season": "Christmas",
+      "source_name": "Peacock official movie page",
+      "source_url": "https://www.peacocktv.com/watch-online/movies/romance/a-christmas-princess/c7704ca5-d54c-3938-a05b-26a52a6c53e5",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified"
+    },
+    {
+      "id": "editorial-a-christmas-village-2018",
+      "title": "A Christmas Village",
+      "release_year": 2018,
+      "season": "Christmas",
+      "source_url": "https://tv.apple.com/us/movie/a-christmas-village/umc.cmc.4ouz3jorgbe6wtt3kv8zg12d9",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Apple TV (film metadata)",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-christmas-village-romance-2020",
+      "title": "A Christmas Village Romance",
+      "release_year": 2020,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://ca-times.brightspotcdn.com/d3/a5/319faa4e46f6a2b2dff787fedcdc/tvmovies2021-12-19.pdf",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-christmas-vintage-2023",
+      "title": "A Christmas Vintage",
+      "release_year": 2023,
+      "season": "Christmas",
+      "source_name": "Peacock official movie page",
+      "source_url": "https://www.peacocktv.com/watch-online/movies/a-christmas-vintage/321d10d9-3920-3869-8e36-dfac9207da6e",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified"
+    },
+    {
+      "id": "wikidata-q3548803",
+      "title": "A Christmas Wedding Tail",
+      "release_year": 2011,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "wedding",
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Anchor Bay 2011 Hallmark premiere announcement",
+      "source_url": "https://www.newswire.com/news/jingle-bells-meet-wedding-bells-in-debut-original-family-film-a-christmas-91419",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-a-december-bride-2016",
+      "title": "A December Bride",
+      "release_year": 2016,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/a-december-bride",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q109833543",
+      "title": "A Glenbrooke Christmas",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "source_url": "https://www.hallmarkmystery.com/miracles-of-christmas/miracles-of-christmas-2020-schedule/%26",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-a-harvest-wedding-2017",
+      "title": "A Harvest Wedding",
+      "release_year": 2017,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/fall-into-love/2017-fall-harvest-originals"
+    },
+    {
+      "id": "editorial-a-magical-christmas-village-2022",
+      "title": "A Magical Christmas Village",
+      "release_year": 2022,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkplus.com/details/VIDEO/item/MOVINA036722/a-magical-christmas-village",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105100934",
+      "title": "A New Year's Resolution",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-year-new-movies-2021",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-newport-christmas-2025",
+      "title": "A Newport Christmas",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/a-newport-christmas/about-a-newport-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-pickleball-christmas-2025",
+      "title": "A Pickleball Christmas",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-pickleball-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-a-royal-christmas-2014",
+      "title": "A Royal Christmas",
+      "release_year": 2014,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/a-royal-christmas",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "editorial-a-royal-christmas-ball-2017",
+      "title": "A Royal Christmas Ball",
+      "release_year": 2017,
+      "season": "Christmas",
+      "source_name": "Peacock official movie page",
+      "source_url": "https://www.peacocktv.com/watch-online/movies/a-royal-christmas-ball/94d4aed6-9a1f-3623-9078-33916a992ca6",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified"
+    },
+    {
+      "id": "editorial-a-runaway-bride-for-christmas-2025",
+      "title": "A Runaway Bride For Christmas",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-runaway-bride-for-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-a-very-english-christmas-2023",
+      "title": "A Very English Christmas",
+      "release_year": 2023,
+      "season": "Christmas",
+      "source_name": "Peacock official movie page",
+      "source_url": "https://www.peacocktv.com/watch-online/movies/a-very-english-christmas/f934cb43-af4a-357e-bbfe-e26ed8d319f8",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "production_company": "Reel One Entertainment"
+    },
+    {
+      "id": "editorial-a-very-merry-beauty-salon-2024",
+      "title": "A Very Merry Beauty Salon",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-very-merry-beauty-salon",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-a-very-merry-mix-up-2013",
+      "title": "A Very Merry Mix-Up",
+      "release_year": 2013,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/a-very-merry-mix-up"
+    },
+    {
+      "id": "editorial-a-very-merry-toy-store-2017",
+      "title": "A Very Merry Toy Store",
+      "release_year": 2017,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/a-very-merry-toy-store",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105486763",
+      "title": "A Winter Getaway",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-year-new-movies-2021",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-all-of-my-heart-2015",
+      "title": "All of My Heart",
+      "release_year": 2015,
+      "season": "Unspecified",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/all-of-my-heart",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q96774720",
+      "title": "Aurora Teagarden Mysteries: Heist and Seek",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96774720",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106087262",
+      "title": "Aurora Teagarden Mysteries: How to Con a Con",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q106087262",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q101164893",
+      "title": "Aurora Teagarden Mysteries: Reunited and it Feels So Deadly",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q101164893",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "hallmark-autumn-at-apple-hill-2024",
+      "title": "Autumn at Apple Hill",
+      "release_year": 2024,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/autumn-at-apple-hill",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "hallmark-autumn-dreams-2015",
+      "title": "Autumn Dreams",
+      "release_year": 2015,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [
+          "former_sweethearts",
+          "married"
+        ],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "machine_inferred_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/fall-harvest/all-new-originals"
+    },
+    {
+      "id": "wikidata-q105606067",
+      "title": "Beverly Hills Wedding",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "wedding"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/love-ever-after/2021-romance-movies-love-ever-after",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-christmas-above-the-clouds-2025",
+      "title": "Christmas Above the Clouds",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas-above-the-clouds/about-christmas-above-the-clouds",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-christmas-at-plumhill-manor-2024",
+      "title": "Christmas at Plumhill Manor",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/christmas-at-plumhill-manor",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-christmas-at-the-plaza-2019",
+      "title": "Christmas at the Plaza",
+      "release_year": 2019,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas-at-the-plaza"
+    },
+    {
+      "id": "wikidata-q109810288",
+      "title": "Christmas by Starlight",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/christmas-by-starlight",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-christmas-getaway-2017",
+      "title": "Christmas Getaway",
+      "release_year": 2017,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas-getaway"
+    },
+    {
+      "id": "editorial-christmas-in-alaska-2025",
+      "title": "Christmas in Alaska",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/christmas-in-alaska",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-christmas-in-evergreen-2017",
+      "title": "Christmas in Evergreen",
+      "release_year": 2017,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas-in-evergreen-movies/about-the-movies"
+    },
+    {
+      "id": "wikidata-q105917009",
+      "title": "Christmas in Evergreen: Bells are Ringing",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/christmas-in-evergreen-movies/about-the-movies",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-christmas-in-the-spotlight-2024",
+      "title": "Christmas in the Spotlight",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/christmas-in-the-spotlight",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-christmas-on-my-mind-2019",
+      "title": "Christmas on My Mind",
+      "release_year": 2019,
+      "season": "Christmas",
+      "source_name": "Hallmark Mystery official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkmystery.com/christmas-on-my-mind",
+      "network": "Hallmark Mystery"
+    },
+    {
+      "id": "hallmark-christmas-under-wraps-2014",
+      "title": "Christmas Under Wraps",
+      "release_year": 2014,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [
+          "hospital"
+        ],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "machine_inferred_unverified",
+      "source_url": "https://www.hallmarkchannel.com/christmas-under-wraps",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q110090152",
+      "title": "Christmas Waltz",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/home-and-family/wednesday-november-25th-2020",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q104147001",
+      "title": "Christmas with the Darlings",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/home-and-family/wednesday-november-4th-2020",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105689997",
+      "title": "Chronicle Mysteries: Helped to Death",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q105689997",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q101627783",
+      "title": "Cranberry Christmas",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "source_url": "https://www.hallmarkmystery.com/christmas/miracles-of-christmas-2020-preview/%2A%2A",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q97139528",
+      "title": "Crossword Mysteries: Abracadaver",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q97139528",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106728423",
+      "title": "Crossword Mysteries: Riddle Me Dead",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q106728423",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105594674",
+      "title": "Crossword Mysteries: Terminal Descent",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q105594674",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-crown-for-christmas-2015",
+      "title": "Crown for Christmas",
+      "release_year": 2015,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/crown-for-christmas",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q108894088",
+      "title": "Don't Forget I Love You",
+      "release_year": 2022,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-in-2022",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-engaged-by-christmas-2024",
+      "title": "Engaged By Christmas",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/engaged-by-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-falling-for-vermont-2017",
+      "title": "Falling for Vermont",
+      "release_year": 2017,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/falling-for-vermont"
+    },
+    {
+      "id": "catalog-falling-for-you-2018",
+      "title": "Falling for You",
+      "release_year": 2018,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/fall-into-love/2018-fall-harvest-originals"
+    },
+    {
+      "id": "wikidata-q126095953",
+      "title": "Five More Minutes",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official 2021 premiere guide",
+      "source_url": "https://www.hallmarkmystery.com/christmas/miracles-of-christmas-2021-preview/%2A%2A",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q104876273",
+      "title": "Five Star Christmas",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/five-star-christmas",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q107974375",
+      "title": "From the Heart",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q107974375",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-harvest-moon-2015",
+      "title": "Harvest Moon",
+      "release_year": 2015,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/fall-harvest/all-new-originals"
+    },
+    {
+      "id": "catalog-haul-out-the-holly-2022",
+      "title": "Haul Out the Holly",
+      "release_year": 2022,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/haul-out-the-holly",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q130582183",
+      "title": "Holiday Date",
+      "release_year": 2019,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/home-and-family/tuesday-december-10th-2019",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-holiday-in-happy-hollow-2024",
+      "title": "Holiday in Happy Hollow",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/holiday-in-happy-hollow",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q101171543",
+      "title": "Holly & Ivy",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "source_url": "https://www.hallmarkmystery.com/christmas/miracles-of-christmas-2020-preview/%2A%2A",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-how-to-fall-in-love-by-christmas-2024",
+      "title": "How to Fall in Love By Christmas",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/how-to-fall-in-love-by-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q97354773",
+      "title": "Just My Type",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/spring-fling/2020-spring-fling-movies",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-leah-s-perfect-gift-2024",
+      "title": "Leah's Perfect Gift",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "production_company": "MarVista Entertainment",
+      "source_url": "https://www.crew-united.com/en/Leah-s-Perfect-Gift__364224.html",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Crew United TV-film and production credits",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q89786925",
+      "title": "Love in Winterland",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/winterfest/new-movies-2020",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-love-on-the-sidelines-2016",
+      "title": "Love on the Sidelines",
+      "release_year": 2016,
+      "season": "Unspecified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/valentines-day/countdown-to-valentines-day-schedule-2016"
+    },
+    {
+      "id": "wikidata-q99293339",
+      "title": "Love Under the Olive Tree",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "TV Insider 2020 Hallmark Channel premiere report",
+      "source_url": "https://www.tvinsider.com/938474/love-under-the-olive-tree-hallmark-channel/",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q115132941",
+      "title": "Love, Classified",
+      "release_year": 2022,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/whats-airing-on-hallmark-channel-this-month-april-2022",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "hallmark-love-fall-order-2019",
+      "title": "Love, Fall & Order",
+      "release_year": 2019,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [
+          "hometown"
+        ],
+        "relationship": [],
+        "conflict": [
+          "career_choice",
+          "family_dispute"
+        ],
+        "event": [
+          "festival"
+        ]
+      },
+      "facts_status": "machine_inferred_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/fall-into-love/fall-harvest-2019-movies"
+    },
+    {
+      "id": "wikidata-q115247552",
+      "title": "Love's Portrait",
+      "release_year": 2022,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official September 2022 premieres",
+      "source_url": "https://www.hallmarkmystery.com/september-2022-movies",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-make-or-bake-christmas-2024",
+      "title": "Make or Bake Christmas",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/make-or-bake-christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q99292771",
+      "title": "Marrying Father Christmas",
+      "release_year": 2018,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [
+          "family"
+        ],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official 2018 premiere guide",
+      "source_url": "https://www.hallmarkmystery.com/christmas/miracles-of-christmas-2018-preview/",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q96739783",
+      "title": "Matchmaker Mysteries: A Fatal Romance",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96739783",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106729193",
+      "title": "MatchMaker Mysteries: The Art of the Kill",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q106729193",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106897265",
+      "title": "Mix Up in the Mediterranean",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [
+          "misunderstanding"
+        ],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/love-ever-after/2021-romance-movies-love-ever-after",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q107033028",
+      "title": "Morning Show Mysteries: Murder Ever After",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q107033028",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106397224",
+      "title": "Mystery 101: Killer Timing",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q106397224",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q126949140",
+      "title": "Never Kiss a Man in a Christmas Sweater",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/ashley-williams",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q114842565",
+      "title": "Noel Next Door",
+      "release_year": 2022,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official 2022 Christmas retrospective",
+      "source_url": "https://www.hallmarkchannel.com/christmas-in-july/christmas-in-july-marathons-all-month-long",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-october-kiss-2015",
+      "title": "October Kiss",
+      "release_year": 2015,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/october-kiss",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "editorial-peppermint-and-postcards-2023",
+      "title": "Peppermint and Postcards",
+      "release_year": 2023,
+      "season": "Christmas",
+      "production_company": "Reel One Entertainment",
+      "source_url": "https://www.primevideo.com/-/id/detail/0FF2EMO0AHIXNTZ8QCVKU3U2B9",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Prime Video movie and studio listing",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q96739585",
+      "title": "Picture Perfect Mysteries: Dead Over Diamonds",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96739585",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q101166959",
+      "title": "Picture Perfect Mysteries: Exit Stage Death",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q101166959",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106775314",
+      "title": "Playing Cupid",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/love-ever-after/2021-romance-movies-love-ever-after",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q106887727",
+      "title": "Poisoned in Paradise: A Martha's Vineyard Mystery",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q106887727",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "hallmark-pumpkin-pie-wars-2016",
+      "title": "Pumpkin Pie Wars",
+      "release_year": 2016,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [
+          "bakery"
+        ],
+        "relationship": [
+          "rivals",
+          "family"
+        ],
+        "conflict": [
+          "competition"
+        ],
+        "event": [
+          "baking_contest"
+        ]
+      },
+      "facts_status": "machine_inferred_unverified",
+      "source_url": "https://www.hallmarkchannel.com/pumpkin-pie-wars",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q99293243",
+      "title": "Return to Christmas Creek",
+      "release_year": 2018,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official 2018 premiere guide",
+      "source_url": "https://www.hallmarkmystery.com/christmas/miracles-of-christmas-2018-preview/",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q96776822",
+      "title": "Riddled with Deceit: A Martha's Vineyard Mystery",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96776822",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-roadhouse-romance-2021",
+      "title": "Roadhouse Romance",
+      "release_year": 2021,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/roadhouse-romance",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "editorial-rodeo-christmas-romance-2025",
+      "title": "Rodeo Christmas Romance",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/rodeo-christmas-romance",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q98384414",
+      "title": "Roux the Day: A Gourmet Detective Mystery",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q98384414",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q96742752",
+      "title": "Ruby Herring Mysteries: Prediction Murder",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q96742752",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-santa-tell-me-2024",
+      "title": "Santa Tell Me",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/santa-tell-me",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105070509",
+      "title": "Ships in the Night: A Martha's Vineyard Mystery",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "unverified",
+      "source_name": "Wikidata (CC0)",
+      "source_url": "https://www.wikidata.org/wiki/Q105070509",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105491422",
+      "title": "Snowkissed",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-year-new-movies-2021",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-sweet-autumn-2020",
+      "title": "Sweet Autumn",
+      "release_year": 2020,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official movie page",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.hallmarkchannel.com/sweet-autumn",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "wikidata-q105630361",
+      "title": "Swept Up by Christmas",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [
+          "deadline"
+        ],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "source_url": "https://www.hallmarkmystery.com/miracles-of-christmas/miracles-of-christmas-2020-schedule/%26",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q105072018",
+      "title": "Taking a Shot at Love",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-year-new-movies-2021",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-thank-god-christmas-at-the-keller-ranch-2025",
+      "title": "Thank God: Christmas at the Keller Ranch",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/thank-god-christmas-at-the-keller-ranch",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-the-birthday-wish-2017",
+      "title": "The Birthday Wish",
+      "release_year": 2017,
+      "season": "Unspecified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/jessy-schram"
+    },
+    {
+      "id": "editorial-the-christmas-campaign-2025",
+      "title": "The Christmas Campaign",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/the-christmas-campaign",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "hallmark-the-christmas-card-2006",
+      "title": "The Christmas Card",
+      "release_year": 2006,
+      "season": "Christmas",
+      "source_name": "TV Insider Hallmark Channel 2006 movie listing",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.tvinsider.com/show/the-christmas-card/",
+      "network": "Hallmark Channel"
+    },
+    {
+      "id": "catalog-the-christmas-house-2020",
+      "title": "The Christmas House",
+      "release_year": 2020,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/the-christmas-house"
+    },
+    {
+      "id": "catalog-the-christmas-ornament-2013",
+      "title": "The Christmas Ornament",
+      "release_year": 2013,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/home-and-family/today-on-home-family-thursday-november-14th-2013"
+    },
+    {
+      "id": "catalog-the-christmas-secret-2014",
+      "title": "The Christmas Secret",
+      "release_year": 2014,
+      "season": "Christmas",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Mystery",
+      "source_url": "https://www.hallmarkmystery.com/the-christmas-secret"
+    },
+    {
+      "id": "editorial-the-christmas-setup-2020",
+      "title": "The Christmas Setup",
+      "release_year": 2020,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "production_company": "MarVista Entertainment",
+      "source_url": "https://www.mylifetime.com/movies/the-christmas-setup",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-the-christmas-train-2017",
+      "title": "The Christmas Train",
+      "release_year": 2017,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas/2017-holiday-movies-preview/"
+    },
+    {
+      "id": "editorial-the-holiday-junkie-2024",
+      "title": "The Holiday Junkie",
+      "release_year": 2024,
+      "season": "Christmas",
+      "network": "Lifetime",
+      "source_url": "https://www.mylifetime.com/movies/the-holiday-junkie",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Lifetime official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-the-lost-valentine-2011",
+      "title": "The Lost Valentine",
+      "release_year": 2011,
+      "season": "Unspecified",
+      "source_name": "CBS original Hallmark Hall of Fame premiere report",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "source_url": "https://www.paramountpressexpress.com/cbs-entertainment/releases/view?id=27411",
+      "network": "CBS"
+    },
+    {
+      "id": "catalog-the-mistletoe-promise-2016",
+      "title": "The Mistletoe Promise",
+      "release_year": 2016,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/the-mistletoe-promise"
+    },
+    {
+      "id": "catalog-the-most-wonderful-time-of-the-year-2008",
+      "title": "The Most Wonderful Time of the Year",
+      "release_year": 2008,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/christmas/25-top-christmas-movies/"
+    },
+    {
+      "id": "hallmark-nine-lives-christmas-2014",
+      "title": "The Nine Lives of Christmas",
+      "release_year": 2014,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "machine_inferred_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/hallmark-plus/the-classic-christmas-movie-collection-on-hallmark/"
+    },
+    {
+      "id": "editorial-the-princess-and-the-bodyguard-2022",
+      "title": "The Princess and the Bodyguard",
+      "release_year": 2022,
+      "season": "Unspecified",
+      "production_company": "Reel One Entertainment",
+      "source_url": "https://www.primevideo.com/-/sv/detail/0J7QCO2V8UXE2QYSEK9869WCSN",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Prime Video movie and studio listing",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q3549131",
+      "title": "The Wishing Well",
+      "release_year": 2010,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "TheTVDB US premiere and network record",
+      "source_url": "https://www.thetvdb.com/movies/the-wishing-well",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-three-wise-men-and-a-baby-2022",
+      "title": "Three Wise Men and a Baby",
+      "release_year": 2022,
+      "season": "Christmas",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/three-wise-men-and-a-baby"
+    },
+    {
+      "id": "wikidata-q104903150",
+      "title": "Two for the Win",
+      "release_year": 2021,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/new-year-new-movies/new-year-new-movies-2021",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-two-scoops-of-italy-2024",
+      "title": "Two Scoops of Italy",
+      "release_year": 2024,
+      "season": "Unspecified",
+      "network": "Hallmark Channel",
+      "production_company": "MarVista Entertainment",
+      "source_url": "https://www.crew-united.com/fr/Two-Scoops-of-Italy__345708.html",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Crew United TV-film and production credits",
+      "is_demo": false
+    },
+    {
+      "id": "catalog-under-the-autumn-moon-2018",
+      "title": "Under the Autumn Moon",
+      "release_year": 2018,
+      "season": "Fall",
+      "source_name": "Hallmark Channel official title/year reference",
+      "verification_status": "metadata_verified",
+      "is_demo": false,
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/home-and-family/friday-october-12th-2018"
+    },
+    {
+      "id": "wikidata-q109914253",
+      "title": "USS Christmas",
+      "release_year": 2020,
+      "season": "Christmas",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": [
+          "christmas"
+        ]
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Mystery official title/year reference",
+      "source_url": "https://www.hallmarkmystery.com/miracles-of-christmas/miracles-of-christmas-2020-schedule/%26",
+      "network": "Hallmark Mystery",
+      "is_demo": false
+    },
+    {
+      "id": "editorial-we-met-in-december-2025",
+      "title": "We Met in December",
+      "release_year": 2025,
+      "season": "Christmas",
+      "network": "Hallmark Channel",
+      "source_url": "https://www.hallmarkchannel.com/we-met-in-december/about-we-met-in-december",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official movie page",
+      "is_demo": false
+    },
+    {
+      "id": "wikidata-q101245049",
+      "title": "Winter in Vail",
+      "release_year": 2020,
+      "season": "Unspecified",
+      "story_facts": {
+        "setting": [],
+        "relationship": [],
+        "conflict": [],
+        "event": []
+      },
+      "facts_status": "title_only_unverified",
+      "verification_status": "metadata_verified",
+      "source_name": "Hallmark Channel official title/year reference",
+      "source_url": "https://www.hallmarkchannel.com/winterfest/new-movies-2020",
+      "network": "Hallmark Channel",
+      "is_demo": false
+    }
+  ],
+  "data_policy": "No synopsis text retained; controlled-vocabulary story tags only"
+}
