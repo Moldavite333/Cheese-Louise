@@ -23,21 +23,18 @@ test('cached external search results cannot display mixed Horror/Romance or expl
  assert.equal(c.romantiverseSearchMatchesFilters({title:'Friendly Christmas Ghost',genres:['Romance','TV Movie'],summary:'A woman falls in love with a friendly ghost.'}),true);
 });
 
-test('taste discovery merges five searches, deduplicates movies and retains more than 36 finds',async()=>{
- const h=setup(),c=h.context;let n=0;
- h.respond(async query=>({data:{results:[{tmdb_id:1,title:'Shared Christmas film'},...Array.from({length:12},()=>({tmdb_id:++n+1,title:query+' '+n}))],expanded_terms:[query]}}));
+test('catalog taste discovery uses one bounded request, keeps the catalog pool and rejects general movie rows',async()=>{
+ const h=setup(),c=h.context;
+ h.respond(async()=>({data:{results:[{tmdb_id:1,title:'Shared Christmas film',source_type:'bingo_catalog'},...Array.from({length:60},(_,i)=>({tmdb_id:i+2,title:'Catalog movie '+i,source_type:'bingo_catalog'})),{tmdb_id:999,title:'Cinderella',source_type:'tmdb_search'}],expanded_terms:[]}}));
  await c.runRomantiverseSearch('',true,true);
- assert.equal(h.requests.length,5);
- assert.equal(c.state.romantiverseSearchResults.length,61);
- assert.equal(c.state.romantiverseSearchResults.filter(m=>m.tmdb_id===1).length,1);
+ assert.equal(h.requests.length,1);assert.equal(c.state.romantiverseSearchResults.length,61);
+ assert.ok(!c.state.romantiverseSearchResults.some(m=>m.title==='Cinderella'));
 });
 
-test('partial discovery failure preserves successful results and explains reduced coverage',async()=>{
- const h=setup(),c=h.context;
- h.respond(async query=>query==='christmas'?{error:new Error('offline')}:{data:{results:[{tmdb_id:2,title:'Magic'}],expanded_terms:[]}});
+test('catalog failure reports the error and cannot fall back to general movie searches',async()=>{
+ const h=setup(),c=h.context;h.respond(async()=>({error:new Error('Catalog offline')}));
  await c.runRomantiverseSearch('',true,true);
- assert.equal(c.state.romantiverseSearchResults.length,1);
- assert.match(c.romantiverseSearchPanel(),/Some searches failed/);
+ assert.equal(h.requests.length,1);assert.equal(c.state.romantiverseSearchResults.length,0);assert.match(c.romantiverseSearchPanel(),/Catalog offline/);
 });
 
 test('taste ranking learns both people’s votes, keeps exact titles first, and separates cheese',()=>{
@@ -92,9 +89,9 @@ test('choosing season or holiday requests more relevant titles without requiring
  c.setHolidayFilter('Christmas');await h.flush();assert.ok(h.requests.some(r=>r.query==='christmas'));
  c.searchText='A Specific Movie';assert.equal(c.romantiverseFilterQuery(),'A Specific Movie','Do not replace an exact title with a seasonal query');
 });
-test('a slow old request cannot overwrite a more recent cached query',async()=>{
- const h=setup(),c=h.context;await c.runRomantiverseSearch('autumn');
- let finish;h.respond(query=>new Promise(resolve=>{finish=()=>resolve({data:{results:[{title:query}],expanded_terms:[]}})}));
+test('a slow old request cannot overwrite a more recent catalog query',async()=>{
+ const h=setup(),c=h.context;let finish;
+ h.respond(query=>query==='winter'?new Promise(resolve=>{finish=()=>resolve({data:{results:[{tmdb_id:1,title:'winter',source_type:'bingo_catalog'}]}})}):Promise.resolve({data:{results:[{tmdb_id:2,title:query,source_type:'bingo_catalog'}]}}));
  const pending=c.runRomantiverseSearch('winter');await c.runRomantiverseSearch('autumn');finish();await pending;
  assert.equal(c.state.romantiverseSearchResults[0].title,'autumn');
 });

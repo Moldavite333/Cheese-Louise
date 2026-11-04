@@ -21,20 +21,14 @@ test('friendly ghosts, magical wishes and Halloween romance remain eligible',()=
   assert.equal(clMovieIsHorror(movie),false);assert.equal(eligible(movie),true);
  }
 });
-test('search service excludes early horror, late-enriched horror and unknown classifications',async()=>{
- let handler;const detailRequests=[];
- const rows=[{id:1,title:'Mixed Horror Romance',genre_ids:[10749,27]},{id:2,title:'Friendly Ghost Romance',overview:'A woman falls in love with a friendly ghost.',genre_ids:[10749,10770]},{id:3,title:'Wrongly Tagged Romance',genre_ids:[10749]},{id:4,title:'Unknown Movie'}];
- const context={console,URLSearchParams,Response,Request,Set,Map,Date,
-  Deno:{env:{get:()=> 'fixture-token'},serve:fn=>{handler=fn}},
-  fetch:async url=>{const path=new URL(url).pathname;let data={results:[]};
-   if(path.endsWith('/search/movie'))data={results:rows};
-   const match=path.match(/\/movie\/(\d+)$/);if(match){const id=Number(match[1]);detailRequests.push(id);data={...rows.find(m=>m.id===id),genres:id===2?[{id:10749,name:'Romance'},{id:10770,name:'TV Movie'}]:id===3?[{id:27,name:'Horror'}]:[],keywords:{keywords:[]},credits:{cast:[]}};}
-   if(path.endsWith('/watch/providers'))data={results:{US:{}}};
-   return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
-  }};
- vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);
- const source=stripTypeScriptTypes(read('supabase/functions/search-romantiverse/index.ts')).replace(/^import .*$/mg,'');vm.runInContext(source,context);
+test('search service only admits editorial catalog members and rejects horror within that catalog',async()=>{
+ const {createCatalogHandler}=await import('../supabase/functions/_shared/romantiverse-catalog.mjs');
+ const body={version:1,movies:[
+  {id:'horror',title:'Mixed Horror Romance',genres:['Romance','Horror'],season:'Christmas'},
+  {id:'ghost',title:'Friendly Ghost Romance',genres:['Romance','TV Movie'],season:'Christmas',release_year:2025}
+ ]};
+ const calls=[],handler=createCatalogHandler({fallback:body,fetcher:async url=>{calls.push(url);return new Response(JSON.stringify(body))}});
  const response=await handler(new Request('https://fixture/search',{method:'POST',body:JSON.stringify({query:'ghost'})}));
- const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));
- assert.deepEqual(data.results.map(m=>m.tmdb_id),[2]);assert.ok(!detailRequests.includes(1));
+ const data=await response.json();assert.equal(response.status,200);assert.deepEqual(data.results.map(m=>m.title),['Friendly Ghost Romance']);
+ assert.ok(!calls.some(url=>url.includes('search/movie')),'General film search cannot introduce unknown classifications');
 });
