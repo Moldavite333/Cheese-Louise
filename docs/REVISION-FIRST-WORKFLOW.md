@@ -32,9 +32,9 @@ This is a focused workflow audit, not certification that every entity in all six
 
 - `node --test tests/*.test.mjs`: **161 passed, 0 failed**.
 - Syntax check of all root browser scripts: passed. `git diff --check`: passed.
-- Assembled browser fixtures: Chrome at 360×960, 768×960, 1024×960, 1366×768 and 1440×960. Tests cover all existing HQ routes, delete/cancel/undo, bookmarks, separate notes, typing focus/caret, paragraph undo, inline rundown handoff, explicit rebuild/undo, and viewport overflow. Fixture authentication/data only; no live user records.
+- Assembled browser fixtures: Chrome at 360×960, 768×960, 1024×960, 1366×768 and 1440×960. Tests cover all existing HQ routes, delete/cancel/undo, bookmarks, separate notes, typing focus/caret, paragraph undo, inline rundown handoff, explicit rebuild/undo, viewport overflow, and real same-origin two-tab stale-edit/delete/undo rejection. The rejected draft remains exportable while the newer stored version survives. Fixture authentication/data only; no live user records.
 - Node regressions cover quota/read failure, reload persistence, stale-tab deletion/undo, research tombstones, one-time legacy migration, recoverable malformed data, old/new recording formats, marker revisions, cocktail content, and independent-device local-storage isolation.
-- One browser attempt failed an existing navigation keyboard-focus assertion before reaching the new conflict test; rerun outcome is recorded with the PR. Earlier implementation failures were corrected before final validation.
+- One browser attempt failed an existing navigation keyboard-focus assertion before reaching the new conflict test; the final rerun passed all five widths, including the two-tab conflict scenario. Test-only browser-context and duplicate-dialog-handler failures were also corrected. Earlier implementation failures were corrected before final validation.
 
 ## Deployment and unresolved requirements
 

@@ -254,7 +254,7 @@ try{
   const disk=await page.evaluate(()=>JSON.parse(localStorage.getItem('cheeseLouise:timeline:v1:fixture-workspace:fixture-movie')).doc);
   assert.ok(disk.scenes.some(s=>s.nick_notes==='Laptop edit survives tab conflict'));
   assert.ok((await other.evaluate(()=>clAutomaticTimeline.snapshot())).scenes.some(s=>s.jenny_notes==='Stale phone-sized tab draft'));
-  page.once('dialog',d=>d.accept());await page.evaluate(()=>clAutomaticTimeline.remove());
+  await page.evaluate(()=>clAutomaticTimeline.remove());
   const count=await page.evaluate(()=>clAutomaticTimeline.snapshot().scenes.length);
   await other.evaluate(()=>clAutomaticTimeline.undo());
   assert.equal(await other.evaluate(()=>JSON.parse(localStorage.getItem('cheeseLouise:timeline:v1:fixture-workspace:fixture-movie')).doc.scenes.length),count,'Stale tab undo cannot resurrect a deletion');
