@@ -12,7 +12,7 @@ function setup(){
  v16MatchesNetwork:()=>true,v16MatchesRelease:()=>true,discoveryEstimate:()=>({score:0,traits:[]}),discoveryCard:()=>'<div class="new-find-score"></div>',
  db:{functions:{invoke:async(name,{body})=>{requests.push(body);return respond(body.query)}},from:()=>({upsert:async payload=>{saved=payload;return {error:null}}})}};
  context.window=context;context.setSearch=value=>{context.searchText=value};
- vm.createContext(context);for(const file of ['supabase/functions/_shared/movie-content-policy.js','holiday-season-filters.js','movie-taste.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
+ vm.createContext(context);for(const file of ['supabase/functions/_shared/movie-content-policy.js','holiday-season-filters.js','supabase/functions/_shared/our-movie-taste.js','movie-taste.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
  return {context,requests,saved:()=>saved,respond:fn=>{respond=fn},flush:async()=>{for(const [id,timer] of [...timers])if(timer.ms===450){timers.delete(id);timer.fn()}await new Promise(setImmediate)}};
 }
 test('cached external search results cannot display mixed Horror/Romance or explicit horror metadata',()=>{
@@ -39,12 +39,12 @@ test('catalog failure reports the error and cannot fall back to general movie se
 
 test('taste ranking learns both people’s votes, keeps exact titles first, and separates cheese',()=>{
  const {context:c}=setup();
- const magic={title:'An enchanted wish',score:0},other={title:'A regular romance',score:100};
- assert.equal(c.clTasteRank([other,magic])[0],magic);
+ const magic={title:'An enchanted wish',summary:'A magical wish comes true.',score:0},other={title:'A regular romance',score:100};
+ c.state.movies=[{title:'Our magical pick',summary:'A magical wish comes true.',votes:{a:'yes',b:'yes'}}];assert.equal(c.clTasteRank([other,magic])[0],magic);
  c.state.movies=Array.from({length:6},(_,i)=>({title:'An enchanted wish '+i,votes:{a:'no',b:'no'}}));
  assert.equal(c.clTasteRank([other,magic])[0],other);
  c.searchText='An enchanted wish';assert.equal(c.clTasteRank([other,magic])[0],magic);
- c.state.movies=[{title:'An enchanted wish',votes:{a:'yes',b:'yes'}}];
+ c.state.movies=[{title:'An enchanted wish',summary:'A magical wish comes true.',votes:{a:'yes',b:'yes'}}];
  assert.ok(c.clTasteMatch(magic).score>3);
 });
 
