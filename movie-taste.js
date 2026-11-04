@@ -1,35 +1,12 @@
-// Shared taste is derived from shared Radar votes, never from Cheese scores.
-const clTasteFavorites = ['Coupled Up for Christmas','A Christmas Movie Christmas','Everything Christmas','A Biltmore Christmas','A Very Nutty Christmas','Pumpkin Regatta Romance','The Spirit of Christmas',"Something’s Brewing"];
-const clTasteThemes = [
-  {name:'Christmas romance',query:'christmas',pattern:/\b(christmas|mistletoe|yuletide|santa)\b/i,weight:3},
-  {name:'A little magic',query:'magical romance',pattern:/\b(magic|magical|ghost|spirit|enchanted|time travel|time loop|nutcracker|wish)\b/i,weight:3},
-  {name:'Playful romance',query:'fake dating',pattern:/\b(pretend|fake dating|fake relationship|matchmaker|romantic comedy)\b/i,weight:2},
-  {name:'Autumn and town events',query:'autumn',pattern:/\b(autumn|pumpkin|harvest|festival|regatta|small town|hometown)\b/i,weight:2},
-  {name:'Cozy cafés',query:'coffee',pattern:/\b(coffee|cafe|café|barista|bakery|brewing)\b/i,weight:2}
-];
-function clTasteText(movie){
-  return [movie.title,movie.summary,movie.tagline,...(Array.isArray(movie.keywords)?movie.keywords:[])].filter(Boolean).join(' ');
-}
-function clTasteWeights(){
-  return clTasteThemes.map(theme=>{
-    let weight=theme.weight;
-    for(const movie of state.movies||[]){
-      if(!theme.pattern.test(clTasteText(movie)))continue;
-      for(const vote of Object.values(movie.votes||{})) weight+=vote==='yes'?1:vote==='no'?-1:0;
-    }
-    return {...theme,weight:Math.max(-4,Math.min(8,weight))};
-  });
-}
-function clTasteMatch(movie,weights=clTasteWeights()){
-  const matched=weights.filter(theme=>theme.pattern.test(clTasteText(movie)));
-  const yes=Object.values(movie.votes||{}).filter(v=>v==='yes').length;
-  const no=Object.values(movie.votes||{}).filter(v=>v==='no').length;
-  return {score:matched.reduce((sum,t)=>sum+t.weight,0)+yes*3-no*3,
-    reasons:matched.filter(t=>t.weight>0).map(t=>t.name)};
-}
+// Our Movies is the preference source; Cheese Grating is never a taste signal.
+const clTasteFavorites=[];
+function clTasteProfile(){return clOurMovieTasteEngine.profile(clOurMovieTasteEngine.preferences(state.movies||[]));}
+function clTasteWeights(){return clTasteProfile().learned.map(feature=>({...feature,query:feature.name}));}
+function clTasteText(movie){return [movie.title,movie.summary,movie.synopsis,movie.tagline].filter(Boolean).join(' ');}
+function clTasteMatch(movie,profile=clTasteProfile()){const fit=clOurMovieTasteEngine.match(movie,profile);return {score:fit.score,reasons:fit.features,tier:fit.tier,anchor:fit.anchor};}
 let clTasteSort='taste';
 function clTasteRank(results){
-  const weights=clTasteWeights();
+  const weights=clTasteProfile();
   const scores=new Map(results.map(movie=>[movie,clTasteMatch(movie,weights).score]));
   return results.slice().sort((a,b)=>{
     const q=String(searchText||'').trim().toLowerCase();
@@ -59,15 +36,12 @@ window.clRemoveFinderFilter=key=>{
   runRomantiverseSearch(searchText,false,romantiverseSearchForUs);
 };
 function clTastePanel(){
-  const votes=(state.movies||[]).reduce((n,m)=>n+Object.values(m.votes||{}).filter(v=>v==='yes'||v==='no').length,0);
-  const filters=Object.entries(clFinderFilterLabels).filter(([key])=>{
-    const v=movieFilters[key];return Array.isArray(v)?v.length:v&&v!=='all';
-  }).map(([key,label])=>'<button class="filter" onclick="clRemoveFinderFilter(\''+key+'\')">'+esc(label)+': '+esc(Array.isArray(movieFilters[key])?movieFilters[key].length:movieFilters[key])+' ×</button>').join('');
-  return '<div class="card card-pad cl-taste-profile"><div class="kicker">Your shared taste</div>'+
-    '<div class="pills">'+clTasteWeights().filter(t=>t.weight>0).map(t=>'<span class="pill">'+esc(t.name)+'</span>').join('')+'</div>'+
-    '<details><summary>Your favorites & how matching works · '+votes+' shared votes</summary><p>Starting favorites: '+clTasteFavorites.map(esc).join(' · ')+'.</p><p>A starting profile inferred from your favorites. Learns from both people’s shared Yes and No votes. Match reasons come from movie metadata, not verified scenes. Cheese Rating stays separate.</p></details>'+
-    '<div class="cl-taste-actions"><button class="primary" onclick="clFindForUs()">Find movies for us</button><button class="secondary" onclick="clBroadenFinder()">Clear filters & search wider</button>'+
-    '<label>Sort finds <select onchange="clSetTasteSort(this.value)"><option value="taste" '+(clTasteSort==='taste'?'selected':'')+'>Our taste</option><option value="relevance" '+(clTasteSort==='relevance'?'selected':'')+'>Search relevance</option><option value="newest" '+(clTasteSort==='newest'?'selected':'')+'>Newest</option></select></label></div>'+
-    (filters?'<div class="subtle" style="margin-top:12px">Active filters — tap one to remove it:</div><div class="cl-taste-actions">'+filters+'</div>':'')+'</div>';
+ const profile=clTasteProfile();
+ const filters=Object.entries(clFinderFilterLabels).filter(([key])=>{const v=movieFilters[key];return Array.isArray(v)?v.length:v&&v!=='all';}).map(([key,label])=>'<button class="filter" onclick="clRemoveFinderFilter(\''+key+'\')">'+esc(label)+': '+esc(Array.isArray(movieFilters[key])?movieFilters[key].length:movieFilters[key])+' ×</button>').join('');
+ const themes=profile.learned.filter(f=>f.weight>0).sort((a,b)=>b.weight-a.weight).slice(0,6);
+ const examples=profile.likes.slice().sort((a,b)=>b.weight-a.weight||a.title.localeCompare(b.title)).slice(0,6);
+ return '<div class="card card-pad cl-taste-profile"><div class="kicker">Your shared taste</div><p class="subtle">Our Movies: '+profile.count+' choices guide the feed · '+profile.both+' both-Yes picks</p><div class="pills">'+themes.map(t=>'<span class="pill">'+esc(t.name)+'</span>').join('')+'</div>'+
+ '<details><summary>How Our Movies shapes your feed</summary><p>Both Yes votes carry the most weight, followed by one Yes, Saved, and tentative Maybe choices. No votes reduce similar story matches. Cheese Grating does not influence preference.</p><p>'+examples.map(m=>esc(m.title)+' ('+esc(m.signal==='both_yes'?'both Yes':m.signal)+')').join(' · ')+'</p><p>Close story matches appear first. A shared holiday or network alone does not qualify a movie as a close match. Results stay inside the Bingo movie catalog.</p></details>'+
+ '<div class="cl-taste-actions"><button class="primary" onclick="clFindForUs()">Find movies for us</button><button class="secondary" onclick="clBroadenFinder()">Clear filters & search wider</button><label>Sort finds <select onchange="clSetTasteSort(this.value)"><option value="taste" '+(clTasteSort==='taste'?'selected':'')+'>Our taste</option><option value="relevance" '+(clTasteSort==='relevance'?'selected':'')+'>Search relevance</option><option value="newest" '+(clTasteSort==='newest'?'selected':'')+'>Newest</option></select></label></div>'+
+ (filters?'<div class="subtle" style="margin-top:12px">Active filters — tap one to remove it:</div><div class="cl-taste-actions">'+filters+'</div>':'')+'</div>';
 }
-

@@ -55,7 +55,7 @@ function client(storageFails=false){
   document:{getElementById:()=>null},localStorage:{getItem:key=>storage.get(key)||null,setItem:(k,v)=>{if(storageFails)throw Error('full');storage.set(k,v)},removeItem:key=>storage.delete(key)},
   setTimeout:()=>0,clearTimeout(){},clSetTasteSort(){},sharedRadarRefreshResults(){},
   db:{functions:{invoke:async(name,{body})=>{requests.push({name,body});return {data:{results:[{tmdb_id:body.batch+10,title:'Fresh movie '+body.batch,source_type:'bingo_catalog'}],matched_favorites:[]}}}}}};
- context.window=context;vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);vm.runInContext(read('movie-recommendations.js'),context);
+ context.window=context;vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);vm.runInContext(read('supabase/functions/_shared/our-movie-taste.js'),context);vm.runInContext(read('movie-recommendations.js'),context);
  return {c:context,requests};
 }
 test('fresh picks exclude earlier batches and saved films and retain discovery history',async()=>{
@@ -63,7 +63,7 @@ test('fresh picks exclude earlier batches and saved films and retain discovery h
  await c.discoverCheeseMovies(true);await c.discoverCheeseMovies(true);
  assert.equal(requests[0].name,'recommend-romantiverse');assert.equal(requests[1].body.batch,1);
  assert.ok(requests[1].body.exclude_ids.includes(10));assert.ok(requests[1].body.exclude_titles.includes('Already saved'));
- assert.equal(requests[0].body.likes[0].weight,1.5);
+ assert.equal(requests[0].body.likes[0].weight,3);
  assert.equal(c.state.discoveryResults[0].tmdb_id,11);
 });
 test('history stays isolated by workspace and works in memory if storage is unavailable',async()=>{
