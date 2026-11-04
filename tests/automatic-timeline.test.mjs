@@ -78,3 +78,23 @@ test('merging scenes retains marker associations without modifying original reco
  const h=harness();const second=h.data().scenes[1].scene_id;h.context.recordingMarkers=[{scene_id:second,atMs:12345,type:'Retake',note:'Keep this marker'}];h.A.merge();assert.match(h.html(),/Keep this marker/);assert.equal(h.context.recordingMarkers[0].atMs,12345);h.A.undo();assert.equal(h.data().scenes[1].scene_id,second);
 });
 
+
+test('delete middle scene, reload and undo restore identity, notes, order and bookmark',()=>{
+ const h=harness();h.A.add();h.A.select(1);h.A.edit('jenny_notes','Jenny draft');h.A.bookmark();const before=h.data();h.A.remove();const loaded=harness(h.storage);assert.equal(loaded.data().pickup,null);assert.deepEqual(loaded.data().scenes.map(s=>s.scene_id),[before.scenes[0].scene_id,before.scenes[2].scene_id]);loaded.A.undo();assert.deepEqual(loaded.data().scenes,before.scenes);assert.equal(loaded.data().pickup,before.pickup);assert.equal(loaded.data().deleted_scenes,undefined);
+});
+test('navigation does not consume destructive undo history',()=>{
+ const h=harness();const removed=h.data().scenes[1].scene_id;h.A.remove(removed);for(let i=0;i<30;i++){h.A.select(0);h.A.bookmark();}h.A.undo();assert.ok(h.data().scenes.some(s=>s.scene_id===removed));
+});
+test('marker-only scene requires confirmation and leaves original markers intact',()=>{
+ const h=harness();h.A.edit('summary','');const id=h.data().selected;h.context.recordingMarkers=[{scene_id:id,atMs:456,type:'Retake'}];let prompt='';h.ctx.confirm=text=>{prompt=text;return false;};h.A.remove();assert.match(prompt,/markers.*retained/);assert.equal(h.data().selected,id);h.ctx.confirm=()=>true;h.A.remove();assert.equal(h.context.recordingMarkers[0].atMs,456);h.A.undo();assert.match(h.html(),/Retake/);
+});
+test('stale tab undo cannot resurrect another tab deletion; draft remains exportable',()=>{
+ const h=harness();h.A.edit('nick_notes','Pending host draft');const other=harness(h.storage);other.A.remove();h.A.undo();assert.match(h.status.textContent,/Another tab/);assert.equal(h.data().scenes.length,1);h.A.backup();assert.equal(h.downloaded().doc.scenes.length,2);
+});
+test('missing storage cannot be silently replaced by a stale cached timeline',()=>{
+ const h=harness();h.A.edit('nick_notes','Saved');h.storage.clear();h.A.edit('jenny_notes','Recover me');assert.equal(h.storage.size,0);h.A.backup();assert.equal(h.downloaded().doc.scenes[0].jenny_notes,'Recover me');
+});
+test('deleted research beat stays deleted on refresh and Undo removes its tombstone',()=>{
+ const h=harness(),report={schema_version:1,movie_id:'m1',generated_at:'r1',sources:[{id:'s',title:'Source',text:'Evidence'}],story_beats:[{id:'beat',title:'Research scene',summary:'Research description',source_ids:['s']}],discussion:[],trope_candidates:[]};
+ h.ctx.clMovieResearch={getReport:()=>report};h.html();const id=h.data().scenes.at(-1).scene_id;h.A.remove(id);const deleted=h.data();const refreshed=h.C.mergeResearch(deleted,{...report,generated_at:'r2'});assert.ok(!refreshed.scenes.some(s=>s.research_origin?.beat_id==='beat'));h.A.undo();assert.ok(h.data().scenes.some(s=>s.scene_id===id));assert.equal(h.data().deleted_scenes,undefined);
+});
