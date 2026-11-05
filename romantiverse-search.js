@@ -141,7 +141,7 @@ async function runRomantiverseSearch(rawQuery,force=false,forUs=false){
  romantiverseSearchLoading=true;romantiverseSearchError='';romantiverseSearchLoadedQuery=loadedQuery;refreshRomantiverseSearchPanel();
  try{
   const filters={holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax};
-  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
+  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,include_broader:true,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
   if(seq!==romantiverseSearchSequence)return;
   if(error||data?.error)throw Error(data?.error||error?.message||'The Cheese Louise movie catalog could not load.');
   if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');
