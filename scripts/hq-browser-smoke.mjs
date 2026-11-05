@@ -213,9 +213,9 @@ try{
  assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
  await page.waitForFunction(()=>document.querySelector('.new-find-poster img')?.naturalWidth>0);
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
- await page.getByRole('button',{name:'Find fresh picks',exact:true}).click();
- await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1001);
- assert.equal(await page.getByText('A magical new romance 0',{exact:true}).count(),0,'A fresh batch replaces earlier recommendations');
+ await page.getByRole('button',{name:'Refresh picks',exact:true}).click();
+ await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1000);
+ assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Refreshing preserves eligible recommendations instead of exhausting them');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
  await page.screenshot({path:'artifacts/hq-taste-'+width+'.png',fullPage:true});
  await page.evaluate(()=>{clearMovieFilters();hqWorkspace.open('home');openMovie('fixture-movie')});
