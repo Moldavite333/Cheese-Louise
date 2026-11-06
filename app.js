@@ -7,7 +7,7 @@ let workspace = null;
 let profile = null;
 let members = [];
 let profiles = {};
-let state = { movies: [], episodes: [], schedule: [], ideas: [], activity: [] };
+let state = { movies: [], episodes: [], schedule: [], ideas: [], activity: [], productionDocuments: {} };
 let currentTab = 'home';
 let searchText = '';
 let selectedMovie = null;
@@ -143,7 +143,7 @@ async function loadWorkspace(){
 async function loadAll(){
   if(!workspace) return;
   const wid=workspace.id;
-  const [moviesRes,votesRes,bookmarksRes,commentsRes,episodesRes,scheduleRes,ideasRes,activityRes] = await Promise.all([
+  const [moviesRes,votesRes,bookmarksRes,commentsRes,episodesRes,scheduleRes,ideasRes,activityRes,productionRes] = await Promise.all([
     db.from('movies').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}),
     db.from('movie_votes').select('*').eq('workspace_id',wid),
     db.from('movie_bookmarks').select('*').eq('workspace_id',wid),
@@ -151,9 +151,10 @@ async function loadAll(){
     db.from('episodes').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}),
     db.from('schedule_items').select('*').eq('workspace_id',wid).order('starts_at'),
     db.from('show_ideas').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}),
-    db.from('activity').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}).limit(30)
+    db.from('activity').select('*').eq('workspace_id',wid).order('created_at',{ascending:false}).limit(30),
+    db.from('production_documents').select('*').eq('workspace_id',wid)
   ]);
-  const failed=[moviesRes,votesRes,bookmarksRes,commentsRes,episodesRes,scheduleRes,ideasRes,activityRes].find(result=>result.error);
+  const failed=[moviesRes,votesRes,bookmarksRes,commentsRes,episodesRes,scheduleRes,ideasRes,activityRes,productionRes].find(result=>result.error);
   if(failed)throw failed.error;
   const votes=votesRes.data||[], bookmarks=bookmarksRes.data||[], comments=commentsRes.data||[];
   const byMovie=rows=>{const map=new Map();for(const row of rows){if(!map.has(row.movie_id))map.set(row.movie_id,[]);map.get(row.movie_id).push(row)}return map};
@@ -170,6 +171,8 @@ async function loadAll(){
   state.schedule=scheduleRes.data||[];
   state.ideas=ideasRes.data||[];
   state.activity=activityRes.data||[];
+  state.productionDocuments=Object.fromEntries((productionRes.data||[]).map(row=>[`${row.document_type}:${row.movie_id}`,{document:row.document,revision:row.revision,updatedAt:row.updated_at,updatedBy:row.updated_by}]));
+  window.clAutomaticTimeline?.invalidate?.();
 }
 
 function subscribeRealtime(){
