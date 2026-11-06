@@ -52,3 +52,37 @@ test('a stale device keeps its unsynced edit and cannot replace the newer shared
   assert.equal(b.sync.status('watch_along','movie'),'conflict');
   assert.equal(b.sync.read('watch_along','movie',null).notes,'Phone edit');
 });
+
+test('existing Watch Along notes from two devices are combined before sharing',async()=>{
+  const server=new Map(),phone=device(server),laptop=device(server);
+  server.set('w:movie:watch_along',{workspace_id:'w',movie_id:'movie',document_type:'watch_along',revision:1,document:{notes:'Phone observation',outlineItems:[{id:'phone',text:'Phone point'}]}});
+  laptop.state.productionDocuments['watch_along:movie']={...server.get('w:movie:watch_along')};
+  const merged=laptop.sync.read('watch_along','movie',{notes:'Laptop observation',outlineItems:[{id:'laptop',text:'Laptop point'}]});
+  assert.match(merged.notes,/Phone observation/);
+  assert.match(merged.notes,/Laptop observation/);
+  assert.equal(merged.outlineItems.length,2);
+  await laptop.flush();
+  phone.state.productionDocuments['watch_along:movie']={...server.get('w:movie:watch_along')};
+  assert.equal(phone.sync.read('watch_along','movie',null).notes,merged.notes);
+  const reopened=device(server,laptop.storage);
+  reopened.state.productionDocuments['watch_along:movie']={...server.get('w:movie:watch_along')};
+  assert.equal(reopened.sync.read('watch_along','movie',{notes:'Laptop observation',outlineItems:[{id:'laptop',text:'Laptop point'}]}).notes,merged.notes);
+  await reopened.flush();
+  assert.equal(server.get('w:movie:watch_along').revision,2);
+});
+
+test('a preexisting recording on another device remains available when shared content differs',async()=>{
+  const server=new Map(),laptop=device(server);
+  server.set('w:movie:recording',{workspace_id:'w',movie_id:'movie',document_type:'recording',revision:1,document:{session:{markers:[{note:'Phone'}]}}});
+  laptop.state.productionDocuments['recording:movie']={...server.get('w:movie:recording')};
+  const local={session:{markers:[{note:'Laptop'}]}};
+  assert.equal(laptop.sync.read('recording','movie',local).session.markers[0].note,'Laptop');
+  assert.equal(laptop.sync.status('recording','movie'),'conflict');
+  assert.equal(await laptop.sync.save('recording','movie',local),false);
+  await laptop.flush();
+  assert.equal(server.get('w:movie:recording').document.session.markers[0].note,'Phone');
+  const reopened=device(server,laptop.storage);
+  reopened.state.productionDocuments['recording:movie']={...server.get('w:movie:recording')};
+  assert.equal(reopened.sync.read('recording','movie',null).session.markers[0].note,'Laptop');
+  assert.equal(reopened.sync.status('recording','movie'),'conflict');
+});
