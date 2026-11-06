@@ -6,6 +6,10 @@ import {eligible,scoreMovie,diversify,norm,featureNames} from '../supabase/funct
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const seed={id:1,title:'Favorite magical romance',overview:'A magical wish sends her back in time to find love.',genres:[{id:10749},{id:10770}],keywords:{keywords:[]}};
 const romance={id:2,title:'A Christmas Wish',overview:'A magical wish helps a woman fall in love.',runtime:88,genres:[{id:10749},{id:10770}],keywords:{keywords:[]},seed_ids:[1]};
+test('ordinary theatrical romantic comedies cannot qualify by a quirky keyword',()=>{
+ assert.equal(eligible({...romance,title:'Regular studio romantic comedy',genres:[{id:10749},{id:35}]}),false);
+ assert.equal(eligible({...romance,title:'Square Pumpkin',genres:[{id:16},{id:10770}]}),false);
+});
 test('seasonal words cannot admit horror, documentaries, shorts or non-romantic Christmas movies',()=>{
  assert.equal(eligible({...romance,genres:[{id:27},{id:10749}]}),false);
  assert.equal(eligible({...romance,genres:[{id:99},{id:10749}]}),false);
@@ -50,21 +54,21 @@ function client(storageFails=false){
  const context={window:null,session:{},workspace:{id:'one'},state:{movies:[],discoveryResults:[]},discoveryHidden:new Set(),discoveryLoaded:false,discoveryLoading:false,discoveryError:'',movieFilters:{},movieCard:()=>'',discoveryCard:()=>'',render(){},searchText:'',
   document:{getElementById:()=>null},localStorage:{getItem:key=>storage.get(key)||null,setItem:(k,v)=>{if(storageFails)throw Error('full');storage.set(k,v)},removeItem:key=>storage.delete(key)},
   setTimeout:()=>0,clearTimeout(){},clSetTasteSort(){},sharedRadarRefreshResults(){},
-  db:{functions:{invoke:async(name,{body})=>{requests.push({name,body});return {data:{results:[{tmdb_id:body.batch+10,title:'Fresh movie '+body.batch}],matched_favorites:[]}}}}}};
- context.window=context;vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);vm.runInContext(read('movie-recommendations.js'),context);
+  db:{functions:{invoke:async(name,{body})=>{requests.push({name,body});return {data:{results:[{tmdb_id:body.batch+10,title:'Fresh movie '+body.batch,source_type:'bingo_catalog'}],matched_favorites:[]}}}}}};
+ context.window=context;vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);vm.runInContext(read('supabase/functions/_shared/our-movie-taste.js'),context);vm.runInContext(read('movie-recommendations.js'),context);
  return {c:context,requests};
 }
-test('fresh picks exclude earlier batches and saved films and retain discovery history',async()=>{
+test('refresh keeps earlier picks and saved films eligible',async()=>{
  const {c,requests}=client();c.state.movies=[{title:'Already saved',votes:{a:'yes',b:'yes'},source_metadata:{year:2023}}];
  await c.discoverCheeseMovies(true);await c.discoverCheeseMovies(true);
- assert.equal(requests[0].name,'recommend-romantiverse');assert.equal(requests[1].body.batch,1);
- assert.ok(requests[1].body.exclude_ids.includes(10));assert.ok(requests[1].body.exclude_titles.includes('Already saved'));
- assert.equal(requests[0].body.likes[0].weight,1.5);
- assert.equal(c.state.discoveryResults[0].tmdb_id,11);
+ assert.equal(requests[0].name,'recommend-romantiverse');assert.equal(requests[1].body.batch,0);
+ assert.equal(requests[1].body.exclude_ids.length,0);assert.equal(requests[1].body.exclude_titles.length,0);assert.equal(requests[1].body.include_broader,true);
+ assert.equal(requests[0].body.likes[0].weight,3);
+ assert.equal(c.state.discoveryResults[0].tmdb_id,10);
 });
 test('history stays isolated by workspace and works in memory if storage is unavailable',async()=>{
  const {c,requests}=client(true);await c.discoverCheeseMovies(true);await c.discoverCheeseMovies(true);
- assert.ok(requests[1].body.exclude_ids.includes(10));
+ assert.equal(requests[1].body.exclude_ids.length,0);
  c.workspace={id:'two'};await c.discoverCheeseMovies(true);
  assert.equal(requests[2].body.batch,0);assert.equal(requests[2].body.exclude_ids.length,0);
 });
@@ -78,3 +82,4 @@ test('poster lookup uses year-only catalog records, batches requests and preserv
  assert.deepEqual(calls.map(x=>x.length),[8,8,1]);
  await c.addDiscoveredMovie(42,false);assert.equal(originalSaves,1);
 });
+
