@@ -8,7 +8,7 @@ const ui=readFileSync(new URL('../automatic-timeline.js',import.meta.url),'utf8'
 function harness(storage=new Map()){
  let blocked=false,readsBlocked=false,downloaded;const status={textContent:''};
  const ctx={crypto:webcrypto,Date,console,confirm:()=>true,setTimeout:fn=>fn(),Blob:class{constructor(parts){downloaded=parts.join('');}},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL(){}},localStorage:{getItem(k){if(readsBlocked)throw Error('Storage access denied');return storage.get(k)||null;},setItem(k,v){if(blocked)throw Error('quota');storage.set(k,v);}},document:{getElementById:()=>status,createElement:()=>({click(){}})},navigator:{clipboard:{writeText:async()=>{}}}};
- ctx.window=ctx;vm.createContext(ctx);vm.runInContext(core,ctx);vm.runInContext(ui,ctx);
+ ctx.window=ctx;vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../episode-format.js',import.meta.url),'utf8'),ctx);vm.runInContext(core,ctx);vm.runInContext(ui,ctx);
  const C=ctx.clTimelineCore,A=ctx.clAutomaticTimeline;
  const context={movie:{id:'m1',title:'Same title',year:2023,summary:'A shop owner returns home.'},workspace:'w1',notes:'Keep original note',legacy:[],confirmed:[],redraw(){}};
  const html=()=>A.html(context);html();

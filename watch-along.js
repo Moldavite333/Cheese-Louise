@@ -5,6 +5,9 @@
   const STORAGE_PREFIX = 'cheeseLouise:watchAlong';
   let watchTraitQuery = '';
   let savePulseTimer = null;
+  const pendingDrafts=new Map(),rundownBaselines=new Map(),rundownConflicts=new Set();
+  function draftWarning(text){clearTimeout(savePulseTimer);const el=document.querySelector('[data-watch-save-state]');if(el)el.textContent=text;const inline=document.getElementById('clp-rundown-status');if(inline)inline.textContent=text;}
+
 
   function workspaceKey(suffix='') {
     const wid = workspace?.id || 'local';
@@ -47,6 +50,7 @@
 
   function getDraft(movie = watchMovie()) {
     if (!movie) return null;
+    if(pendingDrafts.has(draftKey(movie.id)))return JSON.parse(JSON.stringify(pendingDrafts.get(draftKey(movie.id))));
     try {
       const raw = localStorage.getItem(draftKey(movie.id));
       if (!raw) return defaultDraft(movie);
@@ -71,9 +75,10 @@
 
   function putDraft(draft) {
     if (!draft?.movieId) return;
+    if(rundownConflicts.has(draftKey(draft.movieId))){pendingDrafts.set(draftKey(draft.movieId),JSON.parse(JSON.stringify(draft)));draftWarning('Rundown conflict — copy/export before reloading.');return;}
     draft.updatedAt = new Date().toISOString();
-    localStorage.setItem(draftKey(draft.movieId), JSON.stringify(draft));
-    pulseSaved();
+    try{localStorage.setItem(draftKey(draft.movieId), JSON.stringify(draft));pendingDrafts.delete(draftKey(draft.movieId));pulseSaved();}
+    catch{pendingDrafts.set(draftKey(draft.movieId),JSON.parse(JSON.stringify(draft)));draftWarning('Unsaved on this device — copy/export the rundown before closing.');}
   }
 
   function pulseSaved() {
@@ -219,54 +224,53 @@
     const notes = String(draft.notes || '').split(/\n+/).map(x => x.replace(/^\s*[•*-]\s*/, '').trim()).filter(Boolean);
     const confirmedIds = [...new Set(movie.selectedTraitIds || [])];
     const confirmedTraits = confirmedIds.map(id => byId.get(id)).filter(Boolean);
-    const score = confirmedTraits.reduce((sum,t) => sum + Number(t.points || 0), 0);
-    return [
-      'CHEESE LOUISE — RECORDING RUNDOWN',
-      movie.title || 'Untitled movie',
-      [movie.network, movie.season, movie.holiday].filter(Boolean).join(' · '),
-      '',
-      ...watchMovieCredits(movie),
-      '',
-      'OPENING / CHEESY CONCOCTIONS',
-      '• Opening banter and cocktail',
-      '',
-      'MOVIE DISCUSSION',
-      '• Brief premise, not a scene-by-scene recap',
-      ...traits.map((t,i) => (i+1)+'. '+t.name+' (+'+Number(t.points||0)+')'),
-      ...(notes.length ? ['', 'THINGS WE NOTICED', ...notes.map(n => '• '+n)] : []),
-      '',
-      'CHEESE GRATING',
-      score+' points from '+confirmedTraits.length+' confirmed movie traits',
-      '',
-      'HORROR-FIED / BINGO',
-      '• Mini-game and Bingo results',
-      '',
-      'CLOSING',
-      '• Final thoughts and sign-off'
-    ].join('\n').trim();
+    const episode=(state.episodes||[]).find(e=>e.movie_id===movie.id);
+    const cocktail=(state.cocktails||[]).find(c=>c.id===episode?.cocktail_id);
+    const recipe=cocktail?[cocktail.name,cocktail.ingredients,cocktail.method,cocktail.garnish].filter(Boolean).join('\n'):episode?.cocktail||'';
+    let doc;
+    if(window.clTimelineCore){
+      try{doc=JSON.parse(localStorage.getItem('cheeseLouise:timeline:v1:'+workspace.id+':'+movie.id)||'null')?.doc;if(doc)window.clTimelineCore.validate(doc);}catch{throw Error('Timeline needs recovery before rebuilding the rundown. Existing rundown has been retained.');}
+      if(!doc){let production={};try{production=JSON.parse(localStorage.getItem('cheeseLouise:production:v1:'+workspace.id)||'{}');}catch{}
+        doc=window.clTimelineCore.create(movie,movie.summary||movie.synopsis||movie.overview||'','',production.timelines?.[movie.id]?.items||[]);
+        doc=window.clTimelineCore.importLegacy(doc,[],production.timelineDrafts?.[movie.id]||'');
+      }
+    }
+    const discussion=doc?doc.scenes.flatMap((s,i)=>[(i+1)+'. '+window.clTimelineCore.stamp(s.start_time_ms)+' · '+s.title,s.summary,'['+s.evidence_status+'; '+s.timestamp_status+']',s.nick_notes?'Nick: '+s.nick_notes:'',s.jenny_notes?'Jenny: '+s.jenny_notes:'',s.shared_notes?'Shared: '+s.shared_notes:'',...(s.discussion_prompts||[])]):[];
+    const ordered=(draft.outlineItems||[]).map(i=>i.type==='trait'?byId.get(i.traitId)?.name:i.text).filter(Boolean);
+    return window.clEpisodeFormat.build({title:movie.title,credits:watchMovieCredits(movie),discussion:[...discussion,...ordered],cocktail:recipe,tropes:confirmedTraits.map(t=>t.name),grating:confirmedTraits.reduce((n,t)=>n+Number(t.points||0),0)+' points from '+confirmedTraits.length+' confirmed movie traits (user-confirmed; verify before recording)',notes:notes.join('\n')});
   }
 
   function currentRundownText(movie = watchMovie(), draft = getDraft(movie)) {
+    if(movie&&!rundownBaselines.has(draftKey(movie.id)))rundownBaselines.set(draftKey(movie.id),String(draft?.rundownText||''));
     const saved = String(draft?.rundownText || '').trim();
-    return saved || watchRundownText(movie, draft);
+    if(draft?.rundownEdited)return String(draft.rundownText||'');if(saved)return saved;try{return watchRundownText(movie,draft);}catch{return 'Timeline needs recovery before generating a rundown. Existing stored data is retained.';}
   }
 
-  window.watchAlongGenerateRundown = function() {
+  function refreshRundown(force=false) {
     const movie = watchMovie();
     const draft = getDraft(movie);
     if (!movie || !draft) return;
-    draft.rundownText = watchRundownText(movie, draft);
+    if(!force&&(draft.rundownEdited||draft.rundownText&&draft.rundownText!==draft.rundownGeneratedText))return;
+    if(force&&draft.rundownText&&!confirm('Rebuild the rundown from current episode data? Your edited version will be kept for Undo rebuild.'))return;
+    try{const rebuilt=watchRundownText(movie,draft);if(force)draft.previousRundownText=draft.rundownText;draft.rundownText=rebuilt;draft.rundownGeneratedText=rebuilt;draft.rundownEdited=false;}catch(e){alert(e.message);return;}
+    rundownBaselines.set(draftKey(movie.id),draft.rundownText);
     putDraft(draft);
     const preview = document.getElementById('watchRundownPreview');
     if (preview) preview.value = draft.rundownText;
   };
 
+  window.watchAlongGenerateRundown=()=>refreshRundown(true);
+  window.watchAlongRefreshRundown=()=>refreshRundown(false);
+  window.watchAlongUndoRundown = function(){const draft=getDraft();if(!draft||draft.previousRundownText===undefined)return;const old=draft.rundownText;draft.rundownText=draft.previousRundownText;draft.previousRundownText=old;draft.rundownEdited=true;rundownBaselines.set(draftKey(draft.movieId),draft.rundownText);putDraft(draft);const preview=document.getElementById('watchRundownPreview');if(preview)preview.value=draft.rundownText;};
+  window.clEpisodeRundown={
+    text(movie){return currentRundownText(movie,getDraft(movie));},
+    save(movie,value){const draft=getDraft(movie);if(!draft)return;const k=draftKey(movie.id),expected=rundownBaselines.get(k),conflict=rundownConflicts.has(k)||expected!==undefined&&String(draft.rundownText||'')!==expected;draft.rundownText=String(value||'');draft.rundownEdited=true;if(conflict){rundownConflicts.add(k);pendingDrafts.set(k,draft);draftWarning('Rundown conflict — your edits are kept in this tab. Copy/export before reloading.');return;}putDraft(draft);rundownBaselines.set(k,draft.rundownText);}
+  };
   window.watchAlongSaveRundown = function(value) {
     const movie = watchMovie();
     const draft = getDraft(movie);
     if (!movie || !draft) return;
-    draft.rundownText = String(value || '');
-    putDraft(draft);
+    window.clEpisodeRundown.save(movie,value);
   };
 
   window.watchAlongCopyRundown = async function() {
@@ -389,7 +393,7 @@
             <div class="watch-outline-tools">
               <button class="primary" type="button" onclick="watchAlongGenerateRundown()">Rebuild from notes</button>
               <button class="secondary" type="button" onclick="watchAlongCopyRundown()">Copy to Samsung Notes</button>
-              <button class="secondary" type="button" onclick="watchAlongShareRundown()">Share rundown</button>
+              <button class="secondary" type="button" onclick="watchAlongShareRundown()">Share rundown</button><button class="secondary" type="button" onclick="watchAlongUndoRundown()">Undo rebuild</button>
             </div>
             <textarea id="watchRundownPreview" class="watch-rundown-preview" aria-label="Editable episode rundown" oninput="watchAlongSaveRundown(this.value)">${esc(currentRundownText(movie,draft))}</textarea>
             <div class="subtle">Edit this version freely. Rebuild only when you want to replace it with the latest Watch Notes and talk order.</div>
@@ -459,7 +463,7 @@
     const body = document.getElementById('watchTraitBody');
     if (body && watchTraitQuery === '__selected__') body.innerHTML = watchAlongOrderedSelectedHtml(movie, draft);
     refreshWatchOutline(movie, draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongRefreshSharedTraits = function(movieId){
@@ -475,7 +479,7 @@
     const status=window.clMovieTraits?.status(movieId);
     const label=document.querySelector('[data-watch-trait-sync]');if(label&&status)label.textContent=status.text;
     const retry=document.querySelector('[data-watch-trait-retry]');if(retry)retry.hidden=!status?.error;
-    refreshWatchOutline(movie,draft);watchAlongGenerateRundown();
+    refreshWatchOutline(movie,draft);watchAlongRefreshRundown();
   };
 
   window.watchAlongSaveText = function(field, value) {
@@ -484,7 +488,7 @@
     if (!draft || !['notes','rules'].includes(field)) return;
     draft[field] = value;
     putDraft(draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongQuickAdd = function() {
@@ -500,7 +504,7 @@
     if (notes) notes.value = draft.notes;
     input.value = '';
     input.focus();
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongQuickKey = function(event) {
@@ -570,7 +574,7 @@
     putDraft(draft);
     const body=document.getElementById('watchTraitBody');
     if(body && watchTraitQuery==='__selected__') body.innerHTML=watchAlongOrderedSelectedHtml(movie,draft);
-    watchAlongGenerateRundown();
+    watchAlongRefreshRundown();
   };
 
   window.watchAlongAddCheckedTraitsToOutline = function() {

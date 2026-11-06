@@ -23,7 +23,7 @@ function harness(saved={}){
     };}}
   });ctx.window=ctx;
   async function write(on,movieId,traitId){if(gate)await gate;if(fail)return {error:{message:'Offline'}};if(on)server.get(movieId).add(traitId);else server.get(movieId).delete(traitId);return {error:null};}
-  for(const file of ['watch-along.js','recording-hub.js','movie-trait-sync.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
+  for(const file of ['episode-format.js','watch-along.js','recording-hub.js','movie-trait-sync.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),ctx,{filename:file});
   return {ctx,storage,server,elements,score,badge,subtotals,subtotalCounts,sync,retry,html:()=>html,fail:v=>{fail=v},block:()=>{let release;gate=new Promise(r=>{release=r});return ()=>{gate=null;release();}}};
 }
 
