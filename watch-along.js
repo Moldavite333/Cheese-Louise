@@ -49,8 +49,8 @@
     if (!movie) return null;
     try {
       const raw = localStorage.getItem(draftKey(movie.id));
-      if (!raw) return defaultDraft(movie);
-      const parsed = JSON.parse(raw);
+      const local = raw ? JSON.parse(raw) : null;
+      const parsed = window.clProductionSync?.read('watch_along',movie.id,local) || local;
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return defaultDraft(movie);
       const traitIds = window.clMovieTraits ? window.clMovieTraits.orderedIds(movie,parsed) : [...new Set(Array.isArray(parsed.traitIds) ? parsed.traitIds : (movie.selectedTraitIds || []))];
       let outlineItems = Array.isArray(parsed.outlineItems) ? parsed.outlineItems.filter(Boolean) : [];
@@ -73,18 +73,20 @@
     if (!draft?.movieId) return;
     draft.updatedAt = new Date().toISOString();
     localStorage.setItem(draftKey(draft.movieId), JSON.stringify(draft));
+    window.clProductionSync?.save('watch_along',draft.movieId,draft);
     pulseSaved();
   }
 
   function pulseSaved() {
     const el = document.querySelector('[data-watch-save-state]');
     if (!el) return;
-    el.textContent = 'Notes saved on this device';
+    el.textContent = 'Saving notes to shared workspace…';
     el.classList.add('is-saved');
     clearTimeout(savePulseTimer);
     savePulseTimer = setTimeout(() => {
       el.classList.remove('is-saved');
-      el.textContent = 'Notes autosave on this device';
+      const shared=window.clProductionSync?.status('watch_along',watchMovie()?.id);
+      el.textContent = shared==='saved' ? 'Notes saved to shared workspace' : shared==='conflict' ? 'Another device changed these notes. Your edits are held on this device; copy them before refreshing.' : shared==='retry' ? 'Saved on this device — shared retry needed' : 'Saving notes to shared workspace…';
     }, 1200);
   }
 
@@ -336,7 +338,7 @@
             <div class="page-title">Watch Along</div>
             <div class="subtle">Everything stays on one screen. No timer. No forced order. Capture it and keep watching.</div>
           </div>
-          <div class="watch-save-state"><div data-watch-save-state>Notes autosave on this device</div><div data-watch-trait-sync role="status">${esc(window.clMovieTraits?.status(movie.id).text||'Traits saved to shared workspace')}</div><button type="button" class="secondary" data-watch-trait-retry ${window.clMovieTraits?.status(movie.id).error?'':'hidden'} onclick="clMovieTraits.retry('${esc(movie.id)}')">Retry trait save</button></div>
+            <div class="watch-save-state"><div data-watch-save-state role="status">${esc(window.clProductionSync?.status('watch_along',movie.id)==='saved'?'Notes saved to shared workspace':window.clProductionSync?.status('watch_along',movie.id)==='conflict'?'Another device changed these notes. Your edits are held on this device; copy them before refreshing.':window.clProductionSync?.status('watch_along',movie.id)==='retry'?'Saved on this device — shared retry needed':'Saving notes to shared workspace…')}</div><div data-watch-trait-sync role="status">${esc(window.clMovieTraits?.status(movie.id).text||'Traits saved to shared workspace')}</div><button type="button" class="secondary" data-watch-trait-retry ${window.clMovieTraits?.status(movie.id).error?'':'hidden'} onclick="clMovieTraits.retry('${esc(movie.id)}')">Retry trait save</button><button type="button" class="secondary" onclick="clProductionSync.retry('watch_along','${esc(movie.id)}')">Retry note sync</button></div>
         </div>
 
         <div class="watch-movie-bar">
@@ -728,6 +730,7 @@
     if (!movie) return;
     if (!confirm(`Clear the Watch Along notes and talk order for “${movie.title}”? Shared trait selections and the Cheese Grating will be kept.`)) return;
     localStorage.removeItem(draftKey(movie.id));
+    putDraft(defaultDraft(movie));
     watchTraitQuery = '';
     render();
   };

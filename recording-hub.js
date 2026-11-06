@@ -17,15 +17,32 @@
   const key=()=>prefix+workspaceId();
   const memory=new Map();
   let storageWarning=false;
-  const read=()=>{if(memory.has(key()))return memory.get(key());try{const data=JSON.parse(localStorage.getItem(key())||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}};
-  const write=data=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));memory.delete(key());storageWarning=false;return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
+  const localRead=()=>{if(memory.has(key()))return memory.get(key());try{const data=JSON.parse(localStorage.getItem(key())||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}};
+  const cloneData=value=>JSON.parse(JSON.stringify(value||{}));
+  function recordingDocument(data,movieId){return {session:data.sessions?.[movieId]||(data.session?.movieId===movieId?data.session:null),timeline:data.timelines?.[movieId]||null,timelineDraft:data.timelineDrafts?.[movieId]??null,social:data.socials?.[movieId]||null};}
+  function hasRecordingDocument(value){return Boolean(value?.session||value?.timeline||value?.timelineDraft!==null||value?.social);}
+  function mergeRecordingDocument(data,movieId,document){
+    if(!document||typeof document!=='object')return;
+    if(document.session){data.sessions=data.sessions||{};data.sessions[movieId]=document.session;if(data.movieId===movieId)data.session=document.session;}
+    if(document.timeline){data.timelines=data.timelines||{};data.timelines[movieId]=document.timeline;}
+    if(Object.hasOwn(document,'timelineDraft')){data.timelineDrafts=data.timelineDrafts||{};if(document.timelineDraft===null)delete data.timelineDrafts[movieId];else data.timelineDrafts[movieId]=document.timelineDraft;}
+    if(document.social){data.socials=data.socials||{};data.socials[movieId]=document.social;}
+  }
+  function read(){
+    const local=localRead(),data=cloneData(local),sync=window.clProductionSync;
+    if(!sync)return data;
+    const ids=new Set([...(movieList().map(m=>m.id)),...Object.keys(local.sessions||{}),...Object.keys(local.timelines||{}),...Object.keys(local.socials||{}),...Object.keys(state.productionDocuments||{}).filter(k=>k.startsWith('recording:')).map(k=>k.slice('recording:'.length))]);
+    for(const id of ids){const fallback=recordingDocument(local,id),shared=sync.read('recording',id,hasRecordingDocument(fallback)?fallback:null);if(shared)mergeRecordingDocument(data,id,shared);}
+    return data;
+  }
+  const write=(data,movieId)=>{memory.set(key(),data);try{localStorage.setItem(key(),JSON.stringify(data));memory.delete(key());storageWarning=false;if(movieId)window.clProductionSync?.save('recording',movieId,recordingDocument(data,movieId));return true}catch{if(!storageWarning){storageWarning=true;alert('HQ could not save recording data on this device. Your session is still open in memory. Export the editing sheet before closing or reloading.')}return false}};
   const watchMovieId=()=>{try{return localStorage.getItem('cheeseLouise:watchAlong:'+workspaceId()+':movie')}catch{return null}};
   const currentMovie=()=>movieList().find(m=>m.id===read().movieId)||movieList().find(m=>m.id===watchMovieId())||movieList()[0]||null;
   const sessionNow=s=>Math.max(0,(s.elapsedMs||0)+(s.runningSince?Date.now()-s.runningSince:0));
   const startOfSegment=s=>s.laps?.reduce((a,l)=>a+(l.durationMs||0),0)||0;
   function rundown(movie){
     const wk='cheeseLouise:watchAlong:'+workspaceId()+':draft:'+movie.id;
-    let draft={},hasDraft=false;try{const raw=localStorage.getItem(wk),parsed=JSON.parse(raw||'{}');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed)){draft=parsed;hasDraft=Boolean(raw)}}catch{}
+    let draft={},hasDraft=false;try{const raw=localStorage.getItem(wk),parsed=JSON.parse(raw||'{}'),shared=window.clProductionSync?.read('watch_along',movie.id,raw?parsed:null);if((shared||parsed)&&typeof (shared||parsed)==='object'&&!Array.isArray(shared||parsed)){draft=shared||parsed;hasDraft=Boolean(raw||shared)}}catch{}
     const traits=(typeof state!=='undefined'?state.traits:[])||[];
     const byId=new Map(traits.map(t=>[t.id,t]));
     const selectedIds=window.clMovieTraits?.orderedIds(movie,draft)||(draft.traitIds||movie.selectedTraitIds||[]);
@@ -42,14 +59,16 @@
     if(window.clMovieTraits&&outlineItems.length){const named=new Set(outlineItems.filter(i=>i.type==='trait').map(i=>i.text));for(const trait of selected)if(!named.has(trait.name))outlineItems.push({type:'trait',text:trait.name,category:trait.category||''});}
     return {hasDraft,talkingPoints:selected.map(t=>t.name),outlineItems,notes:String(draft.notes||''),grating:confirmed.reduce((n,t)=>n+Number(t.points||0),0),confirmedCount:confirmed.length};
   }
-  const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d);};
+  const save=s=>{const d=read();d.sessions=d.sessions||{};if(d.session?.movieId&&!d.sessions[d.session.movieId])d.sessions[d.session.movieId]=d.session;d.sessions[s.movieId]=s;d.session=s;write(d,s.movieId);};
   function makeSession(movie){return {movieId:movie.id,title:movie.title||'Untitled',snapshot:rundown(movie),segment:0,laps:[],markers:[],elapsedMs:0,runningSince:null,finished:false,createdAt:Date.now()};}
   function getSession(){const d=read(),m=currentMovie();if(!m)return null;return d.sessions?.[m.id]||(d.session?.movieId===m.id?d.session:makeSession(m));}
   function update(fn){const s=getSession();if(!s)return;fn(s);save(s);draw();}
   const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
-    return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Your notes and talk order, ready for the mic.</p></div></header>'
+    const sync=m&&window.clProductionSync?.status('recording',m.id);
+    const syncMessage=sync==='conflict'?'Another device changed this recording. Your edits are held on this device; export the editing sheet before changing devices.':sync==='retry'?'Recording saved on this device; shared save needs retry.':sync==='saving'?'Saving recording to shared workspace…':sync==='saved'?'Recording saved to shared workspace.':'Recording syncs when you save.';
+    return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Your notes and talk order, ready for the mic.</p><p role="status">'+escapeHtml(syncMessage)+'</p>'+(sync==='retry'?button('Retry recording sync',`retrySync('${escapeHtml(m.id)}')`):'')+'</div></header>'
       +'<label class="clp-select">Movie <select onchange="clProduction.movie(this.value)">'+movieList().map(x=>'<option value="'+escapeHtml(x.id)+'" '+(m?.id===x.id?'selected':'')+'>'+escapeHtml(x.title||'Untitled')+'</option>').join('')+'</select></label>'
       +'<div class="clp-tabs">'+[['record','Record'],['edit','Edit'],['socials','Socials']].map(([id,name])=>'<button class="'+(view===id?'selected':'')+'" onclick="clProduction.view(\''+id+'\')">'+name+'</button>').join('')+'</div>'
       +'<section id="clp-body">'+(m?bodyHtml(): '<p>Add a movie in HQ to begin.</p>')+'</section></main>';
@@ -110,7 +129,7 @@
   function timelineMove(delta){
     const m=currentMovie(),timeline=movieTimeline(),data=read();if(!m)return;
     timeline.index=Math.max(0,Math.min(timeline.items.length,timeline.index+delta));
-    data.timelines=data.timelines||{};data.timelines[m.id]=timeline;write(data);draw();
+    data.timelines=data.timelines||{};data.timelines[m.id]=timeline;write(data,m.id);draw();
   }
   function timelineSave(){
     const m=currentMovie();if(!m)return;
@@ -125,7 +144,7 @@
     const currentId=old.items[old.index]?.id,existingIndex=currentId?items.findIndex(i=>i.id===currentId):-1;
     data.timelines=data.timelines||{};data.timelines[m.id]={items,index:existingIndex>=0?existingIndex:Math.min(old.index,items.length)};
     data.timelineDrafts=data.timelineDrafts||{};delete data.timelineDrafts[m.id];
-    write(data);timelineEditing.delete(m.id);draw();
+    write(data,m.id);timelineEditing.delete(m.id);draw();
   }
   function timelineImport(){
     const m=currentMovie();if(!m)return;
@@ -140,7 +159,7 @@
     const seen=new Set(merged.map(identity));
     for(const line of lines)if(!seen.has(identity(line))){merged.push(line);seen.add(identity(line));}
     data.timelineDrafts[m.id]=merged.join('\n');
-    write(data);timelineEditing.add(m.id);draw();
+    write(data,m.id);timelineEditing.add(m.id);draw();
   }
   function recordingNotes(s){
     const latest=rundown(currentMovie()),saved=s.snapshot||{},knownTraits=new Set((state.traits||[]).map(t=>t.name));
@@ -191,9 +210,10 @@
   function editingText(){const s=getSession();return ['CHEESE LOUISE EDITING SHEET',s.title,'LAPS',...s.laps.map(l=>clock(l.startMs)+' '+l.name+' ('+clock(l.durationMs)+')'),'MARKERS',...s.markers.map(m=>clock(m.atMs)+' '+m.type+(m.note?' — '+m.note:''))].join('\n');}
   async function copy(t){try{await navigator.clipboard.writeText(t);alert('Copied.')}catch{prompt('Copy this text:',t)}}
   window.clProduction={
+    retrySync(id){window.clProductionSync?.retry('recording',id).then(()=>draw());},
     refreshDesk(){const active=document.activeElement,id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;draw();const field=id?document.getElementById(id):null;if(field){field.focus?.();if(typeof start==='number')field.setSelectionRange?.(start,end);}},
     timelineEdit(){const m=currentMovie();if(!m)return;if(timelineEditing.has(m.id))timelineEditing.delete(m.id);else timelineEditing.add(m.id);draw();},
-    timelineDraft(text){const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data);},
+    timelineDraft(text){const m=currentMovie();if(!m)return;const data=read();data.timelineDrafts=data.timelineDrafts||{};data.timelineDrafts[m.id]=text;write(data,m.id);},
     timelineSave,
     timelineImport,
     timelineMove,
@@ -211,7 +231,7 @@
     deleteMarker(i){update(s=>s.markers.splice(i,1));},
     refreshSnapshot(){update(s=>{if(!s.runningSince&&confirm('Replace this session’s talking points with the latest Watch Along notes?'))s.snapshot=rundown(currentMovie());});},
     reset(){if(confirm('Start a new session? The current session and its markers will be replaced. Export the editing sheet first.'))update(s=>Object.assign(s,makeSession(currentMovie())));},
-    social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d);},
+    social(i,v){const d=read(),m=currentMovie();d.socials=d.socials||{};d.socials[m.id]=d.socials[m.id]||{};d.socials[m.id][i]=v;write(d,m.id);},
     exportCsv(){const blob=new Blob([csv()],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cheese-louise-editing-'+Date.now()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},
     copyEdit(){copy(editingText());},
     copySocial(){const m=currentMovie(),s=getSession();copy(['CHEESE LOUISE — EPISODE PROMOTION',m.title,'Network: '+(m.network||'Verify network'),'Cheese Grating: '+(rundown(m).grating||0),'Clip candidates:',...s.markers.filter(x=>x.type==='Funny / Clip').map(x=>clock(x.atMs)+' '+x.note),'Add verified cocktail recipe, release date, episode link and Bingo link before posting.'].join('\n'));},

@@ -2,7 +2,7 @@
   const C=window.clTimelineCore,cache=new Map(),editors=new Set(),scrollPositions=new Map(),panels=new Set();let context=null,message='',revealSelection=false;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const key=()=>`cheeseLouise:timeline:v1:${context.workspace}:${context.movie.id}`;
-  const read=()=>{if(cache.has(key()))return cache.get(key());let raw;try{raw=localStorage.getItem(key());}catch{message='Storage unavailable — download recovery before closing.';}const value=raw?JSON.parse(raw):{doc:C.create(context.movie,context.movie.summary||context.movie.synopsis||context.movie.overview||'',context.notes,context.legacy),history:[]};C.validate(value.doc);cache.set(key(),value);if(!raw){try{localStorage.setItem(key(),JSON.stringify(value));}catch{value.pendingBase=0;message='Unsaved — download recovery before closing.';}}return value;};
+  const read=()=>{if(cache.has(key()))return cache.get(key());let raw;try{raw=localStorage.getItem(key());}catch{message='Storage unavailable — download recovery before closing.';}const local=raw?JSON.parse(raw):{doc:C.create(context.movie,context.movie.summary||context.movie.synopsis||context.movie.overview||'',context.notes,context.legacy),history:[]};const value=window.clProductionSync?.read('timeline',context.movie.id,raw?local:null)||local;C.validate(value.doc);cache.set(key(),value);if(!raw||value!==local){try{localStorage.setItem(key(),JSON.stringify(value));}catch{value.pendingBase=0;message='Unsaved — download recovery before closing.';}}return value;};
   function status(text){message=text;const node=document.getElementById('cl-auto-status');if(node)node.textContent=text;}
   function save(change,redraw=true,undo=false){
     try{
@@ -14,7 +14,7 @@
       cache.set(key(),next);
       if(readFailed){next.pendingBase=value.pendingBase??value.doc.revision;next.conflicted=value.conflicted;status('Unsaved — storage cannot be read. Download recovery before closing.');if(redraw)context.redraw();return false;}
       if(value.conflicted||disk&&disk.doc.revision!==(value.pendingBase??value.doc.revision)){next.pendingBase=value.pendingBase??value.doc.revision;next.conflicted=true;status('Another tab changed this timeline. Your edits remain in memory. Download recovery before reloading.');if(redraw)context.redraw();return false;}
-      try{localStorage.setItem(key(),JSON.stringify(next));status('Saved on this device · revision '+doc.revision);}catch{next.pendingBase=value.pendingBase??value.doc.revision;status('Unsaved — download recovery before closing.');if(redraw)context.redraw();return false;}
+      try{localStorage.setItem(key(),JSON.stringify(next));window.clProductionSync?.save('timeline',context.movie.id,next);status('Saving timeline to shared workspace · revision '+doc.revision);}catch{next.pendingBase=value.pendingBase??value.doc.revision;status('Unsaved — download recovery before closing.');if(redraw)context.redraw();return false;}
       if(redraw)context.redraw();return true;
     }catch(e){status(e.message);return false;}
   }
@@ -59,6 +59,7 @@
   }
   function download(text,name,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   window.clAutomaticTimeline={html,
+    invalidate(movieId){for(const cacheKey of [...cache.keys()])if(!movieId||cacheKey.endsWith(':'+movieId))cache.delete(cacheKey);},
     trope(id,checked){if(!(context.confirmedTraits||[]).some(t=>t.id===id))return;save(d=>{const s=current(d);s.trope_candidates=list(s.trope_candidates).filter(t=>!(t.trope_id===id&&t._scene_user_link));if(checked)s.trope_candidates.push({trope_id:id,state:'User-confirmed',review_status:'User-confirmed',evidence_status:'Unverified',_scene_user_link:true});s.manual_fields=[...new Set([...s.manual_fields,'trope_candidates'])];s.revision++;});},
     trackScroll(left){if(context)scrollPositions.set(key(),left);},
     panel(name,open){const id=key()+':'+name;if(open)panels.add(id);else panels.delete(id);},
