@@ -86,3 +86,18 @@ test('a preexisting recording on another device remains available when shared co
   assert.equal(reopened.sync.read('recording','movie',null).session.markers[0].note,'Laptop');
   assert.equal(reopened.sync.status('recording','movie'),'conflict');
 });
+
+test('a known local snapshot does not become a false conflict after a remote update',()=>{
+  const server=new Map(),storage=new Map();
+  const old={session:{markers:[{note:'Original'}]}};
+  server.set('w:movie:recording',{workspace_id:'w',movie_id:'movie',document_type:'recording',revision:1,document:old});
+  const first=device(server,storage);first.state.productionDocuments['recording:movie']={...server.get('w:movie:recording')};
+  assert.equal(first.sync.read('recording','movie',old).session.markers[0].note,'Original');
+  server.set('w:movie:recording',{...server.get('w:movie:recording'),revision:2,document:{session:{markers:[{note:'New remote'}]}}});
+  const second=device(server,storage);second.state.productionDocuments['recording:movie']={...server.get('w:movie:recording')};
+  assert.equal(second.sync.read('recording','movie',old).session.markers[0].note,'New remote');
+  assert.equal(second.sync.status('recording','movie'),'saved');
+  const third=device(server,storage);third.state.productionDocuments['recording:movie']={...server.get('w:movie:recording')};
+  assert.equal(third.sync.read('recording','movie',old).session.markers[0].note,'New remote');
+  assert.equal(third.sync.status('recording','movie'),'saved');
+});

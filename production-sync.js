@@ -57,7 +57,7 @@
     const shared=row(type,movieId)?.document;
     if(valid(shared)){
       if(type==='watch_along'&&meaningful(type,localDocument)&&watchContains(shared,localDocument)){
-        remember(type,movieId,shared);
+        remember(type,movieId,localDocument);
         return clone(shared);
       }
       if(meaningful(type,localDocument)&&!same(localDocument,shared)&&seen(type,movieId)!==canonical(localDocument)){
@@ -70,7 +70,7 @@
         jobs.set(id(type,movieId),{type,movieId,document:clone(localDocument),version:0,status:'conflict',running:false,base:row(type,movieId).revision,blocked:true});
         return clone(localDocument);
       }
-      remember(type,movieId,shared);
+      remember(type,movieId,valid(localDocument)?localDocument:shared);
       return clone(shared);
     }
     if(valid(localDocument)&&active()&&!migrated.has(id(type,movieId))){migrated.add(id(type,movieId));void save(type,movieId,localDocument)}
