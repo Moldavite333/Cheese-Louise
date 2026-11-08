@@ -53,6 +53,19 @@ test('ordinary exact-title lookup issues one request and keeps all Radar filters
  await c.runRomantiverseSearch('A Biltmore Christmas');
  assert.equal(h.requests.length,1);assert.equal(h.requests[0].query,'A Biltmore Christmas');
  assert.equal(c.movieFilters.yearMin,2025);assert.equal(c.movieFilters.season,'Fall');
+ assert.equal(h.requests[0].lookup_exact,true);
+});
+test('exact title matches survive filters, hidden flags and existing-movie exclusion',async()=>{
+ const h=setup(),c=h.context;c.searchText='Falling Together';c.movieFilters={mode:'mutual',season:'Winter',holiday:'Christmas',yearMin:2025,minScore:100};
+ h.respond(async()=>({data:{results:[{tmdb_id:123,title:'Falling Together',year:2024,source_type:'tmdb_exact_title',exact_title_match:true},{tmdb_id:99,title:'Unrelated',source_type:'tmdb_exact_title',exact_title_match:true}]}}));
+ c.discoveryHidden=new Set([123]);c.discoveryExistingIds=()=>new Set(['movie:123']);
+ await c.runRomantiverseSearch(c.searchText);assert.equal(c.state.romantiverseSearchResults.length,1);assert.equal(c.romantiverseSearchVisibleResults()[0].title,'Falling Together');
+ c.state.movies=[{id:'saved',title:'Falling Together',premiere_date:'2024-09-21',status:'recorded'}];
+ assert.equal(c.romantiverseSearchVisibleResults().length,1);assert.equal(c.romantiverseSavedResult(c.state.romantiverseSearchResults[0]).id,'saved');
+});
+test('saved exact title is shown even when the external catalog returns nothing',async()=>{
+ const h=setup(),c=h.context;c.searchText='Falling Together';c.state.movies=[{id:'saved',title:'Falling Together'}];h.respond(async()=>({data:{results:[]}}));
+ await c.runRomantiverseSearch(c.searchText);assert.equal(c.romantiverseSearchVisibleResults()[0].id,'saved');
 });
 test('season and holiday aliases match explicit metadata, including serialized source metadata',()=>{
  const {context:c}=setup();

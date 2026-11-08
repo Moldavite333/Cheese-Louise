@@ -18,9 +18,22 @@ function romantiverseSearchCandidate(id){
   return (state.romantiverseSearchResults||[]).find(c=>Number(c.tmdb_id)===Number(id));
 }
 
+function romantiverseTitleKey(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+function romantiverseExactTitle(c){
+ return !romantiverseSearchForUs&&String(searchText||'').trim().length>=2&&romantiverseTitleKey(c?.title)===romantiverseTitleKey(searchText);
+}
+function romantiverseSavedResult(c){
+ const year=c.year||c.source_metadata?.year||String(c.premiere_date||'').slice(0,4);
+ return (state.movies||[]).find(m=>{
+  const meta=typeof m.source_metadata==='string'?(()=>{try{return JSON.parse(m.source_metadata)}catch{return {}}})():m.source_metadata||{};
+  const savedYear=m.year||meta.year||String(m.premiere_date||'').slice(0,4);
+  return romantiverseTitleKey(m.title)===romantiverseTitleKey(c.title)&&(!year||!savedYear||Number(year)===Number(savedYear));
+ });
+}
 function romantiverseSearchMatchesFilters(c){
   if(!c) return false;
   if(typeof clMovieIsHorror!=='function'||clMovieIsHorror(c))return false;
+  if(romantiverseExactTitle(c))return true;
   if(['saved','mutual','yes'].includes(movieFilters?.mode)) return false;
   if(movieFilters?.status && movieFilters.status!=='needs_review') return false;
   if(!clMatchesSeasonHoliday(c)) return false;
@@ -50,15 +63,19 @@ function romantiverseSearchMatchesFilters(c){
 
 function romantiverseSearchVisibleResults(){
   const existing=typeof discoveryExistingIds==='function' ? discoveryExistingIds() : new Set();
-  const results=(state.romantiverseSearchResults||[]).filter(c=>
+  const pool=[...(state.romantiverseSearchResults||[])];
+  for(const m of state.movies||[])if(romantiverseExactTitle(m)&&!pool.some(c=>romantiverseSavedResult(c)?.id===m.id))pool.push(m);
+  const results=pool.filter(c=>!clMovieIsHorror(c)&&(romantiverseExactTitle(c)||(
     !existing.has((c.tmdb_type||'movie')+':'+Number(c.tmdb_id)) &&
     !(typeof discoveryHidden!=='undefined' && discoveryHidden.has(Number(c.tmdb_id))) &&
     romantiverseSearchMatchesFilters(c)
-  );
+  )));
   return typeof clTasteRank==='function'?clTasteRank(results):results;
 }
 
 function romantiverseSearchCard(c){
+  const saved=romantiverseExactTitle(c)&&romantiverseSavedResult(c);
+  if(saved&&typeof movieCard==='function')return movieCard(saved);
   let html=discoveryCard(c);
   const reasons=(c.search_reasons||[]).slice(0,4);
   if(typeof clTasteMatch==='function') reasons.unshift(...clTasteMatch(c).reasons.map(reason=>'Your taste: '+reason));
@@ -119,12 +136,12 @@ function romantiverseSearchPanel(){
 
   const terms=romantiverseSearchExpandedTerms.slice(0,8);
   return taste+'<div class="rom-search-panel">'+
-    '<div class="rom-search-head"><div><div class="kicker">Romantiverse Search</div><div class="page-title small-title">Results for “'+esc(label)+'”</div><div class="subtle">Concept search across TMDB metadata. Existing Radar filters are applied below.</div></div><button class="secondary" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">↻ Search again</button></div>'+
+    '<div class="rom-search-head"><div><div class="kicker">Romantiverse Search</div><div class="page-title small-title">Results for “'+esc(label)+'”</div><div class="subtle">Exact titles are shown first. Filters apply to other catalog matches.</div></div><button class="secondary" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">↻ Search again</button></div>'+
     (romantiverseSearchWarning?'<p role="status" class="subtle">'+esc(romantiverseSearchWarning)+'</p>':'')+
     (terms.length?'<div class="rom-search-expansion"><span class="subtle">Also looking for:</span><div class="pills">'+terms.map(t=>'<span class="pill">'+esc(t)+'</span>').join('')+'</div></div>':'')+
     '<div class="results-line"><strong>'+visible.length+'</strong> external match'+(visible.length===1?'':'es')+' from '+state.romantiverseSearchResults.length+' unique finds after filters, hidden titles and saved movies</div>'+
     '<div class="new-find-grid">'+(visible.map(romantiverseSearchCard).join('')||'<div class="empty card card-pad">No external matches survive the current filters. Clear a filter or try a broader idea.</div>')+'</div>'+
-    '<div class="subtle rom-search-attribution">Search source: Romantiverse Bingo editorial catalog. Exact title/year matches may supply additional movie metadata.</div>'+
+    '<div class="subtle rom-search-attribution">Search sources: your saved movies, the Bingo catalog, and exact-title TMDB lookup. Recommendations are unchanged.</div>'+
   '</div>';
 }
 
@@ -141,13 +158,13 @@ async function runRomantiverseSearch(rawQuery,force=false,forUs=false){
  romantiverseSearchLoading=true;romantiverseSearchError='';romantiverseSearchLoadedQuery=loadedQuery;refreshRomantiverseSearchPanel();
  try{
   const filters={holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax};
-  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,include_broader:true,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
+  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,include_broader:true,lookup_exact:!forUs&&String(rawQuery||'').trim().length>=2,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
   if(seq!==romantiverseSearchSequence)return;
   if(error||data?.error)throw Error(data?.error||error?.message||'The Cheese Louise movie catalog could not load.');
   if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');
-  state.romantiverseSearchResults=data.results.filter(c=>c.source_type==='bingo_catalog'&&!clMovieIsHorror(c));
+  state.romantiverseSearchResults=data.results.filter(c=>(c.source_type==='bingo_catalog'||(!forUs&&String(rawQuery||'').trim()&&c.source_type==='tmdb_exact_title'&&c.exact_title_match===true&&romantiverseTitleKey(c.title)===romantiverseTitleKey(query)))&&!clMovieIsHorror(c));
   romantiverseSearchExpandedTerms=data.expanded_terms||[];
-  romantiverseSearchWarning='Searching the same editorial catalog as Romantiverse Bingo. General movie matches are excluded.';
+  romantiverseSearchWarning=data.exact_lookup_warning||'Exact title matches appear first, including saved movies, regardless of active filters. Other results use the Bingo catalog and current filters.';
  }catch(error){if(seq!==romantiverseSearchSequence)return;state.romantiverseSearchResults=[];romantiverseSearchExpandedTerms=[];romantiverseSearchError=error.message||String(error);}
  finally{if(seq===romantiverseSearchSequence){romantiverseSearchLoading=false;refreshRomantiverseSearchPanel();}}
 }

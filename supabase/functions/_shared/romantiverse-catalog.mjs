@@ -2,7 +2,7 @@ import './our-movie-taste.js';
 const Taste=globalThis.clOurMovieTasteEngine;
 // The Bingo editorial catalog defines discovery membership. TMDB may enrich an exact identity, never add candidates.
 export const CATALOG_URL='https://bingo.cheeselouisepod.com/catalog/movies.json';
-export const norm=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/['']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+export const norm=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 const hash=value=>{let n=2166136261;for(const c of value){n^=c.charCodeAt(0);n=Math.imul(n,16777619)}return n>>>0||1;};
 export function eligibleCatalog(m){
  if(!m?.title||m.is_demo||m.season==='Horror')return false;
@@ -26,15 +26,16 @@ export function selectCatalog(body,input={},recommend=false){
  const likes=(input.likes||[]).map(x=>norm(x.title));
  const results=catalogRows(body).flatMap(m=>{
   const cls=classification(m),id=hash('bingo:'+norm(m.title)+'|'+(m.release_year||''));
-  if(excluded.has(norm(m.title))||excludedIds.has(id))return [];
+  const exact=!recommend&&input.lookup_exact===true&&query&&norm(m.title)===query;
+  if(!exact&&(excluded.has(norm(m.title))||excludedIds.has(id)))return [];
   if(seasonQuery&&cls.season!==seasonQuery)return [];
   if(query==='christmas'&&cls.holiday!=='Christmas')return [];
-  if(requestedSeason&&cls.season!==requestedSeason)return [];
-  if(holiday&&holiday!=='__unknown__'&&norm(cls.holiday)!==holiday)return [];
-  if(filters.yearMin&&(!m.release_year||m.release_year<Number(filters.yearMin)))return [];
-  if(filters.yearMax&&(!m.release_year||m.release_year>Number(filters.yearMax)))return [];
+  if(!exact&&requestedSeason&&cls.season!==requestedSeason)return [];
+  if(!exact&&holiday&&holiday!=='__unknown__'&&norm(cls.holiday)!==holiday)return [];
+  if(!exact&&filters.yearMin&&(!m.release_year||m.release_year<Number(filters.yearMin)))return [];
+  if(!exact&&filters.yearMax&&(!m.release_year||m.release_year>Number(filters.yearMax)))return [];
   const studios=[m.network,...(m.production_companies||[])].filter(Boolean).join(' ');
-  if(filters.studio&&!norm(studios).includes(norm(filters.studio)))return [];
+  if(!exact&&filters.studio&&!norm(studios).includes(norm(filters.studio)))return [];
   const text=norm([m.title,m.synopsis,m.summary,m.network,...Object.values(m.story_facts||{}).flat()].filter(Boolean).join(' '));
   if(query&&!seasonQuery&&!(aliases[query]?terms.some(t=>text.includes(t)):words.every(t=>text.includes(t))))return [];
   let score=norm(m.title)===query?100:query&&norm(m.title).includes(query)?95:80;
@@ -67,8 +68,39 @@ export function createCatalogHandler({fallback,env=()=>'',fetcher=fetch,recommen
    if(detailCache.size>=600)detailCache.delete(detailCache.keys().next().value);detailCache.set(cacheKey,{at:Date.now(),metadata});return {...row,...metadata};
   }catch{return row}
  }
+
+ async function exactLookup(input){
+  const query=String(input.query||'').trim().slice(0,100),token=env('TMDB_READ_ACCESS_TOKEN');
+  if(!token)return {rows:[],warning:'Exact-title lookup is not configured. Catalog matches are still shown.'};
+  try{
+   const q=new URLSearchParams({query,include_adult:'false',language:'en-US'});
+   const response=await fetcher('https://api.themoviedb.org/3/search/movie?'+q,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(5000)});
+   if(!response.ok)throw Error('lookup failed');
+   const found=await response.json();
+   const matches=(found.results||[]).filter(m=>norm(m.title)===norm(query)&&!m.adult&&eligibleCatalog(m)&&/^\d{4}-/.test(m.release_date||'')).slice(0,8);
+   const rows=await Promise.all(matches.map(async m=>{
+    const year=Number(m.release_date.slice(0,4)),reason='Exact title match from TMDB; not an automatic recommendation';
+    return enrich({title:m.title,year,premiere_date:m.release_date,tmdb_id:m.id,tmdb_type:'movie',source_type:'tmdb_exact_title',source_url:'https://www.themoviedb.org/movie/'+m.id,source_metadata:{source_type:'tmdb_exact_title',year,poster_tmdb_id:m.id},summary:m.overview||'',poster_url:m.poster_path?'https://image.tmdb.org/t/p/w500'+m.poster_path:null,genre_ids:m.genre_ids||[],providers:[],holiday:null,season:null,search_score:100,match_score:100,exact_title_match:true,search_reasons:[reason],why:[reason]});
+   }));
+   return {rows,warning:''};
+  }catch{return {rows:[],warning:'Exact-title lookup is temporarily unavailable. Retry to check beyond the catalog.'}}
+ }
  return async req=>{const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'},json=(v,status=200)=>new Response(JSON.stringify(v),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return json({error:'POST required'},405);
-  try{const input=await req.json(),result=selectCatalog(await load(),recommend?{...input,max_results:120,include_broader:true}:input,recommend),rows=result.results.slice(),started=Date.now();let next=0;await Promise.all(Array.from({length:Math.min(8,rows.length)},async()=>{while(next<rows.length&&Date.now()-started<12000){const n=next++;if(recommend||n<12)rows[n]=await enrich(rows[n])}}));return json(recommend?recommendationPage(rows,input,result):{...result,results:rows})}catch{return json({error:'The Cheese Louise catalog could not load. Please retry; broad movie search is disabled.'},503)}
+  try{
+   const input=await req.json(),result=selectCatalog(await load(),recommend?{...input,max_results:120,include_broader:true}:input,recommend),rows=result.results.slice(),started=Date.now();
+   let exactWarning='';
+   if(!recommend&&input.lookup_exact===true&&norm(input.query).length>=2){
+    const existingExact=rows.filter(m=>norm(m.title)===norm(input.query));
+    if(!existingExact.length){
+     const lookup=await exactLookup(input);exactWarning=lookup.warning;
+     for(const m of lookup.rows)if(!rows.some(r=>norm(r.title)===norm(m.title)&&r.year===m.year))rows.push(m);
+    }
+    for(const m of rows)if(norm(m.title)===norm(input.query))m.exact_title_match=true;
+    rows.sort((a,b)=>Number(!!b.exact_title_match)-Number(!!a.exact_title_match)||b.search_score-a.search_score);
+   }
+   let next=0;await Promise.all(Array.from({length:Math.min(8,rows.length)},async()=>{while(next<rows.length&&Date.now()-started<12000){const n=next++;if(!rows[n].exact_title_match||rows[n].source_type==='bingo_catalog'){if(recommend||n<12)rows[n]=await enrich(rows[n])}}}));
+   return json(recommend?recommendationPage(rows,input,result):{...result,results:rows,count:rows.length,exact_lookup_warning:exactWarning});
+  }catch{return json({error:'The Cheese Louise catalog could not load. Please retry; broad movie search is disabled.'},503)}
  };
 }
