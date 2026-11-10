@@ -59,6 +59,8 @@
   }
   function download(text,name,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   window.clAutomaticTimeline={html,
+    recordingNotes(ctx,host){context=ctx;try{return read().doc.scenes.filter(s=>String(s[host+'_notes']||'').trim()).map(s=>({id:s.scene_id,text:s[host+'_notes'],title:s.title}));}catch{return [];}},
+    recordingEdit(ctx,sceneId,host,text){if(!['nick','jenny'].includes(host))return false;context=ctx;return save(d=>{const s=d.scenes.find(x=>x.scene_id===sceneId);if(!s)throw Error('This note’s scene was removed. Your text is still in the editor.');s[host+'_notes']=String(text);s.manual_fields=[...new Set([...s.manual_fields,host+'_notes'])];s.revision++;s.updated_at=new Date().toISOString();},false);},
     invalidate(movieId){for(const cacheKey of [...cache.keys()])if(!movieId||cacheKey.endsWith(':'+movieId))cache.delete(cacheKey);},
     trope(id,checked){if(!(context.confirmedTraits||[]).some(t=>t.id===id))return;save(d=>{const s=current(d);s.trope_candidates=list(s.trope_candidates).filter(t=>!(t.trope_id===id&&t._scene_user_link));if(checked)s.trope_candidates.push({trope_id:id,state:'User-confirmed',review_status:'User-confirmed',evidence_status:'Unverified',_scene_user_link:true});s.manual_fields=[...new Set([...s.manual_fields,'trope_candidates'])];s.revision++;});},
     trackScroll(left){if(context)scrollPositions.set(key(),left);},
