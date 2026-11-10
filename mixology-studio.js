@@ -1,0 +1,187 @@
+// Stage 1: a recipe-centered workspace. No AI calls, publishing or production setup.
+(() => {
+  'use strict';
+  const C=clMixologyCore,FLAGS={too_sweet:'Too sweet',not_sweet_enough:'Not sweet enough',not_tart_enough:'Not tart enough',too_tart:'Too tart',too_bitter:'Too bitter',too_strong:'Too strong',just_right:'Just right',too_much_effort:'Too much effort'};
+  let ui=null,request=0,timer=null,poll=null;
+  const scope=()=>workspace?.id&&me()?workspace.id+':'+me():null;
+  const valid=()=>ui&&ui.scope===scope();
+  const active=()=>valid()&&currentTab==='episodes'&&cocktailHubView==='bar';
+  const key=(cocktail,variant)=>'cheeseLouise:mixology:v1:'+scope()+':'+cocktail+':'+variant;
+  const recentKey=()=> 'cheeseLouise:mixology:recent:v1:'+scope();
+  const call=async(name,args)=>{const {data,error}=await db.rpc(name,args);if(error)throw error;if(!data)throw Error('No shared recipe was returned.');return data;};
+  const rowOf=data=>Array.isArray(data)?data[0]:data;
+  const text=(tag,value,extra='')=>'<'+tag+' '+extra+'>'+esc(value)+'</'+tag+'>';
+  function recent(){try{return JSON.parse(localStorage.getItem(recentKey())||'[]')}catch{return []}}
+  function remember(){try{const rows=recent().filter(r=>r.id!==ui.cocktail||r.variant!==ui.variant);rows.unshift({id:ui.cocktail,variant:ui.variant,name:ui.store.document.name});localStorage.setItem(recentKey(),JSON.stringify(rows.slice(0,20)));}catch{}}
+  function rememberView(){if(!valid())return;try{localStorage.setItem(ui.store.key+':view',JSON.stringify({tab:ui.tab,versionId:ui.versionId,compareA:ui.compareA,compareB:ui.compareB}));}catch{}}
+  function showStatus(){
+    if(!valid())return;
+    const s=ui.store,labels={loading:'Opening recipe…',saved:'Saved to the shared workspace',pending:'Draft kept on this browser · shared save pending',saving:'Saving shared draft…',conflict:'Shared draft conflict',storage:'Browser recovery unavailable',invalid:'Draft needs attention',error:'Shared save unavailable'};
+    const host=document.getElementById('mix-save-state');if(host){host.textContent=s.message||labels[s.status];host.dataset.state=s.status;}
+    const warning=document.getElementById('mix-conflict');if(warning)warning.hidden=!s.conflict;
+    const badge=document.getElementById('mix-draft-evidence');if(badge)badge.textContent=draftEvidence();
+  }
+  function draftEvidence(){
+    if(!valid())return '';
+    const v=ui.versions.find(v=>C.equal(v.document,ui.store.document));
+    const count=v?ui.tastings.filter(t=>t.version_id===v.id).length:0;
+    return count?'Matches v'+v.version_number+' · '+count+' tasting observation'+(count===1?'':'s'):'Current draft has no recorded tasting';
+  }
+  function origin(){return {tab:currentTab,hub:cocktailHubView,episode:selectedEpisode,movie:selectedMovie,fields:[...document.querySelectorAll('.modal input,.modal textarea,.modal select')].map(el=>({id:el.id,value:el.value,checked:el.checked})),dirty:!!document.querySelector('.modal[data-hq-dirty="true"]')};}
+  async function open(cocktailId=null,variant='alcoholic',returnTo=null){
+    if(!scope())return;
+    if(valid()&&ui.feedbackDirty&&!confirm('Leave this tasting? The comment is kept on this browser.'))return;
+    const token=++request,id=cocktailId||C.id(),back=returnTo||(active()?ui.back:origin());
+    clearTimeout(timer);clearInterval(poll);
+    const c=(state.cocktails||[]).find(c=>c.id===id);
+    let cached=null;try{cached=JSON.parse(localStorage.getItem(key(id,variant))||'null')}catch{}
+    const seed=cached?.document||(variant==='alcohol_free'?C.fromLegacy({name:(c?.name||'Untitled cocktail').slice(0,140)+' · Alcohol-free'}):C.fromLegacy(c));
+    if(!c&&!cached&&variant==='alcoholic'){let n=1;while(state.cocktails.some(row=>row.name.toLowerCase()===seed.name.toLowerCase()))seed.name='Untitled cocktail ('+(++n)+')';}
+    const row=cached?.row||{id:null,revision:0,document:seed,legacy_evidence:{}};
+    const context={scope:scope(),cocktail:id,variant,back,tab:'recipe',versions:[],tastings:[],versionId:null,compareA:null,compareB:null,error:'',feedback:null,feedbackDirty:false};
+    try{const view=JSON.parse(localStorage.getItem(key(id,variant)+':view')||'null');if(view){context.tab=['recipe','history','taste','research','bartender','tastes','prep','photos','publication'].includes(view.tab)?view.tab:'recipe';for(const k of ['versionId','compareA','compareB'])if(typeof view[k]==='string'&&/^[0-9a-f-]{36}$/i.test(view[k]))context[k]=view[k];}}catch{}
+    try{const pending=JSON.parse(localStorage.getItem(key(id,variant)+':checkpoint')||'null');if(typeof pending==='string'&&/^[0-9a-f-]{36}$/i.test(pending))context.versionOperation=pending;}catch{}
+    context.store=new clMixologyDraftStore({key:key(id,variant),storage:localStorage,remote:async(document,revision)=>{
+      if(context.scope!==scope())throw Error('Account changed. Reopen the recipe.');
+      if(!context.store.row.id){const started=rowOf(await call('mixology_start',{p_workspace:workspace.id,p_cocktail:id,p_variant:variant,p_document:document}));context.store.row=started;if(!C.equal(started.document,document))throw Object.assign(Error('draft_conflict'),{code:'40001'});return started;}
+      return rowOf(await call('mixology_save',{p_recipe:context.store.row.id,p_revision:revision,p_document:document}));
+    },onStatus:()=>{if(ui===context)showStatus();}}).open(row);
+    ui=context;currentTab='episodes';cocktailHubView='bar';selectedEpisode=null;selectedMovie=null;remember();render();
+    try{
+      const loaded=rowOf(await call('mixology_start',{p_workspace:workspace.id,p_cocktail:id,p_variant:variant,p_document:seed}));
+      if(token!==request||!valid())return;
+      if(back.movie){const {error}=await db.from('mixology_movie_links').upsert({workspace_id:workspace.id,cocktail_id:id,movie_id:back.movie},{onConflict:'workspace_id,cocktail_id,movie_id',ignoreDuplicates:true});if(error)throw error;}
+      if(!state.cocktails.some(c=>c.id===id))state.cocktails.push({id,workspace_id:workspace.id,name:loaded.document.name,cocktail_type:'cheese_louise',flavor_tags:[],ingredients:'',method:'',tested:false,rating:null});
+      const episodeChoice=back.episode&&back.fields.find(field=>field.id==='epCocktailId');
+      if(episodeChoice&&!episodeChoice.value){episodeChoice.value=id;back.dirty=true;}
+      // Opening is asynchronous; retain text already entered while it was in flight.
+      if(ui.store.generation===0)ui.store.open(loaded);
+      else {ui.store.row=loaded;if(ui.store.base===0&&C.equal(loaded.document,seed)){ui.store.base=loaded.revision;ui.store.persist();}else if(ui.store.base!==loaded.revision){ui.store.conflict=true;ui.store.report('conflict');}}
+      await history(context);if(token!==request||!valid())return;window.clMixologyTools?.onRecipe?.();render();
+    }catch(error){if(token!==request||!valid())return;ui.error=setupMessage(error);ui.store.report('error',ui.error);render();}
+    poll=setInterval(()=>{if(valid()&&!document.hidden)void checkShared(false)},15000);
+  }
+  function setupMessage(error){return ['PGRST202','42P01','PGRST205'].includes(error.code)?'Shared Mixology storage is not installed in this environment. Drafts can be kept on this browser and exported. The prepared migration has not been applied.':error.message||'Shared storage is unavailable. Your draft is kept here.';}
+  async function history(context){
+    if(!context.store.row.id)return;
+    const {data:versions,error}=await db.from('mixology_versions').select('*').eq('workspace_id',workspace.id).eq('recipe_id',context.store.row.id).order('version_number',{ascending:false});if(error)throw error;
+    if(ui!==context||context.scope!==scope())return;
+    context.versions=versions||[];
+    const approvalResult=await db.from('mixology_approvals').select('*').eq('workspace_id',workspace.id).in('version_id',context.versions.map(v=>v.id)).order('created_at',{ascending:false});
+    if(ui!==context||context.scope!==scope())return;
+    context.approvals=approvalResult.error?null:approvalResult.data||[];
+    if(context.versions.length){
+      const {data,error:feedbackError}=await db.from('mixology_tastings').select('*').eq('workspace_id',workspace.id).in('version_id',context.versions.map(v=>v.id)).order('created_at');if(feedbackError)throw feedbackError;
+      if(ui!==context||context.scope!==scope())return;context.tastings=data||[];
+      for(const key of ['versionId','compareA','compareB'])if(!context.versions.some(v=>v.id===context[key]))context[key]=key==='compareA'?context.versions[1]?.id||context.versions[0].id:context.versions[0].id;
+    }
+  }
+  async function checkShared(manual=true){
+    if(!valid()||!ui.store.row.id)return;
+    const context=ui;
+    try{
+      const {data,error}=await db.from('mixology_recipes').select('*').eq('workspace_id',workspace.id).eq('id',context.store.row.id).single();if(error)throw error;
+      if(ui!==context||!valid())return;
+      if(data.revision!==context.store.base){
+        if(context.store.dirty){context.store.conflict=true;context.store.report('conflict','A newer shared draft exists. Compare or export before replacing it.');}
+        else if(document.querySelector('.mix-studio :focus')&&!manual){return;}
+        else{context.store.resolve(data,false);await history(context);render();}
+      }else if(manual){await history(context);render();}
+    }catch(error){if(ui===context){context.error=setupMessage(error);if(manual)render();}}
+  }
+  function changed(fn,repaint=false){if(!valid())return;ui.store.change(fn);ui.error='';remember();clearTimeout(timer);timer=setTimeout(()=>{if(valid())void ui.store.flush()},650);if(repaint)render();}
+  function field(name,value){changed(d=>{d[name]=name==='servings'?Number(value):value});}
+  function rowField(kind,id,field,value){changed(d=>{const r=d[kind].find(r=>r.id===id);if(r)r[field]=value;});}
+  function add(kind){changed(d=>d[kind].push(kind==='ingredients'?{id:C.id(),name:'New ingredient',quantity:'',unit:''}:{id:C.id(),text:'New preparation step'}),true);document.querySelector('.mix-'+kind+' > :last-child input,.mix-'+kind+' > :last-child textarea')?.focus();}
+  function remove(kind,id){changed(d=>{d[kind]=d[kind].filter(r=>r.id!==id)},true);}
+  function move(kind,id,offset){changed(d=>{const i=d[kind].findIndex(r=>r.id===id),j=i+offset;if(i>=0&&j>=0&&j<d[kind].length)[d[kind][i],d[kind][j]]=[d[kind][j],d[kind][i]]},true);}
+  function undo(){if(valid()){ui.store.undo();clearTimeout(timer);timer=setTimeout(()=>{if(valid())void ui.store.flush()},650);render();}}
+  async function saveVersion(){
+    if(!valid()||ui.busy)return;const context=ui;context.busy=true;context.error='';
+    try{
+      if(!await context.store.flush())return;
+      context.versionOperation ||= C.id();
+      try{localStorage.setItem(context.store.key+':checkpoint',JSON.stringify(context.versionOperation));}catch{}
+      const result=await call('mixology_checkpoint',{p_recipe:context.store.row.id,p_revision:context.store.base,p_version:context.versionOperation});
+      if(ui!==context||!valid())return;
+      context.versionOperation=null;context.store.resolve(result.recipe,true);context.versionId=result.version.id;context.compareA=context.versions[0]?.id||result.version.id;context.compareB=result.version.id;await history(context);remember();rememberView();
+      try{localStorage.removeItem(context.store.key+':checkpoint');}catch{}
+      // Update the existing canonical library projection without reloading episode forms.
+      const c=state.cocktails.find(c=>c.id===context.cocktail);if(c&&context.variant==='alcoholic')Object.assign(c,{name:result.version.document.name,ingredients:result.version.document.ingredients.map(r=>[r.quantity,r.unit,r.name].filter(Boolean).join(' ')).join('\n'),method:result.version.document.steps.map(r=>r.text).join('\n'),glassware:result.version.document.glassware,garnish:result.version.document.garnish,notes:result.version.document.notes,tested:false,rating:null});
+      context.notice='Saved v'+result.version.version_number+'. Tasting feedback stays with its version.';
+    }catch(error){if(ui===context){context.error=error.message||String(error);if(error.code==='40001'){context.store.conflict=true;context.store.report('conflict',context.error);}}}
+    finally{context.busy=false;if(ui===context)render();}
+  }
+  async function resolve(keepMine){
+    if(!valid())return;const context=ui;
+    if(!confirm(keepMine?'Replace the shared draft with your current draft? Saved versions and tasting history will stay intact.':'Load the shared draft? Export your current text first if you want to keep it.'))return;
+    try{const {data,error}=await db.from('mixology_recipes').select('*').eq('workspace_id',workspace.id).eq('id',context.store.row.id).single();if(error)throw error;if(ui!==context||!valid())return;context.store.resolve(data,keepMine);if(keepMine)await context.store.flush();await history(context);render();}catch(error){if(ui===context){context.error=error.message;render();}}
+  }
+  function restore(id){const v=ui?.versions.find(v=>v.id===id);if(!v)return;changed(d=>{for(const k of Object.keys(d))delete d[k];Object.assign(d,C.clone(v.document));},true);ui.notice='Restored v'+v.version_number+' into the working draft. History is unchanged.';render();}
+  function feedbackKey(){return ui.store.key+':tasting:'+ui.versionId;}
+  function feedback(){
+    if(ui.feedback)return ui.feedback;
+    try{const cached=JSON.parse(localStorage.getItem(feedbackKey())||'null');if(cached){ui.feedbackDirty=true;return ui.feedback=cached;}}catch{}
+    return ui.feedback={id:C.id(),revision:0,again:'',flags:[],comment:''};
+  }
+  function persistFeedback(){try{localStorage.setItem(feedbackKey(),JSON.stringify(ui.feedback));ui.feedbackStorageFailed=false;}catch{ui.feedbackStorageFailed=true;}}
+  function feedbackField(field,value){if(!valid())return;const f=feedback();f[field]=value;ui.feedbackDirty=true;persistFeedback();window.clMixologyTools?.feedbackHints?.(ui.feedback.comment);const status=document.getElementById('mix-tasting-state');if(status)status.textContent=ui.feedbackStorageFailed?'Tasting is only in memory. Keep this page open until it is saved.':'Tasting draft kept on this browser.';}
+  function toggleFlag(flag,checked){if(!Object.hasOwn(FLAGS,flag))return;const f=feedback();feedbackField('flags',checked?[...new Set([...f.flags,flag])]:f.flags.filter(x=>x!==flag));const box=document.querySelector('[data-mix-flag="'+flag+'"]');if(box)box.checked=checked;window.clMixologyTools?.feedbackHints?.(f.comment);}
+  function editFeedback(id){const t=ui.tastings.find(t=>t.id===id&&t.host_id===me());if(!t)return;ui.versionId=t.version_id;ui.tab='taste';ui.feedback={id:t.id,revision:t.revision,again:t.make_again||'',flags:t.flags,comment:t.comment};ui.feedbackDirty=true;persistFeedback();rememberView();render();}
+  async function saveFeedback(){
+    if(!valid()||ui.busy)return;const context=ui,f=C.clone(feedback()),versionId=ui.versionId,diskKey=feedbackKey();context.busy=true;context.error='';
+    try{const result=rowOf(await call('mixology_feedback',{p_id:f.id,p_version:versionId,p_revision:f.revision,p_again:f.again||null,p_flags:f.flags,p_comment:f.comment}));if(ui!==context||!valid())return;
+      const current=context.feedback;
+      if(current&&(current.comment!==result.comment||(current.again||null)!==result.make_again||!C.equal(current.flags,result.flags))){current.revision=result.revision;context.feedbackDirty=true;persistFeedback();context.notice='Tasting saved. Your newer edits are still a draft; save again to apply them.';}
+      else{context.feedback=null;context.feedbackDirty=false;try{localStorage.removeItem(diskKey)}catch{}context.notice='Your tasting was saved for the selected version.';}
+      await history(context);}
+    catch(error){if(ui===context)context.error=error.message||String(error);}
+    finally{context.busy=false;if(ui===context)render();}
+  }
+  function selectVersion(id){if(ui.feedbackDirty&&!confirm('Switch versions? Your tasting draft is kept with this version.'))return;ui.versionId=id;ui.feedback=null;ui.feedbackDirty=false;rememberView();render();}
+  function exportDraft(){if(!valid())return;const blob=new Blob([JSON.stringify({recipe:ui.store.document,variant:ui.variant,tastingDraft:ui.feedbackDirty?ui.feedback:null},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mixology-draft.json';a.click();URL.revokeObjectURL(url);}
+  function close(){if(!valid())return;if(ui.store.storageFailed&&ui.store.dirty&&!confirm('Browser recovery is unavailable. Export the draft before leaving. Leave anyway?'))return;if(ui.feedbackStorageFailed&&ui.feedbackDirty&&!confirm('This tasting is only in memory. Export it before leaving. Leave anyway?'))return;const back=ui.back;clearTimeout(timer);clearInterval(poll);const context=ui;void context.store.flush();request++;ui=null;currentTab=back.tab;cocktailHubView=back.hub;selectedEpisode=back.episode;selectedMovie=back.movie;render();for(const f of back.fields){const el=document.getElementById(f.id);if(el){el.value=f.value;if(el.type==='checkbox')el.checked=f.checked;}}if(back.dirty){const modal=document.querySelector('.modal');if(modal)modal.dataset.hqDirty='true';}}
+  function tabs(tab){if(!valid())return;ui.tab=tab;rememberView();render();}
+  function selectCompare(which,id){ui[which]=id;rememberView();render();}
+  function options(selected){return ui.versions.map(v=>'<option value="'+v.id+'" '+(v.id===selected?'selected':'')+'>v'+v.version_number+(v.origin==='legacy'?' · Legacy import':'')+'</option>').join('');}
+  function recipeHtml(){const d=ui.store.document;return '<div class="mix-recipe"><label>Name<input class="search" id="mix-name" maxlength="160" value="'+esc(d.name)+'" oninput="clMixology.field(\'name\',this.value)"></label><label class="mix-servings">Servings<input class="search" type="number" min="0.01" max="1000" step="any" value="'+d.servings+'" oninput="clMixology.field(\'servings\',this.value)"></label><h2>Ingredients</h2><p class="subtle">Imported lines are kept verbatim. Separate amounts and units when useful; no conversion is guessed.</p><div class="mix-ingredients">'+d.ingredients.map((r,i)=>'<div class="mix-ingredient"><label>Ingredient<input class="search" value="'+esc(r.name)+'" oninput="clMixology.rowField(\'ingredients\',\''+r.id+'\',\'name\',this.value)"></label><label>Quantity<input class="search" inputmode="decimal" value="'+esc(r.quantity)+'" oninput="clMixology.rowField(\'ingredients\',\''+r.id+'\',\'quantity\',this.value)"></label><label>Unit<input class="search" value="'+esc(r.unit)+'" placeholder="mL, oz, dash…" oninput="clMixology.rowField(\'ingredients\',\''+r.id+'\',\'unit\',this.value)"></label>'+rowButtons('ingredients',r.id,i,d.ingredients.length)+'</div>').join('')+'</div><button class="secondary" onclick="clMixology.add(\'ingredients\')">Add ingredient</button><h2>Preparation</h2><div class="mix-steps">'+d.steps.map((r,i)=>'<div class="mix-step"><label>Step '+(i+1)+'<textarea class="search" rows="3" oninput="clMixology.rowField(\'steps\',\''+r.id+'\',\'text\',this.value)">'+esc(r.text)+'</textarea></label>'+rowButtons('steps',r.id,i,d.steps.length)+'</div>').join('')+'</div><button class="secondary" onclick="clMixology.add(\'steps\')">Add step</button><div class="mix-meta">'+['glassware','garnish','notes'].map(k=>'<label>'+k[0].toUpperCase()+k.slice(1)+'<textarea class="search" rows="'+(k==='notes'?3:1)+'" oninput="clMixology.field(\''+k+'\',this.value)">'+esc(d[k])+'</textarea></label>').join('')+'</div></div>';}
+  function rowButtons(kind,id,i,total){return '<div class="mix-row-actions"><button class="secondary" aria-label="Move '+kind+' row '+(i+1)+' up" '+(!i?'disabled':'')+' onclick="clMixology.move(\''+kind+'\',\''+id+'\',-1)">↑</button><button class="secondary" aria-label="Move '+kind+' row '+(i+1)+' down" '+(i===total-1?'disabled':'')+' onclick="clMixology.move(\''+kind+'\',\''+id+'\',1)">↓</button><button class="secondary" aria-label="Remove '+kind+' row '+(i+1)+'" onclick="clMixology.remove(\''+kind+'\',\''+id+'\')">Remove</button></div>';}
+  function historyHtml(){const a=ui.versions.find(v=>v.id===ui.compareA),b=ui.versions.find(v=>v.id===ui.compareB);return '<h2>Version history</h2><p class="subtle">Saved versions stay intact. Restoring makes a working draft and never transfers tasting claims.</p>'+(!a||!b?'<p>Save a version to begin comparing.</p>':'<div class="mix-compare-controls"><label>From<select class="search" onchange="clMixology.selectCompare(\'compareA\',this.value)">'+options(ui.compareA)+'</select></label><label>To<select class="search" onchange="clMixology.selectCompare(\'compareB\',this.value)">'+options(ui.compareB)+'</select></label></div><div class="mix-diff">'+(C.differences(a.document,b.document).map(x=>'<article><strong>'+esc(x.kind.toUpperCase()+' · '+x.label)+'</strong><div><span>Before: </span>'+esc(x.before||'Absent')+'</div><div><span>After: </span>'+esc(x.after||'Absent')+'</div></article>').join('')||'<p>No recipe changes between these versions.</p>')+'</div>')+ui.versions.map(v=>'<article class="mix-version"><strong>v'+v.version_number+' · '+esc(v.document.name)+'</strong><p>'+esc(new Date(v.created_at).toLocaleString())+(v.origin==='legacy'?' · Legacy import; tasting attribution unknown':'')+'</p><button class="secondary" onclick="clMixology.restore(\''+v.id+'\')">Restore v'+v.version_number+' as draft</button><details><summary>Full recipe</summary><pre>'+esc(C.exportRecipe(v.document))+'</pre></details>'+observationHtml(v.id)+'</article>').join('');}
+  function observationHtml(id){const rows=ui.tastings.filter(t=>t.version_id===id);return '<div class="mix-observations">'+(rows.length?rows.map(t=>'<article><strong>'+esc(memberName(t.host_id))+'</strong><div>Make again: '+esc(t.make_again||'Not answered')+'</div><div>'+esc(t.flags.map(f=>FLAGS[f]).join(' · '))+'</div><p>'+esc(t.comment)+'</p>'+(t.host_id===me()?'<button class="secondary" onclick="clMixology.editFeedback(\''+t.id+'\')">Correct my feedback</button>':'')+'</article>').join(''):'<p class="subtle">No tasting feedback recorded for this version.</p>')+'</div>';}
+  function tasteHtml(){if(!ui.versions.length)return '<h2>Taste</h2><p>Save a version first, then record what you actually made. No feedback is required to keep developing.</p>';const f=feedback();return '<h2>Taste</h2><label>Version actually made<select class="search" onchange="clMixology.selectVersion(this.value)">'+options(ui.versionId)+'</select></label><details><summary>Check the selected recipe</summary><pre>'+esc(C.exportRecipe(ui.versions.find(v=>v.id===ui.versionId).document))+'</pre></details><p>Recording as <strong>'+esc(memberName(me()))+'</strong>. Describe actual substitutions in your comment. Feedback never changes the recipe.</p><label>Would you make it again?<select class="search" onchange="clMixology.feedbackField(\'again\',this.value)"><option value="">Optional</option>'+['yes','maybe','no'].map(x=>'<option '+(f.again===x?'selected':'')+' value="'+x+'">'+x+'</option>').join('')+'</select></label><fieldset class="mix-flags"><legend>Quick feedback · optional</legend>'+Object.entries(FLAGS).map(([k,label])=>'<label><input type="checkbox" data-mix-flag="'+k+'" '+(f.flags.includes(k)?'checked':'')+' onchange="clMixology.toggleFlag(\''+k+'\',this.checked)"> '+label+'</label>').join('')+'</fieldset><label>Comment · optional<textarea id="mix-tasting-comment" class="search" rows="4" maxlength="4000" oninput="clMixology.feedbackField(\'comment\',this.value)">'+esc(f.comment)+'</textarea></label><div id="mix-feedback-hints"></div><p id="mix-tasting-state" role="status">'+(ui.feedbackDirty?'Tasting draft kept on this browser.':'Answer any one field, or leave this for later.')+'</p><button class="primary" '+(ui.busy?'disabled':'')+' onclick="clMixology.saveFeedback()">'+(f.revision?'Save corrected feedback':'Save my tasting')+'</button>'+observationHtml(ui.versionId)+approvalHtml();}
+  function approvalHtml(){
+    if(!ui.approvals)return '<p>Approval storage is unavailable in this environment. No approval has been inferred.</p>';
+    const v=ui.versions.find(v=>v.id===ui.versionId),events=ui.approvals.filter(a=>a.version_id===v.id),latest=events[0];
+    return '<section class="mix-approval"><h3>Approval · v'+v.version_number+'</h3><p>'+esc(latest?latest.decision+' by '+memberName(latest.host_id)+' · '+new Date(latest.created_at).toLocaleString():'No approval recorded for this version.')+'</p><p>Either host can approve this exact saved recipe. Approval is separate from tasting and from its counterpart.</p><button class="secondary" '+(ui.busy?'disabled':'')+' onclick="clMixology.decide(\'approved\')">Approve selected version</button><button class="secondary" '+(ui.busy||!latest||latest.decision!=='approved'?'disabled':'')+' onclick="clMixology.decide(\'withdrawn\')">Withdraw version approval</button><details><summary>Approval history</summary>'+events.map(a=>'<p>'+esc(a.decision+' · '+memberName(a.host_id)+' · '+new Date(a.created_at).toLocaleString())+'</p>').join('')+'</details></section>';
+  }
+  async function decide(decision){
+    if(!valid()||ui.busy)return;const context=ui,version=ui.versionId;
+    context.busy=true;context.error='';
+    try{const diskKey=context.store.key+':approval:'+version+':'+decision;let id;try{id=localStorage.getItem(diskKey)}catch{}id||=C.id();try{localStorage.setItem(diskKey,id)}catch{}
+      await call('mixology_decide',{p_id:id,p_version:version,p_decision:decision});
+      try{localStorage.removeItem(diskKey)}catch{}
+      if(ui!==context||!valid())return;await history(context);context.notice='Version decision saved. Drafts, tasting feedback and the counterpart are unchanged.';
+    }catch(error){if(ui===context)context.error=error.message||'Approval could not save. Retry checks the same operation.';}
+    finally{context.busy=false;if(ui===context)render();}
+  }
+  function prepHtml(){
+    const d=ui.store.document,target=ui.prepServings||d.servings;
+    let plan;try{plan=clMixologyPrep.plan(d,target)}catch(error){return '<p role="alert">'+esc(error.message)+'</p>';}
+    return '<h2>Preparation & servings</h2>'+(window.clMixologyProduction?.render()||'')+'<details class="mix-draft-scaling" '+(ui.draftScalingOpen?'open':'')+' ontoggle="clMixology.draftScaling(this.open)"><summary>Scale the current working draft · preview only</summary><p>Derived from the current working draft. Scaling does not save a recipe or imply tasting or approval.</p><label>Servings to prepare<input class="search" id="mix-prep-servings" type="number" min="0.01" max="1000" step="any" value="'+target+'"></label><button class="secondary" onclick="clMixology.prepareServings()">Update quantities</button><p id="mix-prep-error" role="alert"></p><h3>Shopping & measured ingredients</h3><ul>'+plan.ingredients.map(r=>'<li><strong>'+(clMixologyPrep.amount(r.quantity)===null?'Unscaled original description: ':'')+esc([r.scaledQuantity,r.unit,r.name].filter(Boolean).join(' '))+'</strong>'+r.notes.map(n=>'<p>'+esc(n)+'</p>').join('')+'</li>').join('')+'</ul><h3>Before recording</h3><p>Review equipment, ice, glasses and ingredients. Timing, storage and make-ahead safety must be confirmed for this recipe; none is inferred.</p><h3>Assembly · original order</h3><ol>'+plan.steps.map(r=>'<li>'+esc(r.text)+'</li>').join('')+'</ol><p>Garnish: '+esc(plan.garnish||'Not specified')+'</p><p>For a batch, test dilution and balance in a small sample first. Keep carbonated additions separate until service.</p></details>';
+  }
+  async function prepareEpisode(){const id=document.getElementById('epCocktailId')?.value;if(!id){alert('Choose a linked cocktail in the episode first.');return;}await open(id);if(valid())tabs('prep');}
+  function prepareServings(){const n=Number(document.getElementById('mix-prep-servings').value);try{clMixologyPrep.plan(ui.store.document,n);ui.prepServings=n;render()}catch(error){document.getElementById('mix-prep-error').textContent=error.message;}}
+  function page(){if(!valid()){ui=null;return basePage();}const d=ui.store.document;return '<section class="section mix-studio"><header class="mix-header"><div><div class="kicker">Mixology Lab · Recipe studio</div><h1>'+esc(d.name)+'</h1><p>'+esc(ui.variant==='alcohol_free'?'Alcohol-free counterpart · independently developed':'Alcoholic recipe')+'</p></div><button class="secondary" onclick="clMixology.close()">Back to workspace</button></header><div class="mix-toolbar"><label>Recipe variant<select class="search" onchange="clMixology.open(\''+ui.cocktail+'\',this.value)"><option value="alcoholic" '+(ui.variant==='alcoholic'?'selected':'')+'>Alcoholic</option><option value="alcohol_free" '+(ui.variant==='alcohol_free'?'selected':'')+'>Alcohol-free</option></select></label><button class="secondary" onclick="clMixology.undo()">Undo last edit</button><button class="primary" '+(ui.busy?'disabled':'')+' onclick="clMixology.saveVersion()">Save version</button><button class="secondary" onclick="clMixology.exportDraft()">Export draft</button></div><p id="mix-save-state" role="status" aria-live="polite"></p><p id="mix-draft-evidence" class="subtle">'+esc(draftEvidence())+'</p>'+(ui.error?text('p',ui.error,'class="mix-error" role="alert"'):'')+(ui.notice?text('p',ui.notice,'role="status"'):'')+'<div id="mix-conflict" class="mix-conflict" '+(!ui.store.conflict?'hidden':'')+'><p>Your draft has not overwritten the newer copy. Export it, or choose how to continue.</p><button class="secondary" onclick="clMixology.resolve(false)">Load shared draft</button><button class="secondary" onclick="clMixology.resolve(true)">Use my draft instead</button></div><div class="mix-tabs" role="group" aria-label="Recipe tools">'+[['recipe','Recipe'],['history','History & compare'],['taste','Taste'],['research','Research'],['bartender','Bartender'],['tastes','Our tastes'],['prep','Preparation'],['photos','Photos'],['publication','Recipe & promo']].map(([id,label])=>'<button class="'+(ui.tab===id?'primary':'secondary')+'" aria-pressed="'+(ui.tab===id)+'" onclick="clMixology.tabs(\''+id+'\')">'+label+'</button>').join('')+'<button class="secondary" onclick="clMixology.checkShared(true)">Check shared draft</button><button class="secondary" onclick="clMixology.retry()">Retry save</button></div><div class="mix-panel">'+(ui.tab==='recipe'?recipeHtml():ui.tab==='history'?historyHtml():ui.tab==='taste'?tasteHtml():ui.tab==='prep'?prepHtml():ui.tab==='photos'?(window.clMixologyMedia?.render()||'<p>Photo tools are unavailable.</p>'):ui.tab==='publication'?(window.clMixologyPublication?.render()||'<p>Recipe draft tools are unavailable.</p>'):(window.clMixologyTools?.render(ui.tab)||'<p>Workshop tools are unavailable.</p>'))+'</div>'+(ui.store.row.legacy_evidence?.tested||ui.store.row.legacy_evidence?.rating?'<aside class="mix-legacy">Legacy record: '+esc(ui.store.row.legacy_evidence.tested?'marked tested':'not marked tested')+'; rating '+esc(ui.store.row.legacy_evidence.rating||'not recorded')+'. Host and tasted version unknown. These values are not used as individual taste evidence.</aside>':'')+'</section>';}
+  const basePage=cocktailBarPage,baseModal=modal;
+  cocktailBarPage=function(){if(ui)return page();const rows=recent();return '<section class="section mix-entry"><div><div class="kicker">Mixology Lab</div><h2>Develop a cocktail</h2><p>Structured recipes, recoverable drafts and separate host tastings.</p></div><button class="primary" onclick="clMixology.open()">New cocktail</button>'+(rows.length?'<details><summary>Recent recipe drafts</summary>'+rows.map(r=>'<button class="secondary" onclick="clMixology.open(\''+r.id+'\',\''+r.variant+'\')">'+esc(r.name)+' · '+esc(r.variant==='alcohol_free'?'Alcohol-free':'Alcoholic')+'</button>').join('')+'</details>':'')+'</section>'+basePage();};
+  modal=function(){if(active())return '';const html=baseModal();if(selectedEpisode){const episode=state.episodes.find(e=>e.id===selectedEpisode);if(episode?.cocktail_id)return html.replace('<div class="episode-editor-actions">','<div class="episode-editor-actions"><button class="secondary" onclick="clMixology.open(\''+episode.cocktail_id+'\')">Develop linked cocktail</button><button class="secondary" onclick="clMixology.prepareEpisode()">Prepare linked cocktail</button>');}if(selectedMovie&&state.movies.some(m=>m.id===selectedMovie))return html.replace('</h2>','</h2><button class="secondary" onclick="clMixology.openForMovie(\''+selectedMovie+'\')">Develop cocktail</button>');return html;};
+  // Episodes append their editor after shell rendering rather than through modal().
+  const baseEpisodeModal=v16EpisodeModal;
+  v16EpisodeModal=function(){if(active())return '';const html=baseEpisodeModal();return html.replace('<div class="episode-editor-actions">','<div class="episode-editor-actions"><button class="secondary" onclick="clMixology.openEpisodeCocktail()">Develop linked cocktail</button><button class="secondary" onclick="clMixology.prepareEpisode()">Prepare linked cocktail</button>');};
+  // Existing saved cocktail actions now reach the same studio from any HQ context.
+  editCocktail=function(id){void open(id)};window.editCocktail=editCocktail;
+  window.clMixology={productionContext:()=>valid()?{cocktailId:ui.cocktail,variant:ui.variant,scope:ui.scope,workspaceId:workspace.id,episodeId:ui.back.episode||null,toolTab:ui.tab,row:{id:ui.store.row.id},versions:ui.versions,approvals:ui.approvals||[]}:null,accountScope:scope,hostName:memberName,context:()=>valid()?{scope:ui.scope,workspaceId:workspace.id,actorId:me(),cocktailId:ui.cocktail,variant:ui.variant,toolTab:ui.tab,row:C.clone(ui.store.row),document:C.clone(ui.store.document),episodeId:ui.back.episode||null,movieId:ui.back.movie||state.episodes.find(e=>e.id===ui.back.episode)?.movie_id||null}:null,flush:()=>valid()?ui.store.flush():Promise.resolve(false),repaint:()=>{if(active())render()},replaceDraft:document=>{C.validate(document);changed(d=>{for(const k of Object.keys(d))delete d[k];Object.assign(d,C.clone(document));},true)},open,openEpisodeCocktail:()=>open(document.getElementById('epCocktailId')?.value||null),openForMovie:async(id)=>{const back=origin();back.movie=id;try{const {data,error}=await db.from('mixology_movie_links').select('cocktail_id').eq('workspace_id',workspace.id).eq('movie_id',id);if(error)throw error;await open(data?.[0]?.cocktail_id||null,'alcoholic',back);}catch(error){alert('The linked cocktail could not be loaded. Retry from the movie; no replacement recipe was created.');}},close,draftScaling:value=>{if(valid())ui.draftScalingOpen=value},decide,prepareEpisode,prepareServings,field,rowField,add,remove,move,undo,saveVersion,resolve,restore,exportDraft,tabs,selectCompare,selectVersion,feedbackField,toggleFlag,saveFeedback,editFeedback,checkShared,retry:async()=>{if(!valid())return;ui.error='';ui.store.dirty=true;await ui.store.flush();if(valid()){try{await history(ui)}catch(error){ui.error=setupMessage(error)}render();}},active};
+  const previousShell=shell;shell=function(...args){const result=previousShell(...args);if(valid()){showStatus();window.clMixologyTools?.feedbackHints?.(ui.feedback?.comment||'');}return result;};
+  window.addEventListener('beforeunload',event=>{if(valid()&&(ui.store.dirty||ui.feedbackDirty&&ui.feedbackStorageFailed)){event.preventDefault();event.returnValue='';}});
+  window.addEventListener('online',()=>{if(valid())void ui.store.flush()});
+})();

@@ -9,19 +9,44 @@ permissions:
 jobs:
   production:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned development and database-test tools
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile --ignore-scripts
       - name: Check browser script syntax
         run: |
           for file in *.js; do node --check "$file"; done
       - name: Test production and filtering logic with isolated fixture data
         run: node --test tests/*.test.mjs
-      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
-      - run: npx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Check Mixology persistence and two-host workflow with isolated PostgreSQL
+        run: node scripts/mixology-browser-smoke.mjs
+      - name: Check preparation and approved-version recording packets
+        run: node scripts/mixology-production-browser-smoke.mjs
+      - name: Check private real-photo uploads and rights records
+        run: node scripts/mixology-media-browser-smoke.mjs
+      - name: Check private recipe and promotional review drafts
+        run: node scripts/mixology-publication-browser-smoke.mjs
+      - name: Check shared source review and evidence freshness
+        run: node scripts/mixology-trends-browser-smoke.mjs
+      - name: Check reviewed listener photo reuse and redaction
+        run: node scripts/mixology-listener-handoff-browser-smoke.mjs
+      - name: Check private listener photo decoding and moderation
+        run: node scripts/mixology-listener-photos-browser-smoke.mjs
+      - name: Check listener feedback and independent variations
+        run: node scripts/mixology-listener-types-browser-smoke.mjs
+      - name: Check Mixology keyboard focus and pending-action isolation
+        run: node scripts/mixology-accessibility-browser-smoke.mjs
+      - name: Check private listener intake and host moderation
+        run: node scripts/mixology-submissions-browser-smoke.mjs
+      - name: Check research and reviewed bartender proposals with a fake provider
+        run: node scripts/mixology-stage2-browser-smoke.mjs
       - name: Check the assembled HQ interface using mocked authentication and data
         run: node scripts/hq-browser-smoke.mjs
       - name: Check cocktail ranking, details and fresh variations on mobile and desktop
