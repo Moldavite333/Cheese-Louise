@@ -13,7 +13,7 @@
   function remember(type,movieId,document){try{localStorage.setItem(seenKey(type,movieId),canonical(document))}catch{}}
   function meaningful(type,document){
     if(!valid(document))return false;
-    if(type==='watch_along')return ['notes','rules','rundownText','outline'].some(k=>String(document[k]||'').trim())||Boolean(document.outlineItems?.length);
+    if(type==='watch_along')return ['notes','rules','rundownText','outline'].some(k=>String(document[k]||'').trim())||Boolean(document.outlineItems?.length)||Object.values(document.hostNotes||{}).some(items=>Array.isArray(items)&&items.length);
     if(type==='timeline')return Number(document.doc?.revision)>0||Boolean(document.history?.length);
     if(type==='bingo')return Boolean(document.cards?.length);
     return Boolean(document.session||document.timeline||document.timelineDraft||document.social);
@@ -33,12 +33,24 @@
       items.push(copy);
     }
     merged.outlineItems=items;
+    merged.hostNotes={...shared.hostNotes};
+    for(const host of ['nick','jenny']){
+      const notes=[...(shared.hostNotes?.[host]||[])];
+      for(const item of local.hostNotes?.[host]||[]){
+        if(notes.some(existing=>same(existing,item)))continue;
+        const copy=clone(item);
+        if(copy.id&&notes.some(existing=>existing.id===copy.id))copy.id=`${copy.id}-other-device-${notes.length}`;
+        notes.push(copy);
+      }
+      merged.hostNotes[host]=notes;
+    }
     merged.updatedAt=new Date().toISOString();
     return merged;
   }
   function watchContains(shared,local){
     return ['notes','rules','rundownText','outline'].every(field=>!String(local[field]||'').trim()||String(shared[field]||'').includes(String(local[field]).trim()))
       &&(local.outlineItems||[]).every(item=>(shared.outlineItems||[]).some(existing=>same(existing,item)||same({...existing,id:null},{...item,id:null})))
+      &&['nick','jenny'].every(host=>(local.hostNotes?.[host]||[]).every(item=>(shared.hostNotes?.[host]||[]).some(existing=>same(existing,item)||same({...existing,id:null},{...item,id:null}))))
       &&(local.traitIds||[]).every(value=>(shared.traitIds||[]).includes(value));
   }
   const active=()=>Boolean(workspace?.id&&me?.()&&typeof db!=='undefined');
