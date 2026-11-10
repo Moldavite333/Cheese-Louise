@@ -76,6 +76,7 @@
     window.clProductionSync?.save('watch_along',draft.movieId,draft);
     pulseSaved();
   }
+  window.clWatchDrafts={get(movieId){return getDraft((state.movies||[]).find(m=>m.id===movieId));},save:putDraft};
 
   function pulseSaved() {
     const el = document.querySelector('[data-watch-save-state]');
@@ -380,6 +381,7 @@
         </div>
 
         <div class="watch-writing-stack">
+          ${window.clRecordingDesk?.watchPanel(movie)||''}
           <div id="watchNotesPanel" tabindex="-1" class="card card-pad watch-writing-card">
             <div class="watch-panel-head"><div><div class="kicker">Watch Notes</div><h2>Stuff we noticed</h2></div></div>
             <textarea class="watch-textarea watch-notes" aria-label="Watch notes" placeholder="The marina has no boat stuff. Just croissants and a cappuccino machine…" oninput="watchAlongSaveText('notes', this.value)">${esc(draft.notes)}</textarea>
