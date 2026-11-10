@@ -32,4 +32,4 @@
 
 .mix-movie-recommendations .mix-recipe-context{display:none}.mix-movie-recommendations .mix-tools{grid-template-columns:1fr}.mix-movie-recommendations .mix-header{align-items:flex-start}
 
-.mix-movie-recommendations .mix-movie-context{display:none}.mix-movie-recommendations .mix-tools-actions{display:none}.mix-movie-recommendations .mix-concepts{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}.mix-movie-recommendations .mix-header p{margin-block:8px}.mix-movie-recommendations .mix-concepts article{margin-top:0}
+.mix-movie-recommendations .mix-movie-context{display:none}.mix-movie-recommendations .mix-tools-main>.mix-tools-actions{display:none}.mix-movie-recommendations .mix-concepts{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}.mix-movie-recommendations .mix-header p{margin-block:8px}.mix-movie-recommendations .mix-concepts article{margin-top:0}
