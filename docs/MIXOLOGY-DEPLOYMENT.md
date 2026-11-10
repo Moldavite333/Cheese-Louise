@@ -32,3 +32,8 @@ The user explicitly requested deployment ("lets get this deployed"). This supers
 Deployment has not occurred. Supabase authentication is the current access blocker. User was asked to complete local CLI browser sign-in, keeping tokens out of chat. No paid call, hosted migration, production-data write, push or Pages publication occurred in this attempt.
 
 Keyboard follow-up: reproduced the desktop failure with diagnostic evidence that setSelectionRange(3,8) ran on a disconnected, inactive input. Updated the test to resolve the current input, focus/select and render atomically in one browser task; assertion remains unchanged. Corrected keyboard suite passed at 390/1440px. No application focus behavior changed; the separate media-conflict intermittency remains unresolved. Phone output was visually inspected.
+
+## Supabase access and backend rollout update
+Sign-in is verified; all 11 reconciled migrations are now applied. See MIXOLOGY-HOSTED-ROLLOUT.md for exact hosted checks, unchanged legacy data, disabled integrations and recovery limitations. PR #103 is awaiting frontend release checks. Earlier authentication blockers above are historical.
+
+Frontend release is now published and verified: PR #103, application merge 6ae390e5eb8b7a6d6208c7b4e1169d1e2130fd0e, successful Pages run 42810110952, 19 matching assets, phone/desktop anonymous startup and visual inspection passed. Paid bartender generation and public listener intake remain disabled; see hosted rollout notes for outstanding checks.

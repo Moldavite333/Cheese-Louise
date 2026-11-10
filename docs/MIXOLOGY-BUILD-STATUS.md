@@ -1,10 +1,10 @@
-# Mixology Lab 2.0 — current local build status
+# Mixology Lab 2.0 — build and release status
 
-Updated November 10, 2026, 03:09 hourly run (10:09 UTC trigger; America/Denver). Continue from this file during hourly build runs. Preserve existing uncommitted work in this checkout.
+Previous local checkpoint: November 10, 2026, 03:09 hourly run (10:09 UTC trigger; America/Denver). Continue from this file during hourly build runs. Preserve existing uncommitted work in this checkout.
 
 ## Deployment request update
 
-The user subsequently requested deployment. See [the deployment handoff](MIXOLOGY-DEPLOYMENT.md) for current authorization, verified target/access, release sequence and blockers. Historical no-deploy statements below describe the earlier local-build scope; the new request authorizes deployment work. Production remains unchanged pending Supabase authentication and release verification.
+The user subsequently requested deployment. See [the deployment handoff](MIXOLOGY-DEPLOYMENT.md) for current authorization, verified target/access, release sequence and blockers. Historical no-deploy statements below describe the earlier local-build scope; the new request authorizes deployment work. Release PR #103 is now merged and GitHub Pages deployment succeeded at source commit 6ae390e5eb8b7a6d6208c7b4e1169d1e2130fd0e. All 11 migrations are applied; Supabase sign-in is verified. The 19 new public assets match the tested source and live anonymous phone/desktop checks passed. Read MIXOLOGY-HOSTED-ROLLOUT.md first. Historical pending-auth/local-only statements below are superseded. Paid generation and public intake remain disabled; local backlog and real-host acceptance remain open.
 
 ## Authorization and specification
 
@@ -88,3 +88,6 @@ Fresh Node suite: 305 passed. Fresh HQ fixtures passed four viewport sizes. Desk
 
 ## 11:17 UTC continuation
 Read the deployment handoff and retained the existing Supabase sign-in request without repeating it. Updated the hourly build prompt to recognize the user's subsequent deployment authorization and the actual local acceptance priorities, preserving its hourly cadence and active status. The schedule continues local build work; it does not claim deployment readiness or completion. Targeted isolated media browser check passed at 390/1440px (format-only pixels, no real photos or live data). This did not reproduce or prove a fix for the historical media-conflict intermittency. No application changes, hosted migration, source push, paid request or publication in this continuation. Older/redacted listener queue browsing and release checks remain outstanding. Supabase authentication remains pending.
+
+## Backend rollout after verified sign-in
+The subsequent user deployment request is being executed. All 11 reconciled migrations applied, hosted-role rollback tests passed, all 18 new public tables have RLS, photo bucket is private, anonymous HTTP access is denied, and 17 existing cocktail rows are unchanged. No new security advisor notices. Bartender endpoint deployed protected and paid-disabled; public listener intake remains undeployed/disabled. See MIXOLOGY-HOSTED-ROLLOUT.md for recovery-copy limits and outstanding checks. Frontend release PR #103 is awaiting CI. Do not repeat the superseded Supabase sign-in request.

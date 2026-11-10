@@ -1,6 +1,6 @@
 # Cheese Louise HQ v1.32
 
-Unreleased local Mixology Lab 2.0 development is documented in [the current build status](docs/MIXOLOGY-BUILD-STATUS.md). These local changes have not been deployed or applied to hosted databases.
+Mixology Lab 2.0 is deployed with canonical versioned recipes, shared drafting, separate host feedback, independent alcohol-free counterparts, preparation packets and private photo/export workflows. Paid bartender generation and public listener intake remain disabled. See [build and release status](docs/MIXOLOGY-BUILD-STATUS.md) and [hosted rollout verification](docs/MIXOLOGY-HOSTED-ROLLOUT.md) for verified checks and remaining acceptance work.
 
 A mobile-first shared podcast workspace and cheesy-movie hunting system for **Cheese Louise**.
 
