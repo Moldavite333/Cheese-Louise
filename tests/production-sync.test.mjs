@@ -101,3 +101,21 @@ test('a known local snapshot does not become a false conflict after a remote upd
   assert.equal(third.sync.read('recording','movie',old).session.markers[0].note,'New remote');
   assert.equal(third.sync.status('recording','movie'),'saved');
 });
+
+test('personal-only notes merge without losing either host or conflicting device edits',async()=>{
+  const server=new Map(),laptop=device(server);
+  const shared={hostNotes:{nick:[{id:'n',text:'Nick on phone'}],jenny:[{id:'j',text:'Jenny point'}]}};
+  server.set('w:movie:watch_along',{workspace_id:'w',movie_id:'movie',document_type:'watch_along',revision:1,document:shared});
+  laptop.state.productionDocuments['watch_along:movie']={...server.get('w:movie:watch_along')};
+  const local={hostNotes:{nick:[{id:'n',text:'Nick offline edit'}]}};
+  const merged=laptop.sync.read('watch_along','movie',local);
+  assert.deepEqual(Array.from(merged.hostNotes.nick,n=>n.text),['Nick on phone','Nick offline edit']);
+  assert.equal(merged.hostNotes.jenny[0].text,'Jenny point');
+  assert.notEqual(merged.hostNotes.nick[0].id,merged.hostNotes.nick[1].id);
+  await laptop.flush();
+  const reopened=device(server,laptop.storage);
+  reopened.state.productionDocuments['watch_along:movie']={...server.get('w:movie:watch_along')};
+  assert.equal(reopened.sync.read('watch_along','movie',local).hostNotes.nick.length,2);
+  await reopened.flush();
+  assert.equal(server.get('w:movie:watch_along').revision,2);
+});
