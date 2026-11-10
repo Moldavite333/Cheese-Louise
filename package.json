@@ -14,7 +14,8 @@
     "test:mixology-listener-types-browser": "node scripts/mixology-listener-types-browser-smoke.mjs",
     "test:mixology-listener-photos-browser": "node scripts/mixology-listener-photos-browser-smoke.mjs",
     "test:mixology-listener-handoff-browser": "node scripts/mixology-listener-handoff-browser-smoke.mjs",
-    "test:mixology-trends-browser": "node scripts/mixology-trends-browser-smoke.mjs"
+    "test:mixology-trends-browser": "node scripts/mixology-trends-browser-smoke.mjs",
+    "test:mixology-movie-browser": "node scripts/mixology-movie-browser-smoke.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",

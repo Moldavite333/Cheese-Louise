@@ -45,6 +45,8 @@ jobs:
         run: node scripts/mixology-accessibility-browser-smoke.mjs
       - name: Check private listener intake and host moderation
         run: node scripts/mixology-submissions-browser-smoke.mjs
+      - name: Check automatic movie-based recommendations and canonical reuse
+        run: node scripts/mixology-movie-browser-smoke.mjs
       - name: Check research and reviewed bartender proposals with a fake provider
         run: node scripts/mixology-stage2-browser-smoke.mjs
       - name: Check the assembled HQ interface using mocked authentication and data
