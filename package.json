@@ -1,0 +1,25 @@
+{
+  "name": "cheese-louise-hq",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:mixology": "node --test tests/mixology*.test.mjs",
+    "test:mixology-browser": "node scripts/mixology-browser-smoke.mjs",
+    "test:mixology-stage2-browser": "node scripts/mixology-stage2-browser-smoke.mjs",
+    "test:mixology-production-browser": "node scripts/mixology-production-browser-smoke.mjs",
+    "test:mixology-media-browser": "node scripts/mixology-media-browser-smoke.mjs",
+    "test:mixology-publication-browser": "node scripts/mixology-publication-browser-smoke.mjs",
+    "test:mixology-submissions-browser": "node scripts/mixology-submissions-browser-smoke.mjs",
+    "test:mixology-accessibility-browser": "node scripts/mixology-accessibility-browser-smoke.mjs",
+    "test:mixology-listener-types-browser": "node scripts/mixology-listener-types-browser-smoke.mjs",
+    "test:mixology-listener-photos-browser": "node scripts/mixology-listener-photos-browser-smoke.mjs",
+    "test:mixology-listener-handoff-browser": "node scripts/mixology-listener-handoff-browser-smoke.mjs",
+    "test:mixology-trends-browser": "node scripts/mixology-trends-browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "jpeg-js": "0.4.4",
+    "playwright": "1.56.1",
+    "supabase": "3.1.0"
+  }
+}

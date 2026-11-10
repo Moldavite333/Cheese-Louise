@@ -1,0 +1,558 @@
+# CHEESE LOUISE HQ — MIXOLOGY LAB 2.0
+## Independent Architecture, UX, Data Intelligence & Visualization Review
+
+**Review type:** Independent critical review and optimization  
+**Input:** Approved Mixology Lab 2.0 Master Implementation Instructions, Version 1.0  
+**Authorization:** Read-only inspection, analysis, and recommendations ONLY  
+**Implementation status:** No code changes authorized
+
+---
+
+## PRIMARY DIRECTIVE
+
+Act as a skeptical senior software architect, UX designer, product strategist, data engineer, and cocktail-development systems reviewer.
+
+Your job is NOT to validate the existing blueprint automatically.
+
+Your job is to **find everything that could be simplified, improved, consolidated, better organized, better visualized, or made more intelligent before implementation begins.**
+
+Treat the approved blueprint as the product requirements baseline, not as a technically perfect design.
+
+Challenge architectural assumptions, unnecessary features, redundant operations, awkward interfaces, weak data models, excessive user input, insufficient learning mechanisms, and missed opportunities to reuse existing HQ capabilities.
+
+Do not add complexity merely because it is interesting.
+
+The best solution should be sophisticated underneath and extremely easy for Nick and Jenny to use.
+
+**Do not modify code, create files, deploy changes, or begin implementation.**
+
+---
+
+# REVIEW 1 — CRITICALLY EXAMINE THE ENTIRE HANDOFF
+
+Read the approved master blueprint and all 20 final decisions.
+
+Independently assess:
+
+1. What is overengineered?
+2. What information is collected unnecessarily?
+3. What information is missing?
+4. Which features overlap or duplicate functionality?
+5. Which screens or workflows could be consolidated?
+6. Which operations could happen automatically without sacrificing control?
+7. Which features should be deferred?
+8. Which requirements are ambiguous or conflict with the existing architecture?
+9. What could become expensive or unreliable as usage grows?
+10. What have we failed to consider?
+
+Identify the ten most important improvements, ranked by actual practical value.
+
+For each finding, provide:
+
+- Current problem or limitation.
+- Evidence from the blueprint or repository.
+- Recommended improvement.
+- Expected workflow benefit.
+- Technical tradeoffs.
+- Risks and required decisions.
+
+Do not change an approved product decision without identifying it as a proposed change requiring user approval.
+
+Respect the final corrected choices: Q3=C, Q18=B, Q19=C.
+
+---
+
+# REVIEW 2 — STREAMLINE THE COMPLETE USER EXPERIENCE
+
+Inspect the actual HQ interface and identify existing reusable components.
+
+Compare the current workflow with the proposed Mixology experience.
+
+Evaluate the following user journeys:
+
+**Journey A:** Open an existing movie and develop its first cocktail.
+
+**Journey B:** Begin with an independent cocktail idea, without selecting a movie.
+
+**Journey C:** Return to a recipe after several days and continue development.
+
+**Journey D:** Compare two tested versions and restore the preferred one.
+
+**Journey E:** Nick and Jenny provide different tasting feedback.
+
+**Journey F:** Approve the final drink and prepare the episode segment.
+
+**Journey G:** Publish the recipe and prepare promotional material.
+
+**Journey H:** Find an old cocktail, reuse a successful technique, and make a distinct new recipe.
+
+For every journey, evaluate:
+
+- Navigation complexity.
+- Number of necessary decisions.
+- Manual data entry.
+- Duplicate work.
+- Interruptions.
+- Information visibility.
+- Editing and recovery.
+- Mobile usability.
+- Opportunities for simplification.
+
+Measure existing interaction counts where the repository or application permits reliable inspection. Otherwise label estimates clearly as design estimates.
+
+Propose a streamlined workflow with the fewest reasonable steps.
+
+**Avoid mandatory wizard-style interactions.**
+
+The user should be able to jump directly to the information or action they need.
+
+Do not hide essential editing controls behind complicated conversational commands.
+
+---
+
+# REVIEW 3 — BUILD A BETTER TASTE-LEARNING SYSTEM
+
+This is a major improvement opportunity.
+
+The system must learn more than whether a recipe was approved.
+
+It should develop an increasingly useful understanding of Nick's preferences, Jenny's preferences, and their shared cocktail tastes.
+
+However, collecting that information must remain quick, natural, and optional.
+
+## 3.1 Preference signals
+
+Design a lightweight data collection approach for:
+
+- Spirits and cocktail families enjoyed.
+- Ingredients regularly preferred or avoided.
+- Sweetness preference.
+- Acidity and tartness preference.
+- Bitterness preference.
+- Spirit-forward versus lighter drinks.
+- Texture and mouthfeel.
+- Seasonal ingredient preferences.
+- Preparation complexity tolerance.
+- Ingredient substitutions.
+- Repeatability: Would they make this again?
+- Flavor combinations they particularly enjoy.
+- Changes made after tasting.
+- Whether a revised version improved the drink.
+
+Do not require every field to be answered.
+
+## 3.2 Prioritize natural feedback
+
+Support conversational feedback such as:
+
+"Too sweet for me."
+
+"Jenny likes this one, but I think the cranberry needs to come through more."
+
+"The club soda version was better than the Sprite version."
+
+"I'd definitely make this one again."
+
+The system should preserve the original comments and extract possible preference signals.
+
+Do not turn speculative interpretations into permanent preferences without appropriate confirmation.
+
+Provide a simple way for either host to correct an inaccurate preference.
+
+## 3.3 Evidence hierarchy
+
+Treat feedback signals differently according to reliability.
+
+Proposed hierarchy:
+
+1. Actual tasting and explicit repeat-worthiness feedback.
+2. Structured feedback on a tested recipe.
+3. Explicit statements of preferences.
+4. Repeated intentional ingredient changes.
+5. Previously approved recipes.
+6. Untested saved concepts.
+
+Trends, popularity, and online engagement must never be treated as evidence that Nick or Jenny enjoyed a cocktail.
+
+Do not infer long-term preferences from one isolated tasting.
+
+## 3.4 Independent and shared preferences
+
+Maintain distinct taste histories for Nick and Jenny.
+
+Do not simply average their preferences into one indistinct score.
+
+Identify meaningful areas of agreement and disagreement where supported by sufficient evidence.
+
+The system should be able to recommend an alternative that accommodates both people, or explain why two recipe variations might work better.
+
+## 3.5 Explainable recommendations
+
+When the system makes a recommendation based on taste history, it should be capable of explaining why.
+
+For example:
+
+"Based on your feedback on three previously tested drinks, you generally preferred the less-sweet variations."
+
+Only make such claims when the underlying records support them.
+
+Show supporting recipes or notes on demand.
+
+Consider recency, sample size, conflicting feedback, and uncertainty.
+
+Provide ways to view, correct, and delete learned preferences.
+
+Do not create opaque personality scores or meaningless numerical flavor rankings.
+
+## 3.6 Minimal interaction requirement
+
+Propose a tasting interaction that can be completed in seconds.
+
+For example:
+
+- Would make again: Yes / Maybe / No.
+- Quick feedback: Too sweet / Too tart / Too bitter / Too strong / Just right.
+- Optional personal comments.
+
+These are examples, not mandatory interface requirements.
+
+The system must still support more detailed analysis for users who want it.
+
+**Deliverable:** A proposed preference-learning data model, feedback workflow, evidence rules, and example recommendations.
+
+---
+
+# REVIEW 4 — RECONSIDER HOW DATA IS VISUALIZED
+
+Determine which collected information would be more useful as a graphic, comparison, timeline, or visual summary.
+
+Do not create graphs merely for decoration.
+
+Visualizations should reduce interpretation time or reveal information that is difficult to identify in plain text.
+
+Evaluate at least the following concepts.
+
+## 4.1 Individual and shared taste profiles
+
+Investigate side-by-side visual comparisons of Nick's and Jenny's taste preferences.
+
+Potential dimensions include:
+
+- Sweetness.
+- Acidity.
+- Bitterness.
+- Cocktail strength.
+- Flavor families.
+- Preferred spirits.
+- Preferred preparation effort.
+
+Use clear labels, supporting sample sizes, and distinctions between measured feedback and inferred tendencies.
+
+Do not imply statistical certainty where insufficient data exists.
+
+## 4.2 Cocktail flavor profiles
+
+Investigate a compact flavor visualization for individual recipes.
+
+Possible methods:
+
+- Horizontal flavor bars.
+- Ingredient/flavor tags.
+- Small flavor maps.
+- Simple comparison charts.
+
+Evaluate whether a radar chart genuinely improves comprehension or merely looks attractive.
+
+Clearly distinguish estimated flavor characteristics from actual tasting feedback.
+
+## 4.3 Recipe version comparison
+
+Design an intuitive visual comparison showing:
+
+- Added ingredients.
+- Removed ingredients.
+- Changed quantities.
+- Modified preparation.
+- Tasting improvements or regressions.
+- Different feedback from each host.
+
+Prioritize instantly recognizing what changed.
+
+## 4.4 Cocktail library intelligence
+
+Investigate useful overviews such as:
+
+- Cocktail families used across episodes.
+- Ingredient repetition.
+- Spirit distribution.
+- Seasonal combinations.
+- Favorite flavor pairings.
+- Tested versus untested recipes.
+
+Design these to improve future recipe suggestions.
+
+Do not build an elaborate statistics dashboard merely to display low-volume data.
+
+## 4.5 Production preparation
+
+Investigate a compact timeline showing:
+
+- Shopping needs.
+- Make-ahead work.
+- Waiting time.
+- Day-of assembly.
+- Recording readiness.
+
+Display this inside the existing episode workflow.
+
+## 4.6 Research and originality
+
+Consider a compact comparison view of existing cocktails and the Cheese Louise variation.
+
+Emphasize meaningful recipe differences, sources, and research confidence.
+
+Do not present arbitrary originality percentages as factual measurements.
+
+## 4.7 Visualization requirements
+
+For each recommended visualization, specify:
+
+- Information displayed.
+- Source of the data.
+- Whether values are observed, inferred, or estimated.
+- Minimum data needed to make the display useful.
+- How uncertainty or missing information is represented.
+- Appropriate chart or visual structure.
+- Desktop and mobile presentation.
+- Accessibility and text alternatives.
+- Whether it belongs in the main workspace or a contextual panel.
+
+**Deliverable:** A ranked visualization plan and annotated low-fidelity mockups for the most useful views.
+
+---
+
+# REVIEW 5 — IMPROVE INFORMATION ARCHITECTURE
+
+Reassess the proposed all-in-one workspace.
+
+The user should be able to access:
+
+- Current cocktail.
+- Research and sources.
+- Collaborative bartender.
+- Structured recipe.
+- Tasting and revisions.
+- Preparation.
+- Recipe library.
+- Publication materials.
+
+Without moving among endless screens, duplicating data, or keeping many panels open.
+
+Evaluate whether contextual sections, expandable panels, inline comparisons, or a compact navigation structure would work best.
+
+Produce a proposed desktop and mobile layout.
+
+Avoid burying important controls.
+
+Keep the current recipe visible during development when practical.
+
+Ensure visualizations appear in context rather than automatically creating a dedicated analytics area.
+
+Minimize repetitive confirmation dialogs without reducing protection against destructive changes.
+
+---
+
+# REVIEW 6 — IMPROVE THE UNDERLYING DATA MODEL
+
+Critically examine the proposed recipe entities and relationships.
+
+Identify opportunities to simplify the schema while preserving reliable versioning and extensibility.
+
+Pay attention to:
+
+- Canonical recipe records.
+- Alcoholic and nonalcoholic counterparts.
+- Ingredient normalization and measurement units.
+- Recipe components such as syrups or macerations.
+- Tasting feedback tied to specific versions.
+- Actual tested substitutions versus hypothetical suggestions.
+- Individual and shared taste preferences.
+- Research findings and provenance.
+- Movie and episode relationships.
+- Recipe duplication detection.
+- Approval and publication states.
+- Uploaded photographs.
+- Listener submissions.
+- Source-of-truth ownership.
+
+Ensure ingredient comparisons recognize common alternative names and equivalent units without incorrectly equating different products.
+
+Design reliable data provenance so the system can distinguish:
+
+- Recipe suggestions.
+- AI-generated estimates.
+- External research.
+- User-entered observations.
+- Actual tasted versions.
+- Approved recipes.
+- Published content.
+
+Determine what needs to be stored permanently versus what can be computed from existing records.
+
+Do not duplicate information unnecessarily.
+
+Avoid collecting unrelated personal data or retaining information without a clear product purpose.
+
+**Deliverable:** Recommended logical data model, relationship diagram, data flow, and data retention considerations.
+
+---
+
+# REVIEW 7 — CHECK LEARNING QUALITY, NOT JUST DATA COLLECTION
+
+Evaluate whether the proposed system could genuinely improve recommendations over time.
+
+Develop test scenarios including:
+
+**Scenario 1:** Nick repeatedly prefers less-sweet cocktails, while Jenny prefers sweeter versions.
+
+**Scenario 2:** Both hosts enjoy a cranberry cocktail but dislike its maple-heavy revision.
+
+**Scenario 3:** A cocktail receives excellent taste feedback but takes too much preparation time.
+
+**Scenario 4:** A frequently suggested ingredient appears in many rejected recipes.
+
+**Scenario 5:** A new cocktail is similar to several previously approved recipes.
+
+**Scenario 6:** Only one prior tasting exists for a particular cocktail family.
+
+For each scenario, describe what the system should learn, what it should not infer, and how future suggestions should change.
+
+Do not recommend opaque machine-learning infrastructure if simpler structured preference rules and well-designed retrieval can achieve the required outcome.
+
+Prefer the least complex reliable approach.
+
+Include tests for incorrect inferences, sparse data, contradictory evidence, and preference corrections.
+
+---
+
+# REVIEW 8 — CHALLENGE THE DEVELOPMENT PHASES
+
+Reevaluate the four proposed implementation phases.
+
+Determine whether:
+
+- Dependencies are in the right order.
+- Data collection needs to be introduced earlier.
+- Preference learning should be developed alongside tasting.
+- Visualizations should be introduced incrementally.
+- Any proposed components can be deferred.
+- Any features must be completed before other work begins.
+- The pilot cocktail tests enough of the real functionality.
+- The work can be divided into smaller, reviewable increments.
+
+Recommend a revised development sequence only when it offers a meaningful advantage.
+
+Preserve all approved product capabilities unless an explicit scope change is proposed.
+
+Maintain separate authorization gates.
+
+---
+
+# REVIEW 9 — DEFINE MEASURABLE ACCEPTANCE CRITERIA
+
+Propose practical usability and data-quality acceptance tests.
+
+Include:
+
+- Starting a new cocktail.
+- Resuming a draft.
+- Editing a structured recipe.
+- Comparing versions.
+- Capturing a tasting result.
+- Interpreting feedback accurately.
+- Updating a taste preference.
+- Explaining a recommendation.
+- Displaying useful flavor comparisons.
+- Handling insufficient data.
+- Preventing repetitive cocktail suggestions.
+- Linking the same recipe to movie and episode workspaces.
+- Recovering from external research failures.
+- Using the system comfortably on mobile.
+
+Where possible, compare the existing workflow against a proposed streamlined workflow.
+
+Do not invent measured performance numbers or claim a design improvement was validated without testing.
+
+Clearly separate targets from observed results.
+
+---
+
+# REVIEW 10 — REQUIRED FINAL REPORT
+
+Return the following deliverables in this order.
+
+## A. Executive assessment
+
+What is strong about the blueprint, what is unnecessarily complicated, and what is missing?
+
+## B. Top 10 recommended improvements
+
+Rank by expected benefit, complexity, and implementation risk.
+
+## C. Simplification plan
+
+List features to retain, merge, defer, or remove.
+
+Explain how the proposed design reduces user effort.
+
+## D. Redesigned workflow
+
+Provide current-versus-proposed flows for the principal tasks.
+
+## E. Visual information design
+
+Provide annotated desktop and mobile wireframes and specific recommendations for contextual charts and graphics.
+
+## F. Taste-learning architecture
+
+Describe data capture, evidence quality, separate host preferences, explainable recommendations, and feedback loops.
+
+## G. Data-model refinements
+
+Provide proposed entity relationships and provenance rules.
+
+## H. Revised staged implementation plan
+
+Present the preferred build order and dependencies.
+
+## I. Updated acceptance criteria
+
+Include functional, usability, learning-quality, security, and regression tests.
+
+## J. Decisions requiring approval
+
+Identify only genuine product decisions requiring user input.
+
+For every proposed change that affects an approved requirement, clearly mark it as an OPTIONAL CHANGE REQUIRING APPROVAL.
+
+---
+
+# FINAL INSTRUCTIONS
+
+Do not modify the repository.
+
+Do not apply migrations.
+
+Do not generate replacement implementation files.
+
+Do not change the approved product scope automatically.
+
+Do not deploy or publish anything.
+
+Do not pretend that proposed designs or preference-learning mechanisms have been tested.
+
+Do not approve your own recommendations.
+
+**Perform an independent critical review, present the improved design with evidence and tradeoffs, and STOP for user review.**
+
+The goal is a streamlined, intelligent, visually useful Mixology Lab that produces better cocktails over time with less work for Nick and Jenny—not a larger application full of unnecessary controls.
