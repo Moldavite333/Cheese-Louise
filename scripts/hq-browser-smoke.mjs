@@ -97,6 +97,7 @@ try{
    assert.ok((await agenda.innerText()).includes('very long production checklist'),'Agenda preserves complete event names');
   }
   if(route==='recording'){
+   await page.evaluate(()=>clProduction.view('prepare'));
    await page.evaluate(()=>{
     const source={id:'fixture-source',title:'Fixture official synopsis',url:'https://network.example/movie',text:'The family orchard needs saving before the harvest festival.',provenance:'Synthetic browser fixture'};
     window.__fixtureResearch=[{movie_id:'fixture-movie',workspace_id:workspace.id,status:'ready',report:{schema_version:1,movie_id:'fixture-movie',identity:{title:'Autumn at the Orchard',year:'2025'},generated_at:'2026-11-02T00:00:00.000Z',coverage:'limited',mode:'Source-supported plot outline',premise:'The family orchard needs saving before the harvest festival.',story_beats:[{id:'orchard-stakes',title:'Orchard rescue deadline',summary:'The family orchard needs saving before the harvest festival.',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],characters:[{name:'The orchard owner',actor:'',motivation:'Save the family business.',discussion_angle:'What practical options are available?',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],discussion:[{title:'The festival economics',observation:'The orchard needs saving.',question:'How much revenue could one festival realistically raise?',basis:'interpretation',source_ids:['fixture-source'],evidence_anchor:'The family orchard needs saving'}],trope_candidates:[],research_gaps:['Check the actual resolution while watching.'],warnings:['Synthetic research draft.'],sources:[source]}}];
@@ -137,7 +138,7 @@ try{
    await page.evaluate(()=>clProduction.expand(2));
    assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Browsing recording segments preserves the selected movie scene');
    await page.evaluate(()=>clProduction.view('edit'));
-   await page.evaluate(()=>clProduction.view('record'));
+   await page.evaluate(()=>clProduction.view('prepare'));
    assert.equal(await page.evaluate(()=>clAutomaticTimeline.selected().scene_id),currentScene,'Returning from the editing section restores the selected scene');
    await page.waitForFunction(()=>{const rail=document.querySelector('.cl-story-track'),card=rail?.querySelector('[aria-current="step"]');if(!card)return false;const a=card.getBoundingClientRect(),b=rail.getBoundingClientRect();return a.left>=b.left-4&&a.right<=b.right+4;});
    const track=await timeline.locator('.cl-story-track').evaluate(el=>({width:el.clientWidth,content:el.scrollWidth}));
@@ -197,6 +198,30 @@ try{
    assert.ok(await page.locator('.hq-topbar').evaluate(el=>el.getBoundingClientRect().height<100),'Recording gets a compact header');
    await page.locator('.clp-sticky-actions').scrollIntoViewIfNeeded();
    if(width<=900)assert.ok(await page.evaluate(()=>document.querySelector('.clp-sticky-actions').getBoundingClientRect().bottom<=document.querySelector('.hq-mobile-nav').getBoundingClientRect().top+1),'Recording actions clear mobile navigation');
+   await page.evaluate(()=>clProduction.view('record'));
+   assert.equal(await page.locator('.cl-storyboard,.clp-marker,.clp-segment-map').count(),0,'Live Record is a reading desk without scenes or markers');
+   assert.ok(await page.getByRole('heading',{name:'Nick’s notes',exact:true}).isVisible());
+   assert.ok(!(await page.locator('.cldesk-notes').innerText()).includes('Jenny’s separate scene note'),'Other host’s scene notes stay out of the desk');
+   assert.ok(await page.locator('.cldesk-bingo .clp-bingo-board').isVisible(),'Own Bingo card stays available');
+   assert.equal(await page.locator('.cldesk-bingo .clp-bingo-cell.is-bingo').count(),0,'Broken line stays broken on the desk');
+   await page.getByRole('button',{name:'+ Note',exact:true}).click();
+   const personal=page.locator('.cldesk-note textarea').last();await personal.fill('Nick desk note survives timer and host changes.');
+   await page.getByRole('checkbox',{name:/Done:/}).last().check();
+   assert.ok(await page.locator('.cldesk-note').last().evaluate(el=>el.classList.contains('is-done')),'Done dims the note');
+   await page.locator('.cldesk-timer').getByRole('button',{name:'Start',exact:true}).click();
+   await page.waitForFunction(()=>document.getElementById('cldesk-time').textContent!=='00:00:00');
+   await page.locator('.cldesk-timer').getByRole('button',{name:'Pause',exact:true}).click();
+   await page.locator('.cldesk-host').getByRole('button',{name:'Jenny',exact:true}).click();
+   assert.ok(await page.getByRole('heading',{name:'Jenny’s notes',exact:true}).isVisible());
+   assert.equal(await page.locator('.cldesk-note textarea').filter({hasText:'Nick desk note'}).count(),0,'Nick’s new note stays private to his workspace view');
+   assert.equal(await page.locator('.cldesk-note input:checked').count(),0,'Done is independent for each host');
+   await page.locator('.cldesk-host').getByRole('button',{name:'Nick',exact:true}).click();
+   assert.equal(await page.locator('.cldesk-note textarea').last().inputValue(),'Nick desk note survives timer and host changes.');
+   assert.equal(await page.locator('.cldesk-note input:checked').count(),1);
+   await page.getByRole('button',{name:'Larger notes',exact:true}).click();
+   assert.ok(await page.locator('.cldesk-note textarea').last().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=22));
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'New reading desk fits '+width);
+   await page.screenshot({path:'artifacts/hq-live-desk-'+width+'.png',fullPage:true});
   }
   await page.evaluate(()=>window.scrollTo(0,0));
   if(['movies','ourmovies','watchalong','recording','schedule'].includes(route))await page.screenshot({path:'artifacts/hq-layout-'+route+'-'+width+'.png',fullPage:true});

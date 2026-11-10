@@ -66,14 +66,15 @@
   const button=(label,handler,extra='')=>'<button type="button" '+extra+' onclick="window.clProduction.'+handler+'">'+label+'</button>';
   function shellHtml(){
     const d=read(),m=currentMovie();
+    if(view==='record'&&window.clRecordingDesk&&m)return '<main class="clp clp-live" id="clp-recording-root"><section id="clp-body">'+recordHtml()+'</section></main>';
     const sync=m&&window.clProductionSync?.status('recording',m.id);
     const syncMessage=sync==='conflict'?'Another device changed this recording. Your edits are held on this device; export the editing sheet before changing devices.':sync==='retry'?'Recording saved on this device; shared save needs retry.':sync==='saving'?'Saving recording to shared workspace…':sync==='saved'?'Recording saved to shared workspace.':'Recording syncs when you save.';
     return '<main class="clp"><header class="clp-header"><div><span class="clp-eyebrow">CHEESE LOUISE HQ</span><h1>Recording & Production</h1><p>Your notes and talk order, ready for the mic.</p><p role="status">'+escapeHtml(syncMessage)+'</p>'+(sync==='retry'?button('Retry recording sync',`retrySync('${escapeHtml(m.id)}')`):'')+'</div></header>'
       +'<label class="clp-select">Movie <select onchange="clProduction.movie(this.value)">'+movieList().map(x=>'<option value="'+escapeHtml(x.id)+'" '+(m?.id===x.id?'selected':'')+'>'+escapeHtml(x.title||'Untitled')+'</option>').join('')+'</select></label>'
-      +'<div class="clp-tabs">'+[['record','Record'],['edit','Edit'],['socials','Socials']].map(([id,name])=>'<button class="'+(view===id?'selected':'')+'" onclick="clProduction.view(\''+id+'\')">'+name+'</button>').join('')+'</div>'
+      +'<div class="clp-tabs">'+[['record','Record'],['prepare','Prep'],['edit','Edit'],['socials','Socials']].map(([id,name])=>'<button class="'+(view===id?'selected':'')+'" onclick="clProduction.view(\''+id+'\')">'+name+'</button>').join('')+'</div>'
       +'<section id="clp-body">'+(m?bodyHtml(): '<p>Add a movie in HQ to begin.</p>')+'</section></main>';
   }
-  function bodyHtml(){return view==='record'?recordHtml():view==='edit'?editHtml():socialHtml();}
+  function bodyHtml(){return view==='record'?recordHtml():view==='prepare'?legacyRecordHtml():view==='edit'?editHtml():socialHtml();}
   let expandedSegment=null;
   function movieCredits(movie){
     let meta=movie?.source_metadata||{};
@@ -181,6 +182,10 @@
       '<details class="clp-credit-reference"><summary>Movie credits & research reference</summary>'+movieCredits(currentMovie())+'</details></section>';
   }
   function recordHtml(){
+    if(!window.clRecordingDesk)return legacyRecordHtml();
+    const movie=currentMovie();return window.clRecordingDesk.html({movie,movies:movieList(),workspace:workspaceId(),session:getSession(),redraw:draw,notes:rundown(movie).notes,legacy:movieTimeline().items,traits:state.traits||[]});
+  }
+  function legacyRecordHtml(){
     const s=getSession(),i=Math.min(s.segment,segments.length-1),total=sessionNow(s),segTime=total-startOfSegment(s);
     const focused=expandedSegment!==null&&expandedSegment>=0?expandedSegment:i;
     const rows=segments.map((seg,n)=>{
@@ -221,7 +226,7 @@
     followWatchMovie(){const id=watchMovieId();if(!id||!movieList().some(m=>m.id===id)||getSession()?.runningSince)return;const d=read();d.movieId=id;write(d);expandedSegment=null;},
     openWatchAlong(){const movie=currentMovie();if(!movie)return;try{localStorage.setItem('cheeseLouise:watchAlong:'+workspaceId()+':movie',movie.id)}catch{}if(window.hqWorkspace?.open)window.hqWorkspace.open('watchalong');else{currentTab='watchalong';render();}},
     expand(i){expandedSegment=expandedSegment===i?-1:i;draw();},
-    view(v){view=v;draw();document.querySelectorAll('.clp-tabs button').forEach((b,i)=>b.classList.toggle('selected',['record','edit','socials'][i]===v));},
+    view(v){if(!['record','prepare','edit','socials'].includes(v))return;view=v;render();},
     movie(id){if(!movieList().some(m=>m.id===id))return;const previous=getSession();if(previous){if(previous.runningSince){previous.elapsedMs=sessionNow(previous);previous.runningSince=null;}save(previous);}const d=read();d.movieId=id;write(d);expandedSegment=null;render();},
     start(){update(s=>{if(!s.finished&&!s.runningSince)s.runningSince=Date.now();});},
     pause(){update(s=>{if(s.runningSince){s.elapsedMs=sessionNow(s);s.runningSince=null;}});},
