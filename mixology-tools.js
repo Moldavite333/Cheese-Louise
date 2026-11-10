@@ -31,7 +31,7 @@
   }
   const message=(role,text,c)=>({id:C.id(),role,text:text.slice(0,3000),actorId:c.actorId,createdAt:new Date().toISOString()});
   async function generate(){
-    const s=get(),c=current();if(!s?.ready||s.busy)return;s.busy=true;s.error='';repaint(s);
+    const s=get(),c=current();if(!s?.ready||s.busy)return;if(['loading','multiple','unavailable'].includes(c.movieContextStatus)){s.error=c.movieContextStatus==='loading'?'Checking the saved movie connection. Try again in a moment.':'Open this recipe from its intended saved movie before requesting movie-based recommendations. Existing directions and recipes are unchanged.';repaint(s);return;}s.busy=true;s.error='';repaint(s);
     try{await clLoadOnlineCatalog(false);if(!active(s))return;const movie=state.movies.find(m=>m.id===c.movieId)||null,brief=s.store.document.brief;
       const context=movie||{title:'Standalone workshop',summary:brief,season:''};
       const ranked=clSmartOriginalMatches(context).filter(r=>{const nonalcoholic=R.norm(r.cocktail.base_spirit)==='na';return c.variant==='alcohol_free'?nonalcoholic:!nonalcoholic;}).map(r=>({...r,cocktail:{...r.cocktail,diversityFamily:clCocktailDiversityProfile(r.cocktail).family}}));
