@@ -11,7 +11,7 @@
  const local=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return {}}};
  const routes=[
   ['home','Today','Plan'],['movies','Movie Radar','Plan'],['ourmovies','Our Movies','Plan'],['episodes','Episodes','Plan'],['schedule','Calendar','Plan'],
-  ['watchalong','Watch Along','Make'],['recording','Recording','Make'],['marketing','Marketing','Make'],
+  ['watchalong','Watch Along','Make'],['recording','Recording','Make'],['production','Production','Make'],['marketing','Marketing','Make'],
   ['cocktails','Cocktail Bar','Library'],['cheesetray','Cheese Grating','Library'],['traits','Trope Library','Library'],['bingo','Bingo Builder','Library'],
   ['producer','Producer Desk','Resources'],['checklist','Podcast 101','Resources'],['lab','Show Lab','Resources']
  ];
@@ -85,7 +85,7 @@
  tabs=nav;window.tabs=tabs;topbar=top;window.topbar=topbar;home=dashboard;window.home=home;
  function shouldDeferRefresh(){
   const editing=document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]');
-  if(editing||document.querySelector('.modal-backdrop')||['recording','watchalong'].includes(currentTab)){pendingRefresh=true;const button=document.getElementById('hq-refresh');if(button)button.hidden=false;return true}return false;
+  if(editing||document.querySelector('.modal-backdrop')||['recording','watchalong','production'].includes(currentTab)){pendingRefresh=true;const button=document.getElementById('hq-refresh');if(button)button.hidden=false;return true}return false;
  }
  async function refresh(){if(dirtyModal()&&!confirm('Refresh this editor? Unsaved changes will be lost.'))return;try{await loadAll();pendingRefresh=false;render()}catch(error){loadError(error)}}
  function loadError(){pendingRefresh=true;const button=document.getElementById('hq-refresh');if(button){button.hidden=false;button.textContent='Shared data could not refresh. Your current view is kept. Tap to retry.'}}

@@ -292,7 +292,7 @@ function modal(){
 function render(){
   if(!session) return authScreen();
   if(!workspace) return onboardingScreen();
-  const page={home,movies,episodes,schedule,ideas,marketing:window.clMarketing?.page}[currentTab]();
+  const page={home,movies,episodes,schedule,ideas,marketing:window.clMarketing?.page,production:window.clPublishing?.page}[currentTab]();
   shell(`<div class="app-shell">${topbar()}${page}</div>${tabs()}${modal()}`);
 }
 
