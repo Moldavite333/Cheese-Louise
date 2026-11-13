@@ -1,0 +1,33 @@
+.marketing-context select,
+.marketing-draft textarea {
+  display: block;
+  width: 100%;
+  margin-top: .45rem;
+  padding: .65rem .8rem;
+  color: inherit;
+  background: var(--bg, #111217);
+  border: 1px solid var(--line, #54545e);
+  border-radius: .55rem;
+}
+.marketing-context select { max-width: 34rem; }
+.marketing-context label, .marketing-draft label { font-weight: 700; }
+#marketing-status:empty { display: none; }
+.marketing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.marketing-draft { margin: 1rem 0; }
+.marketing-draft textarea { resize: vertical; margin-bottom: .5rem; }
+.marketing-checklist label {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .5rem 0;
+  cursor: pointer;
+}
+.marketing-checklist input { flex: none; }
+@media (max-width: 760px) {
+  .marketing-grid { grid-template-columns: minmax(0, 1fr); }
+}
