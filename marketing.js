@@ -52,7 +52,7 @@
     const episodes = state.episodes;
     const heading = '<section class="section"><h1 class="page-title">Marketing</h1><p class="subtle">Promo copy and release checklist. Edits stay in this browser.</p></section>';
     if (!episodes.length) {
-      return heading + '<section class="section card card-pad"><p>Add an episode to start preparing its release.</p><button class="primary" type="button" onclick="hqWorkspace.open(\'episodes\')">Open Episodes</button></section>';
+      return heading + clWebsiteTraffic.panel() + '<section class="section card card-pad"><p>Add an episode to start preparing its release.</p><button class="primary" type="button" onclick="hqWorkspace.open(\'episodes\')">Open Episodes</button></section>';
     }
 
     const episode = episodes.find(item => item.id === selectedId) || episodes[0];
@@ -62,7 +62,7 @@
     const starter = starterCopy(episode, movie);
     const release = episode.release_date ? 'Release ' + fmtDate(episode.release_date) : 'Release date TBD';
     const done = tasks.filter(([key]) => saved.checks?.[key]).length;
-    return heading + `
+    return heading + clWebsiteTraffic.panel() + `
       <section class="section card card-pad marketing-context">
         <label for="marketing-episode">Episode</label>
         <select id="marketing-episode" onchange="clMarketing.select(this.value)">
