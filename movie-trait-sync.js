@@ -111,6 +111,43 @@
     for(const m of state.movies||[])notify(m.id);
     for(const j of pending.values())if(j.restored){j.restored=false;void drain(j);}
   }
+  let watchRefreshRunning=false;
+  async function refreshOpenWatchMovie(){
+    const wid=workspace?.id;
+    const movieId=document.getElementById('watchTraitBody')?.dataset.movieId;
+    if(document.hidden||!session||!wid||!movieId||watchRefreshRunning)return;
+    const startVersion=version;
+    watchRefreshRunning=true;
+    try{
+      const {data,error}=await db.from('movie_traits').select('trait_id')
+        .eq('workspace_id',wid).eq('movie_id',movieId);
+      if(error)throw error;
+      const m=movie(movieId);
+      if(!m||workspace?.id!==wid||!session)return;
+      const previous=new Set(m.selectedTraitIds||[]);
+      const ids=new Set(data.map(row=>row.trait_id));
+      for(const r of recent.values()){
+        if(r.movieId===movieId&&r.version>startVersion){
+          if(r.desired)ids.add(r.traitId);else ids.delete(r.traitId);
+        }
+      }
+      for(const job of pending.values()){
+        if(job.workspaceId===wid&&job.movieId===movieId){
+          if(job.desired)ids.add(job.traitId);else ids.delete(job.traitId);
+        }
+      }
+      if(ids.size===previous.size&&[...ids].every(id=>previous.has(id)))return;
+      m.selectedTraitIds=[...ids];
+      score(m);
+      notify(movieId);
+    }catch(error){
+      console.warn('Watch Along trait refresh failed',error?.message||error);
+    }finally{watchRefreshRunning=false;}
+  }
+  document.addEventListener('visibilitychange',refreshOpenWatchMovie);
+  window.addEventListener('online',refreshOpenWatchMovie);
+  setInterval(refreshOpenWatchMovie,5000);
+
   const originalLoadAll=loadAll;
   loadAll=async function(...args){const startVersion=version;await originalLoadAll.apply(this,args);reconcile(startVersion);};
   window.loadAll=loadAll;
