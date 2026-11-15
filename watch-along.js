@@ -376,7 +376,7 @@
             <button class="secondary" type="button" onclick="watchAlongShowSelected()">Show checked</button>
             <button class="secondary" type="button" onclick="watchAlongShowAll()">Show all</button>
           </div>
-          <div id="watchTraitBody" class="watch-trait-body">${traitGridHtml(movie, draft)}</div>
+          <div id="watchTraitBody" data-movie-id="${esc(movie.id)}" class="watch-trait-body">${traitGridHtml(movie, draft)}</div>
           ${watchGratingSummaryHtml(draft,'traits')}
         </div>
 
@@ -479,7 +479,11 @@
     const status=window.clMovieTraits?.status(movieId);
     const label=document.querySelector('[data-watch-trait-sync]');if(label&&status)label.textContent=status.text;
     const retry=document.querySelector('[data-watch-trait-retry]');if(retry)retry.hidden=!status?.error;
-    refreshWatchOutline(movie,draft);watchAlongGenerateRundown();
+    refreshWatchOutline(movie,draft);
+    const preview=document.getElementById('watchRundownPreview');
+    if(preview&&document.activeElement!==preview&&!String(draft.rundownText||'').trim()){
+      preview.value=watchRundownText(movie,draft);
+    }
   };
 
   window.watchAlongSaveText = function(field, value) {
