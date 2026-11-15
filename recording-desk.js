@@ -22,6 +22,17 @@
   draft.deletedHostNoteIds=[...new Set([...(draft.deletedHostNoteIds||[]),id])];
   return true;
  }
+ const notebookId=h=>`recording-notebook-${h}`;
+ function notebookText(draft,h){
+  return draft?.hostNotes?.[h]?.find(note=>note.id===notebookId(h))?.text||'';
+ }
+ function updateNotebook(draft,h,text){
+  draft.hostNotes ||= {};
+  const notes=draft.hostNotes[h] ||= [];
+  const notebook=notes.find(note=>note.id===notebookId(h));
+  if(notebook)notebook.text=text;
+  else if(text)notes.push({id:notebookId(h),text});
+ }
  function sceneNotes(){return window.clAutomaticTimeline?.recordingNotes({...context,redraw:context.redraw},host())||[];}
  function elapsed(){const timer=read().timer||{};return Math.max(0,(timer.elapsedMs||0)+(timer.runningSince?Date.now()-timer.runningSince:0));}
  const clock=value=>{const s=Math.floor(value/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');};
@@ -29,25 +40,43 @@
   node.textContent=warning||([type,timeline].includes('conflict')?'A shared edit needs review. Keep your copy open; retry from Prep.':[type,timeline].includes('retry')?'Saved on this device; shared save needs retry.':[type,timeline].includes('saving')?'Saving notes…':'Notes ready · edits save automatically');}
  function fitNotes(){for(const field of document.querySelectorAll('.cldesk-note textarea,.cldesk-shared textarea')){field.style.height='auto';field.style.height=(field.scrollHeight+4)+'px';}}
  function noteCard(note,index,kind){const id=kind+':'+note.id,done=Boolean(read().done[id]);return `<li class="cldesk-note ${done?'is-done':''}" data-note-key="${esc(id)}"><div class="cldesk-note-top"><label><input type="checkbox" aria-label="Done: ${esc(note.title||'Note '+(index+1))}" ${done?'checked':''} onchange="${args('done',id).replace(/\)$/,',this.checked)')}"><span>${esc(note.title||'Note '+(index+1))}</span></label><button type="button" aria-label="Delete ${esc(note.title||'note '+(index+1))}" onclick="${args('remove',kind,note.id)}">Delete</button></div><textarea id="cldesk-note-${esc(note.id)}" aria-label="${esc(label(host())+' note '+(index+1))}" rows="${Math.max(2,Math.min(12,Math.ceil(note.text.length/70)))}" oninput="${args('edit',kind,note.id).replace(/\)$/,',this.value)')}">${esc(note.text)}</textarea></li>`;}
- function notesHtml(){const scene=sceneNotes(),own=personal(),all=[...scene.map(n=>({...n,kind:'scene'})),...own.map(n=>({...n,kind:'personal'}))],count=all.filter(n=>read().done[n.kind+':'+n.id]).length;
-  const draft=watchDraft(),shared=String(draft.notes||context.notes||'').trim(),outline=(draft.outlineItems||[]).filter(n=>n.type==='note'&&String(n.text||'').trim());
-  return `<section class="cldesk-notes" aria-labelledby="cldesk-notes-title" style="--desk-note-size:${Number(read().size)||20}px"><header class="cldesk-section-head"><div><h2 id="cldesk-notes-title">Recording notes</h2></div><div class="cldesk-note-tools"><button type="button" aria-label="Smaller notes" onclick="clRecordingDesk.size(-2)">A−</button><button type="button" aria-label="Larger notes" onclick="clRecordingDesk.size(2)">A+</button><button type="button" onclick="clRecordingDesk.add()">+ Note</button></div></header><div class="cldesk-note-progress"><span>${count} / ${all.length} discussed</span><progress value="${count}" max="${all.length||1}" aria-label="Notes discussed"></progress></div><div class="cldesk-note-scroll"><ol class="cldesk-note-list">${all.map((n,i)=>noteCard(n,i,n.kind)).join('')||'<li class="cldesk-empty"><p>No notes for this host yet.</p></li>'}</ol>${shared||outline.length?`<section class="cldesk-shared"><h3>Shared Watch Along notes</h3><textarea id="cldesk-shared" aria-label="Shared Watch Along notes" rows="${Math.min(18,Math.max(4,shared.split('\n').length+2))}" oninput="clRecordingDesk.editShared(this.value)">${esc(shared)}</textarea>${outline.length?'<details><summary>Shared talk order</summary><ol>'+outline.map(n=>'<li>'+esc(n.text)+'</li>').join('')+'</ol></details>':''}</section>`:''}</div><p id="cldesk-status" role="status" class="cldesk-status">${esc(warning||'Notes ready · edits save automatically')}</p></section>`;}
+ function notesHtml(){
+  const h=host(),draft=watchDraft(),previous=[
+   ...sceneNotes().map(note=>({...note,kind:'scene'})),
+   ...personal().filter(note=>note.id!==notebookId(h)).map(note=>({...note,kind:'personal'})),
+  ];
+  const shared=String(draft.notes||context.notes||'').trim();
+  const outline=(draft.outlineItems||[]).filter(n=>n.type==='note'&&String(n.text||'').trim());
+  return `<section class="cldesk-notes" aria-labelledby="cldesk-notes-title" style="--desk-note-size:${Number(read().size)||20}px">
+  <header class="cldesk-section-head"><div><h2 id="cldesk-notes-title">${label(h)}’s recording notes</h2></div><div class="cldesk-note-tools"><button type="button" aria-label="Smaller notes" onclick="clRecordingDesk.size(-2)">A−</button><button type="button" aria-label="Larger notes" onclick="clRecordingDesk.size(2)">A+</button></div></header>
+  <div class="cldesk-note-scroll"><section class="cldesk-shared"><textarea aria-labelledby="cldesk-notes-title" rows="12" style="min-height:12em" placeholder="Type your notes here…" oninput="clRecordingDesk.editNotebook(this.value)">${esc(notebookText(draft,h))}</textarea></section>
+  ${previous.length?`<details data-clp-detail="previous-recording-notes" ontoggle="if(this.open)clRecordingDesk.fitNotes()"><summary>Previous notes (${previous.length})</summary><ol class="cldesk-note-list">${previous.map((note,index)=>noteCard(note,index,note.kind)).join('')}</ol></details>`:''}
+  ${shared||outline.length?`<section class="cldesk-shared"><h3>Shared Watch Along notes</h3><textarea id="cldesk-shared" aria-label="Shared Watch Along notes" rows="${Math.min(18,Math.max(4,shared.split('\n').length+2))}" oninput="clRecordingDesk.editShared(this.value)">${esc(shared)}</textarea>${outline.length?'<details><summary>Shared talk order</summary><ol>'+outline.map(n=>'<li>'+esc(n.text)+'</li>').join('')+'</ol></details>':''}</section>`:''}</div>
+  <p id="cldesk-status" role="status" class="cldesk-status">${esc(warning||'Notes ready · edits save automatically')}</p></section>`;}
  function traitsHtml(){const ids=window.clMovieTraits?.orderedIds(context.movie,watchDraft())||context.movie.selectedTraitIds||[],traits=ids.map(id=>(context.traits||[]).find(t=>t.id===id)).filter(Boolean),total=traits.reduce((sum,t)=>sum+Number(t.points||0),0);
   return `<section class="cldesk-traits" aria-labelledby="cldesk-traits-title"><header class="cldesk-section-head"><div><span class="cldesk-kicker">THE CHEESE GRATING</span><h2 id="cldesk-traits-title">Cheese Traits</h2></div><strong class="cldesk-grating">${total}<small>points</small></strong></header><p class="cldesk-caption">${traits.length} checked traits · separate from Bingo</p><ul class="cldesk-trait-list">${traits.map(t=>'<li><span aria-hidden="true">✓</span><span>'+esc(t.name)+'</span><strong>+'+Number(t.points||0)+'</strong></li>').join('')||'<li>No traits checked yet. Add them in Watch Along.</li>'}</ul></section>`;}
  function html(ctx){context=ctx;globalThis.requestAnimationFrame?.(fitNotes);const timer=read().timer||{},h=host();return `<div class="cldesk"><header class="cldesk-bar"><div class="cldesk-brand"><span class="cldesk-mic" aria-hidden="true">◉</span><div><span class="cldesk-kicker">CHEESE LOUISE · AT THE MIC</span><label class="cldesk-movie"><span class="sr-only">Recording movie</span><select aria-label="Recording movie" onchange="clProduction.movie(this.value)">${ctx.movies.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===ctx.movie.id?'selected':'')+'>'+esc(m.title)+'</option>').join('')}</select></label></div></div><div class="cldesk-host" role="group" aria-label="Your notes"><button type="button" aria-pressed="${h==='nick'}" onclick="clRecordingDesk.switchHost('nick')">Nick</button><button type="button" aria-pressed="${h==='jenny'}" onclick="clRecordingDesk.switchHost('jenny')">Jenny</button></div><div class="cldesk-timer" aria-label="Elapsed timer"><span class="cldesk-timer-dot ${timer.runningSince?'is-running':''}" aria-hidden="true"></span><time id="cldesk-time">${clock(elapsed())}</time><button type="button" onclick="clRecordingDesk.timer('${timer.runningSince?'pause':'start'}')">${timer.runningSince?'Pause':'Start'}</button><button type="button" aria-label="Reset elapsed timer" onclick="clRecordingDesk.timer('reset')">Reset</button></div><div class="cldesk-view-tools"><button type="button" onclick="clProduction.view('prepare')">Prep</button><button type="button" id="cldesk-fullscreen" onclick="clRecordingDesk.fullscreen()">Full screen</button></div></header><div class="cldesk-layout">${notesHtml()}<aside class="cldesk-reference" aria-label="Bingo and Cheese Traits"><section class="cldesk-bingo">${window.clRecordingBingo?window.clRecordingBingo.html(ctx.movie,{host:h}):'<h2>Your Bingo card</h2><p>Loading card…</p>'}</section>${traitsHtml()}</aside></div></div>`;}
  window.clRecordingDesk={html,host,
-  watchPanel(movie){const notes=window.clWatchDrafts?.get(movie.id)?.hostNotes?.[host()]||[];return `<section class="card card-pad"><div class="watch-panel-head"><div> <h2>${label(host())}’s notes</h2></div><label>Host<select aria-label="Watch Along notes host" onchange="clRecordingDesk.watchHost(this.value)"><option value="nick" ${host()==='nick'?'selected':''}>Nick</option><option value="jenny" ${host()==='jenny'?'selected':''}>Jenny</option></select></label></div><p class="subtle">Your own notes appear immediately on your Record desk.</p>${notes.map((n,i)=>'<label>Note '+(i+1)+'<textarea class="watch-textarea" aria-label="Personal watch note '+(i+1)+'" oninput="'+args('watchEdit',movie.id,n.id).replace(/\)$/,',this.value)')+'">'+esc(n.text)+'</textarea></label><button type="button" class="secondary" aria-label="Delete note '+(i+1)+'" onclick="'+args('watchRemove',movie.id,n.id)+'">Delete</button>').join('')}<button type="button" class="secondary" onclick="${args('watchAdd',movie.id)}">+ Note</button></section>`;},
-  watchHost(value){if(!['nick','jenny'].includes(value))return;try{localStorage.setItem(hostKey(),value);render();}catch{alert('Host selection could not be saved on this device.');}},
-  watchAdd(movieId){const draft=window.clWatchDrafts.get(movieId);draft.hostNotes=draft.hostNotes||{};draft.hostNotes[host()]=[...(draft.hostNotes[host()]||[]),{id:crypto.randomUUID(),text:''}];try{window.clWatchDrafts.save(draft);render();}catch{alert('The new note could not be saved. Keep existing notes open.');}},
-  watchRemove(movieId,id){
-   if(!confirm('Delete this note?'))return;
-   const draft=window.clWatchDrafts.get(movieId);
-   if(!draft||!removeHostNote(draft,id))return;
-   try{window.clWatchDrafts.save(draft);render();}catch{alert('The note could not be deleted on this device.');}
+  fitNotes,
+  watchPanel(movie){
+   const h=host(),draft=window.clWatchDrafts?.get(movie.id);
+   return `<section class="card card-pad"><div class="watch-panel-head"><h2>${label(h)}’s recording notes</h2><label>Host<select aria-label="Watch Along notes host" onchange="clRecordingDesk.watchHost(this.value)"><option value="nick" ${h==='nick'?'selected':''}>Nick</option><option value="jenny" ${h==='jenny'?'selected':''}>Jenny</option></select></label></div><textarea class="watch-textarea" aria-label="${label(h)}’s recording notes" oninput="${args('watchEditNotebook',movie.id).replace(/\)$/,',this.value)')}">${esc(notebookText(draft,h))}</textarea></section>`;
   },
-  watchEdit(movieId,id,text){const draft=window.clWatchDrafts.get(movieId),note=draft.hostNotes?.[host()]?.find(n=>n.id===id);if(!note)return;note.text=text;try{window.clWatchDrafts.save(draft);}catch{alert('Your edit could not be saved. Copy the text before closing this page.');}},
+  watchHost(value){if(!['nick','jenny'].includes(value))return;try{localStorage.setItem(hostKey(),value);render();}catch{alert('Host selection could not be saved on this device.');}},
+  watchEditNotebook(movieId,text){
+   const draft=window.clWatchDrafts.get(movieId);
+   if(!draft)return;
+   updateNotebook(draft,host(),text);
+   try{window.clWatchDrafts.save(draft);}catch{alert('Your edit could not be saved. Copy the text before closing this page.');}
+  },
   switchHost(value){if(!['nick','jenny'].includes(value))return;try{localStorage.setItem(hostKey(),value)}catch{warning='Host selection could not be saved on this device.';return}context.redraw();},
-  add(){const draft=watchDraft();draft.hostNotes=draft.hostNotes||{};draft.hostNotes[host()]=[...(draft.hostNotes[host()]||[]),{id:crypto.randomUUID(),text:''}];saveDraft(draft);context.redraw();const list=personal();document.getElementById('cldesk-note-'+list.at(-1)?.id)?.focus();},
+  editNotebook(text){
+   const draft=watchDraft();
+   updateNotebook(draft,host(),text);
+   saveDraft(draft);
+   saveStatus();
+   globalThis.requestAnimationFrame?.(fitNotes);
+  },
   remove(kind,id){
    if(!confirm('Delete this note?'))return;
    if(kind==='scene'){
