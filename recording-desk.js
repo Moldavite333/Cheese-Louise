@@ -24,7 +24,11 @@
  }
  const notebookId=h=>`recording-notebook-${h}`;
  function notebookText(draft,h){
-  return draft?.hostNotes?.[h]?.find(note=>note.id===notebookId(h))?.text||'';
+  const notes=draft?.hostNotes?.[h]||[];
+  const notebook=notes.find(note=>note.id===notebookId(h));
+  if(notebook)return notebook.text;
+  const previous=notes.map(note=>String(note.text||'').trim()).filter(Boolean);
+  return [...new Set(previous)].join('\n\n');
  }
  function updateNotebook(draft,h,text){
   draft.hostNotes ||= {};
