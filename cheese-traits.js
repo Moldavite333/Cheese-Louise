@@ -15,6 +15,17 @@ let movieFilters = { mode:'all', minScore:0, traitIds:[], traitCategories:[], st
 const traitById = (id) => state.traits.find(t => t.id === id);
 
 // --- Data ------------------------------------------------------------------
+async function loadSharedMovieTraits(workspaceId) {
+  const rows=[];
+  const pageSize=500;
+  for(let offset=0;;offset+=pageSize){
+    const result=await db.from('movie_traits').select('*').eq('workspace_id',workspaceId)
+      .order('movie_id').order('trait_id').range(offset,offset+pageSize-1);
+    if(result.error)return result;
+    rows.push(...result.data);
+    if(result.data.length<pageSize)return {data:rows};
+  }
+}
 const cheeseOriginalLoadAll = loadAll;
 loadAll = async function(){
   await cheeseOriginalLoadAll();
@@ -23,7 +34,7 @@ loadAll = async function(){
   const wid = workspace.id;
   const [traitsRes, movieTraitsRes, presetsRes] = await Promise.all([
     db.from('cheese_traits').select('*').eq('workspace_id',wid).order('sort_order').order('name'),
-    db.from('movie_traits').select('*').eq('workspace_id',wid),
+    loadSharedMovieTraits(wid),
     db.from('filter_presets').select('*').eq('workspace_id',wid).order('name')
   ]);
 
