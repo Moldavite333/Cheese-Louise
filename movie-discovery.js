@@ -219,7 +219,8 @@ async function addDiscoveredMovie(id,applyTraits){
   const originLabel=isCatalog?'Romantiverse Bingo editorial catalog':isHallmark?'Hallmark catalog import':'TMDB movie search';
   let originalMeta=c.source_metadata||{};if(typeof originalMeta==='string'){try{originalMeta=JSON.parse(originalMeta)||{}}catch{originalMeta={}}}
   const sourceMetadata={
-    ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?(c.source_type||'hallmark_catalog_import'):'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?'hallmark_catalog_import':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    upstream_source_type:c.source_type||originalMeta.upstream_source_type||null,
     import_route:isHallmark?'discover-hallmark-movies':isCatalog?'bingo_catalog':'tmdb_search',
     network_verified:!!c.network_verified,
     official_hallmark_url:c.official_hallmark_url||c.official_source_url||null,hallmark_plus_url:c.hallmark_plus_url||null,
