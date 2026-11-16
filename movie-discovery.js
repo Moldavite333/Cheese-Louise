@@ -136,7 +136,7 @@ function discoveryCard(c){
         <button class="primary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},true)">${est.traits.length?`Add + confirm ${est.traits.length} traits`:'Add to Radar'}</button>
         ${est.traits.length?`<button class="secondary" onclick="addDiscoveredMovie(${Number(c.tmdb_id)},false)">Add only</button>`:''}
         <button class="secondary" onclick="hideDiscoveredMovie(${Number(c.tmdb_id)})">Hide for now</button>
-        <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">${c.tmdb_type==='hallmark'?'Hallmark':'Source'} ↗</a>
+        <a class="button-link" href="${esc(c.source_url||'#')}" target="_blank" rel="noopener">${c.official_hallmark_url?'Hallmark':'Source'} ↗</a>
       </div>
     </div>
   </article>`;
@@ -146,13 +146,13 @@ function discoveryPanel(){
   const existing=discoveryExistingIds();
   const candidates=(state.discoveryResults||[]).filter(c=>!existing.has(`${c.tmdb_type||'movie'}:${Number(c.tmdb_id)}`) && !discoveryHidden.has(Number(c.tmdb_id)) && discoveryMatchesCurrentView(c));
   const shown=discoveryExpanded?candidates:candidates.slice(0,8);
-  const header=`<div class="new-find-header"><div><div class="page-title small-title">New Finds</div><div class="subtle">Cheese Louise reads Hallmark's official catalog directly. Same Movie Radar — better source.</div></div><button class="secondary" onclick="discoverCheeseMovies(true)">↻ Refresh</button></div>`;
+  const header=`<div class="new-find-header"><div><div class="page-title small-title">New Finds</div><div class="subtle">Cheese Louise searches imported catalog entries. Verify each title and network before treating them as official.</div></div><button class="secondary" onclick="discoverCheeseMovies(true)">↻ Refresh</button></div>`;
   if(discoveryLoading) return `<div class="new-find-panel card card-pad">${header}<div class="discovery-loading"><span class="discovery-spinner">🧀</span> Reading Hallmark's catalog…</div></div>`;
   if(discoveryError) return `<div class="new-find-panel card card-pad">${header}<div class="empty"><strong>Hallmark scan hit a snag.</strong><div class="subtle">${esc(discoveryError)}</div><button class="primary" style="margin-top:10px" onclick="discoverCheeseMovies(true)">Try again</button></div></div>`;
   if(!discoveryLoaded) return `<div class="new-find-panel card card-pad">${header}<button class="primary" onclick="discoverCheeseMovies(true)">🔎 Find Hallmark movies</button></div>`;
   return `<div class="new-find-panel">
     ${header}
-    <div class="new-find-stats"><span class="pill">${candidates.length} new candidate${candidates.length===1?'':'s'}</span><span class="subtle">Movie catalog: Hallmark official${discoveryArtLoading?' · fetching verified posters…':''}</span></div>
+    <div class="new-find-stats"><span class="pill">${candidates.length} new candidate${candidates.length===1?'':'s'}</span><span class="subtle">Movie catalog: Hallmark import${discoveryArtLoading?' · fetching verified posters…':''}</span></div>
     <div class="new-find-grid">${shown.map(discoveryCard).join('')||'<div class="empty card card-pad">Nothing new matches these filters right now.</div>'}</div>
     ${candidates.length>8?`<button class="secondary discovery-more" onclick="toggleDiscoveryExpanded()">${discoveryExpanded?'Show fewer':`Show ${candidates.length-8} more`}</button>`:''}
   </div>`;
@@ -164,13 +164,13 @@ function discoveryMapHallmark(row){
     ...row,
     tmdb_id:discoveryNumericId(key), // legacy internal key only; no TMDB lookup is performed
     tmdb_type:'hallmark',
-    source_type:'hallmark_official',
+    source_type:row.source_type||'hallmark_catalog_import',
     network:row.network||null,
     providers:row.providers||[],
     source_url:row.official_source_url||row.source_url||null,
     poster_url:null,
     match_score:100,
-    why:[row.collection?`Official Hallmark: ${row.collection}`:'Official Hallmark catalog',row.holiday,row.season].filter(Boolean)
+    why:[row.collection?`Catalog collection: ${row.collection}`:'Catalog import',row.holiday,row.season].filter(Boolean)
   };
 }
 
@@ -214,21 +214,21 @@ async function addDiscoveredMovie(id,applyTraits){
   const existing=discoverySavedMovie(c);
   if(existing){ selectedMovie=existing.id; render(); return; }
 
-  const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official';
+  const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official'||c.source_type==='hallmark_catalog_import';
   const isCatalog=c.source_type==='bingo_catalog';
-  const originLabel=isCatalog?'Romantiverse Bingo editorial catalog':isHallmark?'Hallmark official catalog':'TMDB movie search';
+  const originLabel=isCatalog?'Romantiverse Bingo editorial catalog':isHallmark?'Hallmark catalog import':'TMDB movie search';
   let originalMeta=c.source_metadata||{};if(typeof originalMeta==='string'){try{originalMeta=JSON.parse(originalMeta)||{}}catch{originalMeta={}}}
   const sourceMetadata={
-    ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?(c.source_type||'hallmark_catalog_import'):'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
     import_route:isHallmark?'discover-hallmark-movies':isCatalog?'bingo_catalog':'tmdb_search',
     network_verified:!!c.network_verified,
-    official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
+    official_hallmark_url:c.official_hallmark_url||c.official_source_url||null,hallmark_plus_url:c.hallmark_plus_url||null,
     production_companies:(c.production_companies?.length?c.production_companies:c.production_company)||originalMeta.production_companies||originalMeta.production_company||[],
     stars:c.stars?.length?c.stars:originalMeta.stars||[],cast:c.cast?.length?c.cast:c.stars?.length?c.stars:originalMeta.cast||[],director:c.director||originalMeta.director||null,
     genres:c.genres?.length?c.genres:originalMeta.genres||[],keywords:c.keywords?.length?c.keywords:originalMeta.keywords||[],external_ids:c.external_ids||originalMeta.external_ids||{},
     year:Number(c.year)||Number(String(c.premiere_date||'').slice(0,4))||null,season:c.season||null,holiday:c.holiday||null,
     identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
-    data_sources:isCatalog?['Romantiverse Bingo editorial catalog']:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
+    data_sources:isCatalog?['Romantiverse Bingo editorial catalog']:isHallmark?['Hallmark catalog import (identity and network not independently verified)']:['TMDB movie search']
   };
   const payload={
     workspace_id:workspace.id,title:c.title,network:c.network||null,cheese_score:0,status:'needs_review',summary:c.summary||null,
