@@ -115,14 +115,14 @@ function discoveryMatchesCurrentView(c){
 
 function discoveryCard(c){
   const est=discoveryEstimate(c);
-  const providerText=(c.providers||[]).slice(0,3).join(' · ') || c.network || 'Hallmark';
+  const providerText=(c.providers||[]).slice(0,3).join(' · ') || 'Viewing availability not verified';
   const date=c.premiere_date||String(c.year||'Date TBA');
   const meta=[c.holiday,c.season].filter(Boolean).join(' · ');
   const why=(c.why||[]).slice(0,6);
   return `<article class="new-find-card card">
     <div class="new-find-poster">${c.poster_url?`<img src="${esc(c.poster_url)}" alt="${esc(c.title)} poster" loading="lazy">`:`<div class="new-find-poster-fallback">CL</div>`}</div>
     <div class="new-find-body">
-      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Hallmark')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
+      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Network unverified')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
       <h3>${esc(c.title)}</h3>
       <div class="subtle">${esc(date)}${meta?` · ${esc(meta)}`:''}</div>
       <div class="subtle provider-line">${esc(providerText)}</div>
@@ -165,7 +165,7 @@ function discoveryMapHallmark(row){
     tmdb_id:discoveryNumericId(key), // legacy internal key only; no TMDB lookup is performed
     tmdb_type:'hallmark',
     source_type:'hallmark_official',
-    network:row.network||'Hallmark Channel',
+    network:row.network||null,
     providers:row.providers||[],
     source_url:row.official_source_url||row.source_url||null,
     poster_url:null,
@@ -220,6 +220,8 @@ async function addDiscoveredMovie(id,applyTraits){
   let originalMeta=c.source_metadata||{};if(typeof originalMeta==='string'){try{originalMeta=JSON.parse(originalMeta)||{}}catch{originalMeta={}}}
   const sourceMetadata={
     ...originalMeta,source_type:isCatalog?'bingo_catalog':isHallmark?'hallmark_official':'tmdb_search',catalog_id:c.catalog_id||null,collection:c.collection||null,
+    import_route:isHallmark?'discover-hallmark-movies':isCatalog?'bingo_catalog':'tmdb_search',
+    network_verified:!!c.network_verified,
     official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
     production_companies:(c.production_companies?.length?c.production_companies:c.production_company)||originalMeta.production_companies||originalMeta.production_company||[],
     stars:c.stars?.length?c.stars:originalMeta.stars||[],cast:c.cast?.length?c.cast:c.stars?.length?c.stars:originalMeta.cast||[],director:c.director||originalMeta.director||null,
@@ -229,7 +231,7 @@ async function addDiscoveredMovie(id,applyTraits){
     data_sources:isCatalog?['Romantiverse Bingo editorial catalog']:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
   };
   const payload={
-    workspace_id:workspace.id,title:c.title,network:c.network||(isHallmark?'Hallmark Channel':null),cheese_score:0,status:'needs_review',summary:c.summary||null,
+    workspace_id:workspace.id,title:c.title,network:c.network||null,cheese_score:0,status:'needs_review',summary:c.summary||null,
     tags:[originLabel,...(c.why||[]).slice(0,6)],source_url:c.source_url||null,poster_url:c.poster_url||null,
     holiday:c.holiday||null,season:c.season||null,providers:c.providers||[],
     tmdb_id:Number(c.tmdb_id),tmdb_type:c.tmdb_type||(isHallmark?'hallmark':'movie'),source_metadata:sourceMetadata,created_by:me()
