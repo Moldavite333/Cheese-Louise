@@ -28,7 +28,10 @@
       // never use an old local draft to delete selections from another device.
       const legacy=draft.sharedTraitsVersion===1?[]:(draft.traitIds||[]).filter(id=>(state.traits||[]).some(t=>t.id===id)&&!m.selectedTraitIds.includes(id));
       draft.sharedTraitsVersion=1;
-      draft.traitIds=orderedIds(m,draft);
+      const nextTraitIds=orderedIds(m,draft);
+      const traitMembershipChanged=JSON.stringify(draft.traitIds||[])!==JSON.stringify(nextTraitIds);
+      draft.traitIds=nextTraitIds;
+      if(traitMembershipChanged&&String(draft.rundownText||'').trim())draft.rundownText='';
       if(Array.isArray(draft.outlineItems)) draft.outlineItems=draft.outlineItems.filter(i=>i?.type!=='trait'||draft.traitIds.includes(i.traitId));
       localStorage.setItem(k,JSON.stringify(draft));
       for(const traitId of legacy)void set(m.id,traitId,true);
