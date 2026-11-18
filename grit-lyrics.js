@@ -47,7 +47,8 @@
  }
  function refresh(kind,id){
   const key=keyFor(kind,id),entry=get(kind,id),host=document.getElementById('clGritLyricsPanel');
-  if(host&&host.dataset.gritKey===key)host.innerHTML=panel(kind,id);
+  const focusedEditor=host?.contains(document.activeElement)&&document.activeElement.matches?.('.cl-grit-details,.cl-grit-lyrics');
+  if(host&&host.dataset.gritKey===key&&!focusedEditor)host.innerHTML=panel(kind,id);
   document.querySelectorAll('[data-watch-grit-key]').forEach(el=>{
    if(el.dataset.watchGritKey!==key)return;
    if(el.hasAttribute('data-watch-grit-display'))el.textContent=entry.lyrics||'No lyrics have been written for this movie yet.';
@@ -70,7 +71,7 @@
   const entry=get(kind,id);
   return {key:keyFor(kind,id),lyrics:String(entry.lyrics||''),songTitle:String(entry.songTitle||''),status:String(entry.status||entry.error||''),details:String(entry.details||''),researchSummary:String(entry.research?.web_summary||entry.research?.overview||''),sources:Array.isArray(entry.research?.sources)?entry.research.sources:[],storyDetails:Array.isArray(entry.storyDetails)?entry.storyDetails:[]};
  };
- window.clGritDetails=(kind,id,text)=>{get(kind,id).details=String(text).slice(0,12000);persist()};
+ window.clGritDetails=(kind,id,text)=>{get(kind,id).details=String(text).slice(0,12000);persist();refresh(kind,id)};
  window.clGritWeb=(kind,id,value)=>{const entry=get(kind,id);entry.web=!!value;entry.research=null;persist()};
  window.clUpdateGritLyrics=(kind,id,value)=>{const entry=get(kind,id);entry.lyrics=String(value).slice(0,12000);entry.edited=true;persist()};
  window.clOpenGritLyrics=async(kind,id)=>{
