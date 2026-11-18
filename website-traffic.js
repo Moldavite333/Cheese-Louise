@@ -51,7 +51,8 @@
         'Romantiverse Bingo · ' + number(data.hosts.bingo)
       ]);
       list(report,'Top traffic sources and campaigns',data.sources.map(row => [row.source,row.campaign,number(row.sessions) + ' sessions'].filter(Boolean).join(' · ')));
-      list(report,'Recent Bingo square suggestions',data.suggestions.map(row => [row.trope,row.movie].filter(Boolean).join(' · ')));\n      list(report,'Recent cocktail ideas', (data.cocktail_suggestions || []).map(row => [row.name,row.movie,row.ingredients,row.method].filter(Boolean).join(' · ')));
+      list(report,'Recent Bingo square suggestions',data.suggestions.map(row => [row.trope,row.movie].filter(Boolean).join(' · ')));
+      list(report,'Recent cocktail ideas', (data.cocktail_suggestions || []).map(row => [row.name,row.movie,row.ingredients,row.method].filter(Boolean).join(' · ')));
     } catch {
       if (!panel.isConnected || range !== days) return;
       status.textContent = 'Website traffic is temporarily unavailable.';
