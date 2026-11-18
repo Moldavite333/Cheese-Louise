@@ -325,9 +325,20 @@
     const song = window.clGritLyricsData?.('saved',movie.id) || {};
     const key = esc(song.key || '');
     const lyrics = String(song.lyrics || '');
+    const details = String(song.details || '').trim();
+    const research = String(song.researchSummary || '').trim();
+    const storyDetails = Array.isArray(song.storyDetails) ? song.storyDetails : [];
+    const sources = (song.sources || []).filter(source=>{try{return new URL(source.url).protocol==='https:'}catch{return false}})
+      .map(source=>'<a href="'+esc(source.url)+'" target="_blank" rel="noopener noreferrer">'+esc(source.title||'Movie source')+' ↗</a>').join(' · ');
+    const hasContext = !!(details || research || storyDetails.length);
     return `
       <section id="watchLyricsPanel" tabindex="-1" class="card card-pad watch-writing-card watch-grit-card">
         <div class="watch-panel-head"><div><div class="kicker">Grit Whimsy</div><h2 data-watch-grit-key="${key}" data-watch-grit-title>${esc(song.songTitle || movie.title)}</h2></div></div>
+        <div class="watch-grit-context" data-watch-grit-key="${key}" data-watch-grit-context ${hasContext?'':'hidden'}>
+          <div data-watch-grit-key="${key}" data-watch-grit-notes-wrap ${details?'':'hidden'}><strong>Your movie notes</strong><p data-watch-grit-key="${key}" data-watch-grit-notes>${esc(details)}</p></div>
+          <div data-watch-grit-key="${key}" data-watch-grit-research-wrap ${research?'':'hidden'}><strong>Movie research</strong><p data-watch-grit-key="${key}" data-watch-grit-research>${esc(research)}</p><div class="watch-grit-sources" data-watch-grit-key="${key}" data-watch-grit-sources>${sources}</div></div>
+          <div data-watch-grit-key="${key}" data-watch-grit-story-wrap ${storyDetails.length?'':'hidden'}><strong>Story details used in the song</strong><ul data-watch-grit-key="${key}" data-watch-grit-story>${storyDetails.map(item=>'<li>'+esc(item)+'</li>').join('')}</ul></div>
+        </div>
         <pre class="watch-grit-lyrics" data-watch-grit-key="${key}" data-watch-grit-display>${esc(lyrics || 'No lyrics have been written for this movie yet.')}</pre>
         <p class="subtle" role="status" data-watch-grit-key="${key}" data-watch-grit-status>${esc(song.status || (lyrics ? 'Lyrics saved on this device.' : ''))}</p>
         <button class="primary" type="button" data-watch-grit-key="${key}" data-watch-grit-action onclick="watchAlongOpenGritLyrics()">${lyrics ? 'Edit or rewrite lyrics' : 'Write lyrics for this movie'}</button>
