@@ -8,7 +8,18 @@ export function createHandler({env,fetcher=fetch,now=()=>Date.now()}){
  async function ai(body){
   const key=env('OPENAI_API_KEY');if(!key)throw new Problem('Original songwriting is not connected yet. Use Copy songwriting brief with ChatGPT, or configure the server songwriting connection.',503);
   const r=await request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model:env('GRIT_LYRICS_MODEL')||'gpt-4.1',store:false,...body})});
-  if(!r.ok)throw new Problem(r.status===429?'Songwriting provider is busy or out of API credit. Your draft is safe; try again later.':'Songwriting provider could not complete this request. Your existing draft is safe.',502);
+  if(!r.ok){
+   let failure={};try{failure=await r.json()}catch{}
+   const code=clean(failure.error?.code||failure.error?.type||'',80);
+   const param=clean(failure.error?.param||'',80);
+   console.error('Songwriting provider request failed',{status:r.status,code,param});
+   if(r.status===429)throw new Problem('Songwriting provider is busy or out of API credit. Your draft is safe; try again later.',502);
+   if(r.status===401)throw new Problem('The songwriting service rejected its API key. The server connection needs attention. Your draft is safe.',502);
+   if(r.status===403)throw new Problem('The songwriting service does not have permission to use this model. The server model access needs attention. Your draft is safe.',502);
+   if(r.status===404)throw new Problem('The configured songwriting model was not found. The server model setting needs attention. Your draft is safe.',502);
+   if(r.status===400)throw new Problem('The songwriting provider rejected the request ('+(param||code||'invalid request')+'). Your draft is safe.',502);
+   throw new Problem('The songwriting provider returned an error ('+r.status+(code?': '+code:'')+'). Your draft is safe; try again later.',502);
+  }
   const data=await r.json();if(data.status!=='completed')throw new Problem('Songwriting stopped before finishing. Your existing draft is safe; try again.',502);return data;
  }
  async function tmdb(path){const r=await request('https://api.themoviedb.org/3'+path,{headers:{Authorization:'Bearer '+env('TMDB_READ_ACCESS_TOKEN'),accept:'application/json'}});if(!r.ok)throw new Problem('Movie research provider is unavailable.',502);return r.json();}
