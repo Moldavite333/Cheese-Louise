@@ -54,13 +54,21 @@
    if(el.hasAttribute('data-watch-grit-title'))el.textContent=entry.songTitle||movieFor(kind,id)?.title||'Grit Whimsy song';
    if(el.hasAttribute('data-watch-grit-status'))el.textContent=entry.status||entry.error||(entry.lyrics?'Lyrics saved on this device.':'');
    if(el.hasAttribute('data-watch-grit-action'))el.textContent=entry.lyrics?'Edit or rewrite lyrics':'Write lyrics for this movie';
+   if(el.hasAttribute('data-watch-grit-notes'))el.textContent=entry.details||'';
+   if(el.hasAttribute('data-watch-grit-research'))el.textContent=entry.research?.web_summary||entry.research?.overview||'';
+   if(el.hasAttribute('data-watch-grit-sources'))el.innerHTML=links(entry.research?.sources);
+   if(el.hasAttribute('data-watch-grit-story'))el.innerHTML=(entry.storyDetails||[]).map(x=>'<li>'+e(x)+'</li>').join('');
+   if(el.hasAttribute('data-watch-grit-context'))el.hidden=!(String(entry.details||'').trim()||String(entry.research?.web_summary||entry.research?.overview||'').trim()||(entry.storyDetails||[]).length);
+   if(el.hasAttribute('data-watch-grit-notes-wrap'))el.hidden=!String(entry.details||'').trim();
+   if(el.hasAttribute('data-watch-grit-research-wrap'))el.hidden=!String(entry.research?.web_summary||entry.research?.overview||'').trim();
+   if(el.hasAttribute('data-watch-grit-story-wrap'))el.hidden=!(entry.storyDetails||[]).length;
   });
  }
  function mount(kind,id){const host=document.getElementById('clGritLyricsPanel');if(host){host.dataset.gritKey=keyFor(kind,id);host.innerHTML=panel(kind,id)}}
  window.clGritLyricsData=(kind,id)=>{
   if(!movieFor(kind,id))return null;
   const entry=get(kind,id);
-  return {key:keyFor(kind,id),lyrics:String(entry.lyrics||''),songTitle:String(entry.songTitle||''),status:String(entry.status||entry.error||'')};
+  return {key:keyFor(kind,id),lyrics:String(entry.lyrics||''),songTitle:String(entry.songTitle||''),status:String(entry.status||entry.error||''),details:String(entry.details||''),researchSummary:String(entry.research?.web_summary||entry.research?.overview||''),sources:Array.isArray(entry.research?.sources)?entry.research.sources:[],storyDetails:Array.isArray(entry.storyDetails)?entry.storyDetails:[]};
  };
  window.clGritDetails=(kind,id,text)=>{get(kind,id).details=String(text).slice(0,12000);persist()};
  window.clGritWeb=(kind,id,value)=>{const entry=get(kind,id);entry.web=!!value;entry.research=null;persist()};
