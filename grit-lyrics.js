@@ -45,8 +45,23 @@
    (entry.storyDetails?.length?'<details><summary>Story details used</summary><ul>'+entry.storyDetails.map(x=>'<li>'+e(x)+'</li>').join('')+'</ul></details>':'')+
    (entry.research?'<details class="cl-grit-research"><summary>Movie research and sources</summary><p>'+e(entry.research.overview||'')+'</p><p style="white-space:pre-wrap">'+e(entry.research.web_summary||'')+'</p><p class="subtle">Public reviews are viewer opinions. Lyrics should use original wording.</p><div>'+links(entry.research.sources)+'</div><p class="subtle">'+e((entry.research.warnings||[]).join(' '))+'</p><p class="subtle">Movie data: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</p></details>':'')+'</div>';
  }
- function refresh(kind,id){const host=document.getElementById('clGritLyricsPanel');if(host&&host.dataset.gritKey===keyFor(kind,id))host.innerHTML=panel(kind,id)}
+ function refresh(kind,id){
+  const key=keyFor(kind,id),entry=get(kind,id),host=document.getElementById('clGritLyricsPanel');
+  if(host&&host.dataset.gritKey===key)host.innerHTML=panel(kind,id);
+  document.querySelectorAll('[data-watch-grit-key]').forEach(el=>{
+   if(el.dataset.watchGritKey!==key)return;
+   if(el.hasAttribute('data-watch-grit-display'))el.textContent=entry.lyrics||'No lyrics have been written for this movie yet.';
+   if(el.hasAttribute('data-watch-grit-title'))el.textContent=entry.songTitle||movieFor(kind,id)?.title||'Grit Whimsy song';
+   if(el.hasAttribute('data-watch-grit-status'))el.textContent=entry.status||entry.error||(entry.lyrics?'Lyrics saved on this device.':'');
+   if(el.hasAttribute('data-watch-grit-action'))el.textContent=entry.lyrics?'Edit or rewrite lyrics':'Write lyrics for this movie';
+  });
+ }
  function mount(kind,id){const host=document.getElementById('clGritLyricsPanel');if(host){host.dataset.gritKey=keyFor(kind,id);host.innerHTML=panel(kind,id)}}
+ window.clGritLyricsData=(kind,id)=>{
+  if(!movieFor(kind,id))return null;
+  const entry=get(kind,id);
+  return {key:keyFor(kind,id),lyrics:String(entry.lyrics||''),songTitle:String(entry.songTitle||''),status:String(entry.status||entry.error||'')};
+ };
  window.clGritDetails=(kind,id,text)=>{get(kind,id).details=String(text).slice(0,12000);persist()};
  window.clGritWeb=(kind,id,value)=>{const entry=get(kind,id);entry.web=!!value;entry.research=null;persist()};
  window.clUpdateGritLyrics=(kind,id,value)=>{const entry=get(kind,id);entry.lyrics=String(value).slice(0,12000);entry.edited=true;persist()};

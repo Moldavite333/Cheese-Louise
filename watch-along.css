@@ -79,3 +79,10 @@
 .watch-grating-subtotal .kicker{font-size:.8rem;letter-spacing:.08em}
 .watch-grating-subtotal>strong{font-size:2rem;line-height:1.1;white-space:nowrap;font-variant-numeric:tabular-nums}
 .watch-grating-count,.watch-grating-unit{font-size:.85rem;font-weight:400;opacity:.8}
+
+.watch-grit-card{scroll-margin-top:18px}
+.watch-grit-card h2{font-size:1.25rem}
+.watch-grit-lyrics{white-space:pre-wrap;overflow:auto;max-height:28rem;margin:0;padding:12px 14px;border:1px solid var(--line,#3a3d49);border-radius:10px;background:var(--panel2,#20232c);font:inherit;line-height:1.55}
+.watch-grit-card [data-watch-grit-action]{justify-self:start}
+.watch-grit-card details{margin-top:0}
+@media(max-width:680px){.watch-grit-lyrics{max-height:50vh}.watch-grit-card [data-watch-grit-action]{width:100%}}

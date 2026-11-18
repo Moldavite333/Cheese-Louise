@@ -321,6 +321,29 @@
     </div>`;
   }
 
+  function watchGritLyricsHtml(movie) {
+    const song = window.clGritLyricsData?.('saved',movie.id) || {};
+    const key = esc(song.key || '');
+    const lyrics = String(song.lyrics || '');
+    return `
+      <section id="watchLyricsPanel" tabindex="-1" class="card card-pad watch-writing-card watch-grit-card">
+        <div class="watch-panel-head"><div><div class="kicker">Grit Whimsy</div><h2 data-watch-grit-key="${key}" data-watch-grit-title>${esc(song.songTitle || movie.title)}</h2></div></div>
+        <pre class="watch-grit-lyrics" data-watch-grit-key="${key}" data-watch-grit-display>${esc(lyrics || 'No lyrics have been written for this movie yet.')}</pre>
+        <p class="subtle" role="status" data-watch-grit-key="${key}" data-watch-grit-status>${esc(song.status || (lyrics ? 'Lyrics saved on this device.' : ''))}</p>
+        <button class="primary" type="button" data-watch-grit-key="${key}" data-watch-grit-action onclick="watchAlongOpenGritLyrics()">${lyrics ? 'Edit or rewrite lyrics' : 'Write lyrics for this movie'}</button>
+        <details id="watchGritTools"><summary>Songwriting tools</summary><div id="clGritLyricsPanel" data-grit-key="${key}"></div></details>
+      </section>
+    `;
+  }
+
+  window.watchAlongOpenGritLyrics = function() {
+    const movie = watchMovie();
+    if (!movie || typeof window.clOpenGritLyrics !== 'function') return;
+    const tools = document.getElementById('watchGritTools');
+    if (tools) tools.open = true;
+    window.clOpenGritLyrics('saved',movie.id);
+  };
+
   function watchAlongPage() {
     const movie = watchMovie();
     if (!movie) {
@@ -360,7 +383,7 @@
         </div>
       </section>
 
-      <nav class="watch-jump-links" aria-label="Watch Along sections"><a href="#watchTraitsPanel">Traits</a><a href="#watchNotesPanel">Notes</a><a href="#watchRundownPanel">Rundown</a></nav>
+      <nav class="watch-jump-links" aria-label="Watch Along sections"><a href="#watchTraitsPanel">Traits</a><a href="#watchLyricsPanel">Grit Lyrics</a><a href="#watchNotesPanel">Notes</a><a href="#watchRundownPanel">Rundown</a></nav>
       <section class="section watch-desk-grid">
         <div id="watchTraitsPanel" tabindex="-1" class="card card-pad watch-traits-panel">
           <div class="watch-panel-head">
@@ -382,6 +405,7 @@
 
         <div class="watch-writing-stack">
           ${window.clRecordingDesk?.watchPanel(movie)||''}
+          ${watchGritLyricsHtml(movie)}
           <div id="watchNotesPanel" tabindex="-1" class="card card-pad watch-writing-card">
             <div class="watch-panel-head"><div><div class="kicker">Watch Notes</div><h2>Stuff we noticed</h2></div></div>
             <textarea class="watch-textarea watch-notes" aria-label="Watch notes" placeholder="The marina has no boat stuff. Just croissants and a cappuccino machine…" oninput="watchAlongSaveText('notes', this.value)">${esc(draft.notes)}</textarea>
