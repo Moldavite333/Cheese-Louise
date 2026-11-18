@@ -12,8 +12,8 @@ function harness(saved={}){
   const sync={textContent:''},retry={hidden:true};
   const ctx=vm.createContext({console:{...console,warn(){}},Map,Set,Date,Promise,workspace:{id:'w'},session:{user:{id:'u'}},me:()=> 'u',
     state:{movies:[{id:'a',title:'Movie A',selectedTraitIds:['t1'],score:5},{id:'b',title:'Movie B',selectedTraitIds:[],score:0}],traits:[{id:'t1',name:'Old flame',points:5,is_active:true},{id:'t2',name:'Bakery',points:9,is_active:true}]},
-    selectedMovie:null,currentTab:'watchalong',localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
-    document:{getElementById:id=>elements.get(id)||null,querySelector:s=>s==='[data-watch-trait-sync]'?sync:s==='[data-watch-trait-retry]'?retry:null,querySelectorAll:s=>s==='[data-cheese-score-movie]'?[score]:s==='[data-watch-grating]'?[badge]:s==='[data-watch-grating-value]'?subtotals:s==='[data-watch-grating-count]'?subtotalCounts:[],activeElement:null},
+    addEventListener(){},selectedMovie:null,currentTab:'watchalong',localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+    document:{addEventListener(){},getElementById:id=>elements.get(id)||null,querySelector:s=>s==='[data-watch-trait-sync]'?sync:s==='[data-watch-trait-retry]'?retry:null,querySelectorAll:s=>s==='[data-cheese-score-movie]'?[score]:s==='[data-watch-grating]'?[badge]:s==='[data-watch-grating-value]'?subtotals:s==='[data-watch-grating-count]'?subtotalCounts:[],activeElement:null},
     navigator:{clipboard:{writeText:async value=>{ctx.copied=value}}},setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,confirm:()=>true,alert(){},
     tabs:()=>'<nav></nav>',render(){},shell:s=>{html=s;},topbar:()=>'',modal:()=>'',authScreen(){},onboardingScreen(){},esc:x=>String(x??''),
     async loadAll(){const copy=new Map([...server].map(([k,v])=>[k,[...v]]));if(gate)await gate;ctx.state.movies=ctx.state.movies.map(m=>({...m,selectedTraitIds:copy.get(m.id)||[],cheese_score:999,score:999}));},
