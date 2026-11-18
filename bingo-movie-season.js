@@ -232,6 +232,31 @@ function rvBingoCreateForMovie(movieId){
   window.scrollTo(0,0);
 }
 
+let rvShowBingoListPending=false;
+async function rvToggleShowBingoList(){
+  const movie=(state.movies||[]).find(m=>m.id===selectedMovie);
+  if(!workspace||!movie||rvShowBingoListPending) return;
+  rvShowBingoListPending=true;
+  render();
+  try{
+    const column='show_bingo_listed_at';
+    const {data,error}=await db.from('movies')
+      .update({[column]:movie[column]?null:new Date().toISOString()})
+      .eq('id',movie.id).eq('workspace_id',workspace.id)
+      .select(column).single();
+    if(error) throw error;
+    movie[column]=data[column];
+    const current=(state.movies||[]).find(m=>m.id===movie.id);
+    if(current) current[column]=data[column];
+  }catch(error){
+    alert(error?.message||'Could not update the show’s Bingo list.');
+  }finally{
+    rvShowBingoListPending=false;
+    render();
+  }
+}
+window.rvToggleShowBingoList=rvToggleShowBingoList;
+
 if(typeof clSavedMovieDetailModal==='function'){
   const rvBingoOriginalSavedMovieDetailModal=clSavedMovieDetailModal;
   clSavedMovieDetailModal=function(){
@@ -239,13 +264,14 @@ if(typeof clSavedMovieDetailModal==='function'){
     let html=rvBingoOriginalSavedMovieDetailModal();
     if(!movie||!html) return html;
 
+    const showListButton=`<button class="secondary" onclick="rvToggleShowBingoList()" ${rvShowBingoListPending?'disabled':''}>${movie.show_bingo_listed_at?'Remove from Show’s Bingo List':'Add to Show’s Bingo List'}</button>`;
     const button=`<button class="primary" onclick="rvBingoCreateForMovie('${String(movie.id).replace(/'/g,"\\'")}')">🎯 Create Bingo Card</button>`;
     const scheduleButton=`<button class="secondary" onclick="scheduleMovie('${String(movie.id).replace(/'/g,"\\'")}')">📅 Schedule</button>`;
 
     if(html.includes(scheduleButton)){
-      html=html.replace(scheduleButton, scheduleButton + button);
+      html=html.replace(scheduleButton, scheduleButton + button + showListButton);
     }else{
-      html=html.replace('<div class="cl-movie-detail-actions">','<div class="cl-movie-detail-actions">'+button);
+      html=html.replace('<div class="cl-movie-detail-actions">','<div class="cl-movie-detail-actions">'+button+showListButton);
     }
     return html;
   };
