@@ -136,8 +136,14 @@ function clRecCheckFreshness(){
  if(document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
  if(!discoveryLoaded||Date.now()-clRecLastFetchAt>=45*60*1000)void discoverCheeseMovies(true);
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)clRecCheckFreshness();});
-window.addEventListener('focus',clRecCheckFreshness);
-window.setInterval(clRecCheckFreshness,5*60*1000);
-const clRecPreviousGo=window.go;
-window.go=function(view,...args){const result=clRecPreviousGo(view,...args);if(view==='movies')window.setTimeout(clRecCheckFreshness,0);return result;};
+// Feature-detect browser hooks so isolated test environments can load the feed logic.
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function')
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)clRecCheckFreshness();});
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
+ window.addEventListener('focus',clRecCheckFreshness);
+if(typeof window!=='undefined'&&typeof window.setInterval==='function')
+ window.setInterval(clRecCheckFreshness,5*60*1000);
+if(typeof window!=='undefined'&&typeof window.go==='function'){
+ const clRecPreviousGo=window.go;
+ window.go=function(view,...args){const result=clRecPreviousGo(view,...args);if(view==='movies')window.setTimeout?.(clRecCheckFreshness,0);return result;};
+}
