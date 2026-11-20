@@ -58,7 +58,7 @@
     const completed = steps.filter(([key]) => checks[key]).length;
     const next = steps.find(([key]) => !checks[key]);
     document.getElementById('publishing-progress').textContent =
-      completed + ' of ' + steps.length + ' complete. ' + (next ? 'Next: ' + next[1] + '.' : 'Release verified.');
+      completed + ' of ' + steps.length + ' complete. ' + (next ? 'Next: ' + next[1] + '.' : 'Checklist complete — verify the public Buzzsprout episode separately.');
   }
 
   function field(key, label, value, rows) {
@@ -118,7 +118,7 @@
       <div class="section marketing-grid">
         <section class="card card-pad">
           <h2>Release checklist</h2>
-          <p id="publishing-progress" aria-live="polite">${complete} of ${steps.length} complete. ${next ? 'Next: ' + next[1] + '.' : 'Release verified.'}</p>
+          <p id="publishing-progress" aria-live="polite">${complete} of ${steps.length} complete. ${next ? 'Next: ' + next[1] + '.' : 'Checklist complete — verify the public Buzzsprout episode separately.'}</p>
           ${steps.map(([key, title, instructions, resources]) => `
             <details class="section"${key === next?.[0] ? ' open' : ''}>
               <summary>${title}</summary>
