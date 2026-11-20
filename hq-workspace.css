@@ -8,3 +8,28 @@ button{transition:background .15s,border-color .15s}.primary,.secondary,.filter,
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
 .hq-quick-filters{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0}.hq-quick-filters label{display:grid;gap:7px;font-size:12px;color:var(--muted)}.hq-quick-filters select{min-width:0;width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);min-height:44px}.hq-quick-filters p{grid-column:1/-1;font-size:12px;color:var(--muted);margin:2px 0 0}@media(max-width:600px){.hq-quick-filters{grid-template-columns:1fr 1fr;padding:12px}.hq-quick-filters>button{grid-column:1/-1}}
+/* November 2026: guided, low-clutter home. No hidden data or workflow changes. */
+.hq-home-simple{max-width:850px}
+.hq-next-item{padding:23px 25px;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:20px 0 28px}
+.hq-next-item h2{font-size:clamp(19px,2.5vw,26px);margin:8px 0}
+.hq-next-item .primary{margin-top:12px;min-height:46px}
+.hq-simple-heading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 12px}
+.hq-simple-heading h2{margin:0;font-size:19px}
+.hq-simple-steps{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.hq-simple-steps li+li{border-top:1px solid var(--line)}
+.hq-simple-steps button{display:flex;align-items:center;gap:14px;width:100%;min-height:66px;padding:13px 16px;text-align:left;border:0;background:var(--panel);color:var(--text);cursor:pointer}
+.hq-simple-steps button:hover,.hq-simple-steps button:focus-visible{background:var(--panel-2)}
+.hq-simple-number{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);color:var(--accent);font-weight:700;font-size:13px}
+.hq-simple-copy{flex:1;min-width:0}
+.hq-simple-copy strong,.hq-simple-copy small{display:block}
+.hq-simple-copy strong{font-size:15px}
+.hq-simple-copy small{font-size:12px;line-height:1.45;color:var(--muted);margin-top:2px}
+.hq-simple-arrow{color:var(--accent)}
+.hq-home-extras{margin-top:20px}
+.hq-home-extras>summary,.hq-nav-group>summary{cursor:pointer;color:var(--muted);min-height:40px;display:flex;align-items:center}
+.hq-home-extras>div{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0}
+.hq-home-extras .secondary{min-height:42px}
+.hq-sidebar .hq-nav-group,.hq-more-panel .hq-nav-group{padding:5px 0}
+.hq-sidebar .hq-nav-group>summary,.hq-more-panel .hq-nav-group>summary{font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px}
+.hq-sidebar .hq-nav-group section,.hq-more-panel .hq-nav-group section{padding:0}
+@media(max-width:600px){.hq-next-item{padding:18px}.hq-simple-steps button{padding:12px;gap:12px}.hq-simple-copy small{font-size:12px}}
