@@ -8,6 +8,7 @@ function clRecStorageKey(){return 'cheeseLouise:recommendations:v3:'+(workspace?
 function clRecHistory(){const key=clRecStorageKey();if(clRecMemoryHistory.has(key))return clRecMemoryHistory.get(key);try{const value=JSON.parse(localStorage.getItem(key)||'{}');return {ids:Array.isArray(value.ids)?value.ids:[],titles:Array.isArray(value.titles)?value.titles:[],batch:Number(value.batch)||0};}catch{return {ids:[],titles:[],batch:0};}}
 function clRecPreferences(){return clOurMovieTasteEngine.preferences(state.movies||[]);}
 let clRecIncludeBroader=true,clRecProfileSignature='',clRecRefreshTimer=null;
+let clRecLastFetchAt=0;
 function clRecKnownIds(){return (state.movies||[]).map(m=>{
  const meta=clRecMeta(m);return Number(meta.poster_tmdb_id||(/^tmdb_/.test(meta.source_type||'')?m.tmdb_id:0));
 }).filter(Boolean);}
@@ -25,7 +26,7 @@ discoverCheeseMovies=async function(force=false){
   if(error)throw error;if(data?.error)throw new Error(data.error);
   if(!Array.isArray(data?.results))throw new Error('Movie recommendations returned an incomplete response.');
   state.discoveryResults=data.results.filter(m=>m.source_type==='bingo_catalog'&&!clMovieIsHorror(m));
-  clRecommendationMeta=data;clRecProfileSignature=profileSignature;discoveryLoaded=true;
+  clRecommendationMeta=data;clRecProfileSignature=profileSignature;discoveryLoaded=true;clRecLastFetchAt=Date.now();
   const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),batch:(history.batch+1)%10000};
   clRecMemoryHistory.set(clRecStorageKey(),next);
   try{localStorage.setItem(clRecStorageKey(),JSON.stringify(next));}catch{clRecommendationMeta.history_warning='This browser could not save discovery history; repeat prevention will last only while this page stays open.';}
@@ -48,7 +49,8 @@ window.clBroadenFinder=()=>{
 window.clRecStartOver=()=>{clRecMemoryHistory.delete(clRecStorageKey());try{localStorage.removeItem(clRecStorageKey());}catch{}discoverCheeseMovies(true);};
 discoveryPanel=function(){
  const currentProfile=JSON.stringify(clRecPreferences());if(clRecommendationMeta&&clRecProfileSignature!==currentProfile&&!discoveryLoading){clearTimeout(clRecRefreshTimer);clRecRefreshTimer=setTimeout(()=>discoverCheeseMovies(true),100);}
- const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">Ranked from Our Movies: shared Yes votes, saved choices, and specific story similarities.</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Refresh picks</button></div>';
+ const checked=clRecLastFetchAt?'Checked '+new Date(clRecLastFetchAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not checked yet';
+ const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">'+esc(checked)+' · Rechecks while Movie Radar is open</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Refresh picks</button></div>';
  if(discoveryLoading)return '<div class="new-find-panel card card-pad">'+title+'<div class="discovery-loading"><span class="discovery-spinner">♥</span> Matching your favorites and finding a fresh batch with posters…</div></div>';
  if(discoveryError)return '<div class="new-find-panel card card-pad">'+title+'<div class="empty" role="status">'+esc(discoveryError)+'<p><button class="secondary" onclick="discoverCheeseMovies(true)">Try again</button></p></div></div>';
  if(!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<button class="primary" onclick="discoverCheeseMovies(true)">Find movies for us</button></div>';
@@ -125,3 +127,17 @@ if(typeof movieMatchesCheeseFilters==='function'){
  movieMatchesCheeseFilters=movie=>!clMovieIsHorror(movie)&&previous(movie);
 }
 
+
+/* Check for fresh recommendations only when the Movie Radar is actively in use.
+ * This refreshes the feed; server-side discovery sources retain their own schedules. */
+function clRecCheckFreshness(){
+ if(!session||!workspace||currentTab!=='movies'||document.hidden||discoveryLoading)return;
+ if(document.querySelector('.modal-backdrop'))return;
+ if(document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+ if(!discoveryLoaded||Date.now()-clRecLastFetchAt>=45*60*1000)void discoverCheeseMovies(true);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)clRecCheckFreshness();});
+window.addEventListener('focus',clRecCheckFreshness);
+window.setInterval(clRecCheckFreshness,5*60*1000);
+const clRecPreviousGo=window.go;
+window.go=function(view,...args){const result=clRecPreviousGo(view,...args);if(view==='movies')window.setTimeout(clRecCheckFreshness,0);return result;};
