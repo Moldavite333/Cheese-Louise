@@ -70,7 +70,9 @@ function romantiverseSearchVisibleResults(){
     !(typeof discoveryHidden!=='undefined' && discoveryHidden.has(Number(c.tmdb_id))) &&
     romantiverseSearchMatchesFilters(c)
   )));
-  return typeof clTasteRank==='function'?clTasteRank(results):results;
+  // Exact-title matches must never be buried below taste-ranked suggestions.
+  const ranked=typeof clTasteRank==='function'?clTasteRank(results):results;
+  return ranked.slice().sort((a,b)=>Number(romantiverseExactTitle(b))-Number(romantiverseExactTitle(a)));
 }
 
 function romantiverseSearchCard(c){
