@@ -19,8 +19,8 @@
     ['schedule', 'Schedule the release',
       'Choose Schedule for future, enter the intended date and time, then click Save and Update Episode. Verify the time zone shown in Buzzsprout and confirm the scheduled timestamp in Episodes. The Cheese Louise target is Monday, 4–5 a.m. Eastern (2–3 a.m. Mountain).',
       link(help + '4-schedule', 'Scheduling guide')],
-    ['live', 'Verify that listeners can play it',
-      'After release, play the public Buzzsprout episode and check the Apple Podcasts and Spotify listings once the show is listed. Directory updates can take up to 24 hours. Use the verified public episode link in Marketing and on the Cheese Louise website.',
+    ['live', 'Manually verify the public episode (not automatic publication)',
+      'After release, open the public Buzzsprout episode URL and play the audio. This checkbox is a personal reminder only: it does not verify publication for HQ or publish the episode, cocktail, or Bingo card. Check the Apple Podcasts and Spotify listings once the show is listed. Directory updates can take up to 24 hours. Use the verified public episode link in Marketing and on the Cheese Louise website.',
       link(help + '133-directories-updating', 'Directory timing')]
   ];
 
@@ -58,7 +58,7 @@
     const completed = steps.filter(([key]) => checks[key]).length;
     const next = steps.find(([key]) => !checks[key]);
     document.getElementById('publishing-progress').textContent =
-      completed + ' of ' + steps.length + ' complete. ' + (next ? 'Next: ' + next[1] + '.' : 'Checklist complete — verify the public Buzzsprout episode separately.');
+      completed + ' of ' + steps.length + ' complete. ' + (next ? 'Next: ' + next[1] + '.' : 'Checklist complete — public release synchronization is not connected.');
   }
 
   function field(key, label, value, rows) {
@@ -159,7 +159,8 @@
       updateProgress(checks);
       const next = steps.find(([id]) => !checks[id]);
       const checkboxes = [...document.querySelectorAll('#publishing-progress ~ details input')];
-      const nextBox = checkboxes[steps.indexOf(next)];
+      const nextIndex = next ? steps.findIndex(([id]) => id === next[0]) : -1;
+      const nextBox = nextIndex >= 0 ? checkboxes[nextIndex] : null;
       if (checkbox.checked && nextBox) nextBox.closest('details').open = true;
     },
     async copy(key) {
