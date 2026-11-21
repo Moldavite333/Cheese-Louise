@@ -57,6 +57,33 @@
    return date(a)-date(b)||String(a.created_at||'').localeCompare(String(b.created_at||''));
   })[0]||null;
  }
+ function transcriptSuggestions(){
+  const workspaceId=workspace?.id;
+  if(!workspaceId)return '';
+  queueMicrotask(async()=>{
+   const card=document.getElementById('hq-transcript-suggestions');
+   if(!card||card.dataset.workspace!==workspaceId)return;
+   const body=card.querySelector('div');
+   try{
+    const {data,error}=await db.from('transcript_suggestions').select('episode_title,source_url,report').eq('workspace_id',workspaceId).order('published_at',{ascending:false}).order('episode_key',{ascending:false}).limit(1);
+    if(error)throw error;
+    if(!card.isConnected||workspace?.id!==workspaceId)return;
+    const report=data?.[0];
+    if(!report){body.textContent='Suggestions will appear after a transcript is reviewed.';return;}
+    card.querySelector('summary').textContent='Transcript Suggestions · '+report.episode_title;
+    const content=document.createElement('p');
+    content.style.whiteSpace='pre-wrap';
+    content.textContent=report.report;
+    const source=document.createElement('a');
+    source.href=report.source_url;
+    source.textContent='Open episode transcript';
+    body.replaceChildren(content,source);
+   }catch(error){
+    if(card.isConnected)body.textContent='Suggestions could not load. Refresh Today to try again.';
+   }
+  });
+  return '<details id="hq-transcript-suggestions" class="hq-home-extras" data-workspace="'+escape(workspaceId)+'"><summary>Transcript Suggestions</summary><div aria-live="polite">Loading suggestions…</div></details>';
+ }
  function dashboard(){
   const next=nextEpisode(state.episodes||[]);
   const stages=[
@@ -71,7 +98,7 @@
    '<li><button type="button" onclick="hqWorkspace.open(&quot;'+id+'&quot;)"><span class="hq-simple-number">'+(i+1)+'</span><span class="hq-simple-copy"><strong>'+title+'</strong><small>'+description+'</small></span><span class="hq-simple-arrow" aria-hidden="true">→</span></button></li>'
   ).join('');
   return '<section class="section hq-today hq-home-simple"><div class="hq-page-eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>One step at a time.</h1><p class="hq-lede">Choose what you are working on. Opening a step does not create or publish anything.</p>'
-   +'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p><button type="button" class="primary" onclick="hqWorkspace.open(&quot;'+(next?'episodes':'movies')+'&quot;)">'+(next?'Continue this episode':'Find a movie')+'</button></article>'
+   +transcriptSuggestions()+'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p><button type="button" class="primary" onclick="hqWorkspace.open(&quot;'+(next?'episodes':'movies')+'&quot;)">'+(next?'Continue this episode':'Find a movie')+'</button></article>'
    +'<div class="hq-simple-heading"><h2>Episode steps</h2><span class="subtle">Open only what you need</span></div><ol class="hq-simple-steps">'+steps+'</ol>'
    +'<details class="hq-home-extras"><summary>Other tools and saved work</summary><div><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;ourmovies&quot;)">Our Movies</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;cocktails&quot;)">Cocktail Bar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;schedule&quot;)">Calendar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;bingo&quot;)">Bingo Builder</button></div></details></section>';
  }
