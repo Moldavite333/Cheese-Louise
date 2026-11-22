@@ -28,12 +28,12 @@ try{
   page.on('dialog',d=>d.accept());await boot(page);await page.getByText('Recent recipe drafts',{exact:true}).click();await page.locator('.mix-entry details button').first().click();await page.getByRole('button',{name:'Recipe',exact:true}).click();assert.equal(await page.locator('.mix-meta textarea').last().inputValue(),'Offline recovery '+width);await page.unroute('**/__fixture/api');if(await page.locator('.mix-tabs details:not([open]) > summary').count())await page.locator('.mix-tabs details:not([open]) > summary').click();await page.getByRole('button',{name:'Retry save',exact:true}).click();await saved(page);
   await page.screenshot({path:'artifacts/mixology-recipe-'+width+'.png',fullPage:true});
   // Development is embedded in HQ, so returning must preserve an unfinished episode form.
-  await page.getByRole('button',{name:'Back to workspace',exact:true}).click();
+  await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();
   await page.evaluate(()=>{currentTab='episodes';cocktailHubView='episodes';selectedEpisode='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';render()});
   await page.locator('#epOutline').fill('Unfinished episode outline '+width);
   await page.getByRole('button',{name:'Develop linked cocktail',exact:true}).click();await saved(page);
-  await page.getByRole('button',{name:'Back to workspace',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
-  await page.getByRole('button',{name:'Prepare linked cocktail',exact:true}).click();await page.getByRole('heading',{name:'Preparation & servings',exact:true}).waitFor();await page.getByRole('button',{name:'Back to workspace',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
+  await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
+  await page.getByRole('button',{name:'Prepare linked cocktail',exact:true}).click();await page.getByRole('heading',{name:'Preparation & servings',exact:true}).waitFor();await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
   // A standalone recipe gets a new canonical identity; the counterpart starts empty.
   await page.evaluate(()=>{selectedEpisode=null;openCocktailBar()});await page.getByRole('button',{name:'New cocktail',exact:true}).click();await saved(page);
   await page.locator('#mix-name').fill('Standalone trial '+width);await saved(page);await page.getByRole('button',{name:'Add ingredient',exact:true}).click();await page.getByRole('button',{name:'Add step',exact:true}).click();await saved(page);
