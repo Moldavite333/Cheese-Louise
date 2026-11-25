@@ -115,14 +115,14 @@ function discoveryMatchesCurrentView(c){
 
 function discoveryCard(c){
   const est=discoveryEstimate(c);
-  const providerText=(c.providers||[]).slice(0,3).join(' · ') || c.network || 'Hallmark';
+  const providerText=(c.providers||[]).slice(0,3).join(' · ') || 'Viewing options not verified';
   const date=c.premiere_date||String(c.year||'Date TBA');
   const meta=[c.holiday,c.season].filter(Boolean).join(' · ');
   const why=(c.why||[]).slice(0,6);
   return `<article class="new-find-card card">
     <div class="new-find-poster">${c.poster_url?`<img src="${esc(c.poster_url)}" alt="${esc(c.title)} poster" loading="lazy">`:`<div class="new-find-poster-fallback">CL</div>`}</div>
     <div class="new-find-body">
-      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Hallmark')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
+      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Network unknown')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
       <h3>${esc(c.title)}</h3>
       <div class="subtle">${esc(date)}${meta?` · ${esc(meta)}`:''}</div>
       <div class="subtle provider-line">${esc(providerText)}</div>
@@ -165,7 +165,7 @@ function discoveryMapHallmark(row){
     tmdb_id:discoveryNumericId(key), // legacy internal key only; no TMDB lookup is performed
     tmdb_type:'hallmark',
     source_type:'hallmark_official',
-    network:row.network||'Hallmark Channel',
+    network:row.network||null,
     providers:row.providers||[],
     source_url:row.official_source_url||row.source_url||null,
     poster_url:null,
