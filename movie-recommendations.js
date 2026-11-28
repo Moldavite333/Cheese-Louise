@@ -121,11 +121,25 @@ function clRecFeedCard(candidate,upcoming=false){
  const premiere=upcoming&&upcomingDate?[upcomingDate,meta.premiere?.platform||movie.network].filter(Boolean).join(' · '):'';
  const watch=Array.isArray(meta.availability)?meta.availability.find(entry=>entry?.verified&&entry.provider):null;
  const watchText=watch?[watch.provider,watch.access_type,watch.available_from?'from '+watch.available_from:null].filter(Boolean).join(' · '):'';
+ const title=esc(movie.title),year=clMovieTitleSearch.year(movie);
+ const credits=[year,movie.network].filter(Boolean).map(esc).join(' · ');
+ const cast=clMovieTitleSearch.cast(movie).slice(0,2).map(esc).join(' · ');
+ const reason=(candidate.why||[]).find(value=>typeof value==='string'&&value.startsWith('Shares '));
+ const art=/^(https:\/\/|\/(?!\/))/i.test(movie.poster_url||'')?'<img src="'+esc(movie.poster_url)+'" alt="" loading="lazy" decoding="async">':'<span aria-hidden="true">CL</span>';
+ const action=saved?'openMovie(this.dataset.movieId)':'clOpenDiscoveryMovieDetails(Number(this.dataset.movieId))';
+ const movieId=saved?.id||candidate.tmdb_id;
  return '<div class="cl-feed-card'+(mutual?' cl-feed-card--spotlight':'')+'">'+
   (mutual?'<div class="cl-feed-spotlight"><span aria-hidden="true">✦</span> <strong>Don’t miss</strong><span>Both voted Yes</span></div>':'')+
-  (premiere?'<div class="cl-feed-premiere">'+esc(premiere)+'</div>':'')+
-  (watchText?'<div class="cl-feed-premiere">'+esc(watchText)+'</div>':'')+
-  (saved?movieCard(saved):discoveryCard(candidate))+'</div>';
+  '<article class="cl-editorial-card card"><div class="cl-editorial-poster">'+art+'</div><div class="cl-editorial-copy">'+
+  '<h4>'+title+'</h4>'+
+  (credits?'<p class="cl-editorial-meta">'+credits+'</p>':'')+
+  (cast?'<p class="cl-editorial-meta">'+cast+'</p>':'')+
+  (premiere?'<p class="cl-editorial-watch">'+esc(premiere)+'</p>':'')+
+  (watchText?'<p class="cl-editorial-watch">'+esc(watchText)+'</p>':'')+
+  (movie.summary?'<p class="cl-editorial-summary">'+esc(movie.summary)+'</p>':'')+
+  (reason?'<details><summary>Why this pick?</summary><p>'+esc(reason)+'</p></details>':'')+
+  '<button type="button" class="secondary cl-editorial-action" data-movie-id="'+esc(movieId)+'" aria-label="View '+title+'" onclick="'+action+'">View movie</button>'+
+  '</div></article></div>';
 }
 const clRecDiscoveryCard=discoveryCard;
 discoveryCard=function(movie){

@@ -66,6 +66,10 @@ try{
   await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
   assert.match(await spotlight.innerText(),/Both voted Yes[\s\S]*A Biltmore Christmas/);
   assert.ok(await spotlight.evaluate(el=>getComputedStyle(el).borderTopWidth==='2px'));
+  await spotlight.getByRole('button',{name:'View A Biltmore Christmas'}).click();
+  await page.getByRole('dialog').getByRole('heading',{name:'A Biltmore Christmas'}).waitFor();
+  await page.keyboard.press('Escape');
+  await page.getByRole('dialog').waitFor({state:'hidden'});
   await page.evaluate(()=>{movieFilters.season='Fall';movieFilters.yearMin=2099;movieFilters.mode='yes';});
   const search=page.getByRole('searchbox',{name:'Search Movie Radar'});
   await search.fill('Return to Santa');
@@ -92,6 +96,10 @@ try{
   await panel.getByRole('heading',{name:'Falling Together',exact:true}).waitFor();
   assert.match(await panel.innerText(),/TMDB · exact title/);
   assert.ok(await panel.getByRole('button',{name:'Add and open'}).isVisible());
+  await page.getByRole('button',{name:'Clear',exact:true}).click();
+  assert.equal(await search.inputValue(),'');
+  await page.locator('#radarBrowseResults').waitFor({state:'visible'});
+  assert.equal(await search.evaluate(input=>input===document.activeElement),true);
   assert.equal(await page.evaluate(()=>window.__movieWrites),0);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.close();

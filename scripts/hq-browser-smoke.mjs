@@ -236,7 +236,7 @@ try{
  await page.getByRole('button',{name:'Find movies for us',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&discoveryLoaded);
  assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
- await page.waitForFunction(()=>document.querySelector('.new-find-poster img')?.naturalWidth>0);
+ await page.waitForFunction(()=>document.querySelector('.cl-editorial-poster img')?.naturalWidth>0);
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
  await page.getByRole('button',{name:'Refresh picks',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1000);

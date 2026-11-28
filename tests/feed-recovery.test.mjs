@@ -27,8 +27,8 @@ test('saved Yes and split votes remain; recorded and both-No are removed from th
  const {c}=client();await c.discoverCheeseMovies(true);const picks=c.state.discoveryResults.slice(0,4);
  c.state.movies=picks.map((m,i)=>({title:m.title,year:m.year,status:i===2?'recorded':'needs_review',votes:i===0?{nick:'yes',jenny:'yes'}:i===1?{nick:'no',jenny:'yes'}:{nick:'no',jenny:'no'}}));
  c.discoveryHidden.add(picks[0].tmdb_id);
- const html=c.discoveryPanel();assert.ok(html.includes('SAVED '+picks[0].title));assert.ok(html.includes('SAVED '+picks[1].title));
- assert.ok(!html.includes('<article>SAVED '+picks[2].title));assert.ok(!html.includes('<article>SAVED '+picks[3].title));
+ const html=c.discoveryPanel();assert.ok(html.includes('<h4>'+picks[0].title+'</h4>'));assert.ok(html.includes('<h4>'+picks[1].title+'</h4>'));
+ assert.ok(!html.includes('<h4>'+picks[2].title+'</h4>'));assert.ok(!html.includes('<h4>'+picks[3].title+'</h4>'));
  assert.ok(html.indexOf('Coming Soon')<html.indexOf('Top 20 for Cheese Louise'));
  assert.ok(html.indexOf('Top 20 for Cheese Louise')<html.indexOf('More Movies to Discover'));
 });
@@ -63,9 +63,9 @@ test('recorded and released episode links supersede stale movie review status',a
  c.state.movies=picks.map((movie,i)=>({id:'movie-'+i,title:movie.title,year:movie.year,status:'needs_review',votes:{nick:'yes'}}));
  c.state.episodes=['recorded','released','watched'].map((status,i)=>({movie_id:'movie-'+i,status}));
  const html=c.discoveryPanel();
- assert.ok(!html.includes('<article>SAVED '+picks[0].title+'</article>'));
- assert.ok(!html.includes('<article>SAVED '+picks[1].title+'</article>'));
- assert.ok(html.includes('<article>SAVED '+picks[2].title+'</article>'));
+ assert.ok(!html.includes('<h4>'+picks[0].title+'</h4>'));
+ assert.ok(!html.includes('<h4>'+picks[1].title+'</h4>'));
+ assert.ok(html.includes('<h4>'+picks[2].title+'</h4>'));
 });
 test('season filters still restrict the pool to actual catalog Fall romances',async()=>{
  const {c}=client();c.movieFilters.season='Fall';await c.discoverCheeseMovies(true);

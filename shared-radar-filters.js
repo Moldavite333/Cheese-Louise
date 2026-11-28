@@ -116,16 +116,15 @@ movies = function(){
   const filterCount = activeFilterCount();
   const newFindCount = sharedRadarCandidateCount();
 
-  return `<section class="section">
-    <div class="page-title">Movie Radar</div>
-    <div class="subtle">Find, save, vote, discuss — and build the Cheese Rating from actual Romantiverse traits.</div>
+  return `<section class="section hq-radar-intro">
+    <h1 class="page-title">Movie Radar</h1>
+    <p class="hq-radar-lede">Find your next Cheese Louise episode.</p>
     <div class="movie-header-actions">
       <button class="primary" onclick="addMovie()">+ Add movie</button>
       <button class="secondary our-movies-shortcut" onclick="hqWorkspace.open('ourmovies')">Our Movies</button>
       <button id="radarFiltersButton" class="secondary" onclick="toggleMovieFilters()">⚙ Filters${filterCount?` (${filterCount})`:''}</button>
       <button class="secondary" onclick="openTraitManager()">🧀 Trait Library</button>
     </div>
-    <div class="subtle" style="margin-top:10px">Radar filters apply to <strong>both New Finds and movies already added to the Radar</strong>.</div>
   </section>
 
   <section class="section">
