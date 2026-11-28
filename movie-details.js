@@ -58,6 +58,22 @@ async function clAddDiscoveryFromDetail(tmdbId,applyTraits){
   await addDiscoveredMovie(Number(tmdbId),!!applyTraits);
 }
 
+async function clSelectDiscoveryMovie(tmdbId){
+  const candidate=(state.discoveryResults||[]).find(movie=>Number(movie.tmdb_id)===Number(tmdbId));
+  if(!candidate)return;
+  const linked=typeof romantiverseSearchLinkedMovie==='function'?romantiverseSearchLinkedMovie(candidate):discoverySavedMovie(candidate);
+  const movieId=linked?.id||await persistDiscoveredMovie(Number(tmdbId),false,candidate);
+  if(!movieId)return;
+  clDiscoveryMovieDetailId=null;
+  clSelectSavedMovie(movieId);
+}
+
+function clSelectSavedMovie(movieId){
+  const linked=(state.episodes||[]).filter(episode=>episode.movie_id===movieId);
+  if(linked.length>1){openMovie(movieId);return;}
+  window.clPrepareSavedMovie(movieId,linked[0]?.id);
+}
+
 function clHideDiscoveryFromDetail(tmdbId){
   clDiscoveryMovieDetailId=null;
   hideDiscoveredMovie(Number(tmdbId));
@@ -67,12 +83,10 @@ window.clPrepareSavedMovie=function(movieId,episodeId){
   if(!(state.movies||[]).some(movie=>movie.id===movieId))return;
   if(episodeId){
     if(!(state.episodes||[]).some(episode=>episode.id===episodeId&&episode.movie_id===movieId))return;
-    window.hqWorkspace.open('episodes');
-    if(currentTab==='episodes')window.openEpisode(episodeId);
+    window.hqWorkspace.resumeEpisode(episodeId);
     return;
   }
-  window.hqWorkspace.open('watchalong');
-  if(currentTab==='watchalong')window.watchAlongChangeMovie(movieId);
+  if(window.hqWorkspace.open('watchalong')&&currentTab==='watchalong')window.watchAlongChangeMovie(movieId);
 };
 
 function clSavedMovieDetailModal(){
@@ -86,7 +100,7 @@ function clSavedMovieDetailModal(){
   const episodes=(state.episodes||[]).filter(episode=>episode.movie_id===m.id);
   const prepare=episodes.length===1
     ?`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}','${esc(episodes[0].id)}')">Resume episode</button>`
-    :`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}')">Open Watch Along</button>`;
+    :`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}')">Prepare in Watch Along</button>`;
 
   return `<div class="modal-backdrop" onclick="clCloseSavedMovieDetails(event)"><div class="modal cl-movie-detail-modal" onclick="event.stopPropagation()">
     <div class="modal-header cl-movie-detail-header">
@@ -174,6 +188,7 @@ function clDiscoveryMovieDetailModal(){
         <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Estimated Cheese Rating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(c.providers)}</div>
         ${clMovieDetailLinks(c)}
+        <div class="cl-movie-detail-actions"><button type="button" class="primary" onclick="clSelectDiscoveryMovie(${Number(c.tmdb_id)})">Select movie</button></div>
       </div>
     </div>
 
@@ -196,8 +211,8 @@ function clDiscoveryMovieDetailModal(){
     ${why.length?`<section class="cl-movie-detail-section"><div class="kicker">Why it surfaced</div><div class="pills cl-movie-detail-tags">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></section>`:''}
 
     <div class="episode-editor-actions cl-movie-detail-footer-actions">
-      <button class="primary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},true)">${traits.length?`Add + confirm ${traits.length} traits`:'Add to Radar'}</button>
-      ${traits.length?`<button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},false)">Add only</button>`:''}
+      <button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},false)">Add to Radar</button>
+      ${traits.length?`<button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},true)">Add + confirm ${traits.length} traits</button>`:''}
       <button class="secondary" onclick="clHideDiscoveryFromDetail(${Number(c.tmdb_id)})">Hide for now</button>
       <button class="secondary" onclick="clCloseDiscoveryMovieDetails()">Close</button>
     </div>

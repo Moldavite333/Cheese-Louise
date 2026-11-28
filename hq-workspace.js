@@ -40,7 +40,7 @@
  }
  function dirtyModal(){return document.querySelector('.modal-backdrop .modal[data-hq-dirty="true"]')}
  function open(id){
-  if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return;
+  if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return false;
   if(id==='recording'&&currentTab==='watchalong')window.clProduction?.followWatchMovie?.();
   moreOpen=false;selectedMovie=null;
   const actions={cocktails:'openCocktailBar',traits:'openTraitManager',bingo:'openRomantiverseBingo',checklist:'openPodcastLaunchChecklist',lab:'openShowLabView'};
@@ -49,6 +49,11 @@
   else if(routes.some(r=>r[0]===id))go(id);
   window.scrollTo({top:0,behavior:'instant'});
   if(!document.querySelector('.modal-backdrop'))document.getElementById('hq-main')?.focus({preventScroll:true});
+  return true;
+ }
+ function resumeEpisode(id){
+  if(!(state.episodes||[]).some(episode=>episode.id===id))return;
+  if(open('episodes'))window.openEpisode(id);
  }
  function nextEpisode(episodes){
   const done=/^(published|released|complete|completed|cancelled|canceled|retired)$/i;
@@ -98,7 +103,8 @@
    '<li><button type="button" onclick="hqWorkspace.open(&quot;'+id+'&quot;)"><span class="hq-simple-number">'+(i+1)+'</span><span class="hq-simple-copy"><strong>'+title+'</strong><small>'+description+'</small></span><span class="hq-simple-arrow" aria-hidden="true">→</span></button></li>'
   ).join('');
   return '<section class="section hq-today hq-home-simple"><div class="hq-page-eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>One step at a time.</h1><p class="hq-lede">Choose what you are working on. Opening a step does not create or publish anything.</p>'
-   +transcriptSuggestions()+'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p><button type="button" class="primary" onclick="hqWorkspace.open(&quot;'+(next?'episodes':'movies')+'&quot;)">'+(next?'Continue this episode':'Find a movie')+'</button></article>'
+   +'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p>'+
+   (next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>')+'</article>'+transcriptSuggestions()
    +'<div class="hq-simple-heading"><h2>Episode steps</h2><span class="subtle">Open only what you need</span></div><ol class="hq-simple-steps">'+steps+'</ol>'
    +'<details class="hq-home-extras"><summary>Other tools and saved work</summary><div><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;ourmovies&quot;)">Our Movies</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;cocktails&quot;)">Cocktail Bar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;schedule&quot;)">Calendar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;bingo&quot;)">Bingo Builder</button></div></details></section>';
  }
@@ -178,7 +184,7 @@
   window[name]=function(...args){const result=previous.apply(this,args);for(const [id,key] of [['hq-season','season'],['hq-holiday','holiday']]){const control=document.getElementById(id);if(control)control.value=movieFilters[key]||''}if(name==='applyFilterPreset'||name==='clearMovieFilters')scheduleRomantiverseSearch(searchText);return result};
  }
  document.addEventListener('click',event=>{const action=event.target.closest?.('button[onclick]')?.getAttribute('onclick')||'';if(!dirtyModal())return;if(action.includes('scheduleEpisode(')){event.preventDefault();event.stopImmediatePropagation();alert('Save your episode edits before scheduling the recording.');return}if(action.includes('openCocktailBarFromEpisode(')&&!confirm('Open the Cocktail Bar without saving episode edits?')){event.preventDefault();event.stopImmediatePropagation()}},true);
- window.hqWorkspace={open,more,refresh,shouldDeferRefresh,nextEpisode,loadError,cleanForm,
+ window.hqWorkspace={open,resumeEpisode,more,refresh,shouldDeferRefresh,nextEpisode,loadError,cleanForm,
   search(){open('movies');requestAnimationFrame(()=>document.getElementById('globalSearch')?.focus())},
   clearSearch(){const field=document.getElementById('globalSearch');if(field){field.value='';window.setSearch('');field.focus();}}
  };

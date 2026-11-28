@@ -226,7 +226,7 @@ async function saveDiscoveredMovie(id,applyTraits,c){
   if(!c||!workspace) return;
   const workspaceId=workspace.id;
   const existing=discoverySavedMovie(c);
-  if(existing){ selectedMovie=existing.id; render(); return; }
+  if(existing){ selectedMovie=existing.id; render(); return existing.id; }
 
   const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official';
   const isCatalog=c.source_type==='bingo_catalog';
@@ -254,7 +254,7 @@ async function saveDiscoveredMovie(id,applyTraits,c){
   if(error?.code==='23505'&&workspace?.id===workspaceId){
     await loadAll();
     const existing=discoverySavedMovie(c);
-    if(existing&&workspace?.id===workspaceId){openMovie(existing.id);return;}
+    if(existing&&workspace?.id===workspaceId){openMovie(existing.id);return existing.id;}
   }
   if(error) return alert(error.message);
   if(workspace?.id!==workspaceId)return;
@@ -271,6 +271,7 @@ async function saveDiscoveredMovie(id,applyTraits,c){
   await loadAll();
   if(workspace?.id!==workspaceId)return;
   selectedMovie=data.id; traitSearch=''; traitSelectedOnly=false; render();
+  return data.id;
 }
 
 function hideDiscoveredMovie(id){ discoveryHidden.add(Number(id)); render(); }

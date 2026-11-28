@@ -85,6 +85,13 @@ try{
   await page.getByRole('dialog').getByRole('heading',{name:'A Biltmore Christmas'}).waitFor();
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').waitFor({state:'hidden'});
+  await page.evaluate(()=>clOpenDiscoveryMovieDetails(2023));
+  await page.getByRole('dialog').getByRole('button',{name:'Select movie',exact:true}).click();
+  await page.waitForFunction(()=>currentTab==='watchalong'&&localStorage.getItem('cheeseLouise:watchAlong:search-fixture:movie')==='biltmore');
+  await page.evaluate(()=>hqWorkspace.open('home'));
+  await page.getByRole('button',{name:'Continue this episode',exact:true}).click();
+  await page.waitForFunction(()=>currentTab==='episodes'&&selectedEpisode==='episode-santa');
+  await page.evaluate(()=>{closeEpisode();hqWorkspace.search();});
   await page.evaluate(()=>{movieFilters.season='Fall';movieFilters.yearMin=2099;movieFilters.mode='yes';});
   const search=page.getByRole('searchbox',{name:'Search Movie Radar'});
   await search.fill('Return to Santa');
