@@ -199,7 +199,7 @@
   async function deleteDraft(id){
     if(deletingDraft||!scope())return;
     const recipe=(state.cocktails||[]).find(c=>c.id===id&&c.cocktail_type==='cheese_louise');
-    if(!recipe||!confirm('Delete "'+recipe.name+'" from the shared Cocktail Bar?'))return;
+    if(!recipe||!confirm('Delete "'+recipe.name+'" and its workshop and research from the shared Cocktail Bar?'))return;
     const account=scope();
     deletingDraft=true;
     try{
