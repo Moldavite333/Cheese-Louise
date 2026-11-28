@@ -30,13 +30,22 @@
     mutate(s,d=>{d.messages=messages.slice(-40)});
   }
   const message=(role,text,c)=>({id:C.id(),role,text:text.slice(0,3000),actorId:c.actorId,createdAt:new Date().toISOString()});
+  function simpleFoundation(cocktail,variant){
+    const spirit=R.norm(cocktail.base_spirit);
+    const ingredients=clRecipeRows(cocktail);
+    if(!ingredients.length||ingredients.length>6)return false;
+    if(variant==='alcohol_free')return spirit==='na';
+    const familiar=/^(?:vodka|gin|(?:white |light |dark |aged |spiced )?rum|brandy|tequila|sparkling wine)$/;
+    const specialty=/\b(?:amaro|aperol|applejack|aquavit|absinthe|bourbon|calvados|campari|cachaca|chartreuse|cointreau|cognac|curacao|drambuie|falernum|fernet|frangelico|kahlua|liqueur|maraschino|mezcal|midori|pisco|scotch|sherry|sloe gin|schnapps|vermouth|whiskey|whisky|triple sec)\b/;
+    return familiar.test(spirit)&&!ingredients.some(row=>specialty.test(R.norm(row.ingredient)));
+  }
   async function generate(){
     const s=get(),c=current();if(!s?.ready||s.busy)return;if(['loading','multiple','unavailable'].includes(c.movieContextStatus)){s.error=c.movieContextStatus==='loading'?'Checking the saved movie connection. Try again in a moment.':'Open this recipe from its intended saved movie before requesting movie-based recommendations. Existing directions and recipes are unchanged.';repaint(s);return;}s.busy=true;s.error='';repaint(s);
     try{await clLoadOnlineCatalog(false);if(!active(s))return;const movie=state.movies.find(m=>m.id===c.movieId)||null,brief=s.store.document.brief;
       const context=movie||{title:'Standalone workshop',summary:brief,season:''};
-      const ranked=clSmartOriginalMatches(context).filter(r=>{const nonalcoholic=R.norm(r.cocktail.base_spirit)==='na';return c.variant==='alcohol_free'?nonalcoholic:!nonalcoholic;}).map(r=>({...r,cocktail:{...r.cocktail,diversityFamily:clCocktailDiversityProfile(r.cocktail).family}}));
+      const ranked=clSmartOriginalMatches(context).filter(r=>simpleFoundation(r.cocktail,c.variant)).map(r=>({...r,cocktail:{...r.cocktail,diversityFamily:clCocktailDiversityProfile(r.cocktail).family}}));
       const result=R.concepts(ranked,{brief,movie,retrievedAt:clOnlineCatalogStatus.updatedAt?new Date(clOnlineCatalogStatus.updatedAt).toISOString():new Date().toISOString()});
-      mutate(s,d=>{d.concepts=result.concepts;d.research=null});s.coverage=result.warning||'Five distinct source-backed directions. These are starting points, not tested Cheese Louise recipes.';await s.store.flush();
+      mutate(s,d=>{d.concepts=result.concepts;d.research=null});s.coverage=result.concepts.length===5?'Five simple recipes to try.':'Found '+result.concepts.length+' simple recipes with distinct styles.';await s.store.flush();
     }catch(error){s.error=error.message||'Concept discovery unavailable. Existing recipe is unchanged.';}finally{s.busy=false;repaint(s);}
   }
   async function investigate(id){const s=get(),c=current();if(!s?.ready||s.busy)return;const concept=s.store.document.concepts.find(x=>x.id===id);if(!concept)return;s.busy=true;s.error='';repaint(s);
@@ -80,7 +89,7 @@
   function exportWorkshop(){const s=get();if(!s)return;const blob=new Blob([JSON.stringify({workshop:s.store.document,loadedConversation:s.log,loadedResearch:s.researchLog},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mixology-workshop.json';a.click();URL.revokeObjectURL(url);}
   function sourceLink(url,label){const allowed=R.sourceUrl(url);return allowed?'<a href="'+esc(allowed)+'" target="_blank" rel="noopener">'+esc(label)+'</a>':esc(label);}
   function diffHtml(a,b){const changes=C.differences(a,b);return '<div class="mix-diff">'+(changes.length?changes.map(x=>'<article><strong>'+esc(x.kind.toUpperCase()+' · '+x.label)+'</strong><div>Before: '+esc(x.before||'Absent')+'</div><div>After: '+esc(x.after||'Absent')+'</div></article>').join(''):'<p>No recipe differences.</p>')+'</div>';}
-  function conceptCards(s){return '<div class="mix-concepts">'+s.store.document.concepts.map(c=>'<article><h3>'+esc(c.name)+'</h3><p>Foundation: '+sourceLink(c.sourceUrl,c.foundation)+'</p><p>'+esc(c.family+' · '+c.spirit)+' · Untested concept</p><p>'+esc('Movie fit: '+(c.why.filter(reason=>/^(matches |season (?:fit|authenticity):|mood fit:|personality fit:|story ingredient:|title\/name .*chemistry:)/i.test(reason)).slice(0,2).join(' · ')||'Broad pairing; no specific movie-flavor match found.'))+'</p><details open><summary>Ingredients & thematic clues</summary><pre>'+esc(c.ingredients)+'</pre><p>'+esc(c.why.join(' · '))+'</p><p>Effort: '+esc(c.effort)+' · Catalog retrieved '+esc(c.retrievedAt)+'</p></details><button class="secondary" '+(s.busy?'disabled':'')+' onclick="clMixologyTools.investigate('+esc(JSON.stringify(c.id))+')">Research this direction</button></article>').join('')+'</div>';}
+  function conceptCards(s){return '<div class="mix-concepts">'+s.store.document.concepts.map(c=>'<article><h3>'+esc(c.name)+'</h3><p>Foundation: '+sourceLink(c.sourceUrl,c.foundation)+'</p><p>'+esc(c.family+' · '+c.spirit)+' · Untested concept</p><details open><summary>Ingredients</summary><pre>'+esc(c.ingredients)+'</pre><p>Effort: '+esc(c.effort)+' · Catalog retrieved '+esc(c.retrievedAt)+'</p></details><button class="secondary" '+(s.busy?'disabled':'')+' onclick="clMixologyTools.investigate('+esc(JSON.stringify(c.id))+')">Research this direction</button></article>').join('')+'</div>';}
   function researchHtml(s){
     const d=s.store.document,r=d.research;
     const discovery=(s.busy&&!d.concepts.length?'<p role="status">Finding source-backed cocktail directions for your movie…</p>':'')+(current().movieId?'<details><summary>Refine the movie inspiration · optional</summary>':'')+'<label>Your idea · optional<textarea class="search" rows="3" maxlength="2000" oninput="clMixologyTools.input(&quot;brief&quot;,this.value)">'+esc(d.brief)+'</textarea></label>'+(current().movieId?'</details>':'')+'<button class="primary" '+(s.busy?'disabled':'')+' onclick="clMixologyTools.generate()">'+(current().movieId?'Refresh recommendations':'Find five directions')+'</button><p>'+esc(s.coverage)+'</p>'+conceptCards(s);
