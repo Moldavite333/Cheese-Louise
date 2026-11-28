@@ -27,6 +27,10 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: Check title search and canonical episode resume
         run: node scripts/movie-search-browser-smoke.mjs
+      - name: Check the assembled HQ interface using mocked authentication and data
+        run: node scripts/hq-browser-smoke.mjs
+      - name: Check cocktail ranking, details and fresh variations on mobile and desktop
+        run: node scripts/cocktail-browser-smoke.mjs
       - name: Check Mixology persistence and two-host workflow with isolated PostgreSQL
         run: node scripts/mixology-browser-smoke.mjs
       - name: Check preparation and approved-version recording packets
@@ -53,10 +57,6 @@ jobs:
         run: node scripts/mixology-movie-browser-smoke.mjs
       - name: Check research and reviewed bartender proposals with a fake provider
         run: node scripts/mixology-stage2-browser-smoke.mjs
-      - name: Check the assembled HQ interface using mocked authentication and data
-        run: node scripts/hq-browser-smoke.mjs
-      - name: Check cocktail ranking, details and fresh variations on mobile and desktop
-        run: node scripts/cocktail-browser-smoke.mjs
       - name: Check deployed songwriting readiness and authentication
         run: node scripts/grit-live-smoke.mjs
       - name: Check original Grit songwriting in real browsers

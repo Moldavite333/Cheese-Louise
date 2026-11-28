@@ -59,3 +59,20 @@ test('changing season on the same movie invalidates stale generated suggestions 
  assert.match(h.context.clGeneratedVersionsHtml('m'),/cl-generated-card/);movie.season='Summer';assert.match(h.context.clGeneratedVersionsHtml('m'),/Movie details or the cocktail library changed/);
  assert.equal(h.context.state.cocktails.length,3);await h.context.clGenerateThree('m');assert.match(h.context.clGeneratedVersionsHtml('m'),/cl-generated-card/);
 });
+
+test('apple and cider story clues require explicit movie evidence',()=>{
+ const h=cocktailHarness(),drink=recipe('Cider Highball','apple cider\nrum','Rum');
+ const clues=movie=>h.context.clSmartMatch(movie,drink).reasons.filter(r=>r.startsWith('story ingredient:'));
+ assert.deepEqual(Array.from(clues({title:'Home Again',summary:'A family reunites at an orchard.',selectedTraits:[{name:'Apple cider'}]})),[]);
+ assert.deepEqual(Array.from(clues({title:'Home Again',synopsis:'They share a glass of cider.'})),['story ingredient: cider']);
+});
+
+test('a gingerbread scene rewards a gingerbread recipe over a generic seasonal flavor',()=>{
+ const h=cocktailHarness();
+ const movie={title:'Christmas Reunion',summary:'The opening scene is a gingerbread competition.',season:'Winter',holiday:'Christmas'};
+ const gingerbread=h.context.clSmartMatch(movie,recipe('Gingerbread Loophole','dark rum\ngingerbread syrup\nblack tea','Dark Rum'));
+ const cider=h.context.clSmartMatch(movie,recipe('Cider Highball','dark rum\napple cider','Dark Rum'));
+ assert.ok(gingerbread.reasons.includes('story ingredient: gingerbread'));
+ assert.ok(!cider.reasons.some(r=>r.startsWith('story ingredient:')));
+ assert.ok(gingerbread.score>cider.score);
+});

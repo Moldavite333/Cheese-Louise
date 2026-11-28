@@ -92,22 +92,33 @@
  function dashboard(){
   const next=nextEpisode(state.episodes||[]);
   const stages=[
-   ['movies','Find the movie','Search the exact title and choose what to watch.'],
-   ['watchalong','Prepare','Keep movie notes, cocktail and Bingo together.'],
-   ['recording','Record','Open the simple Nick or Jenny recording desk.'],
-   ['episodes','Finish the episode','Complete the audio, song and episode information.'],
-   ['marketing','Make the clips','Pick a funny moment and prepare the posts.'],
-   ['production','Approve and schedule','Check everything before Buzzsprout release.']
+   ['Plan the episode',[
+    ['movies','Find a movie'],
+    ['watchalong','Watch Along'],
+    ['cocktails','Cocktail Bar'],
+    ['bingo','Bingo Builder']
+   ]],
+   ['Record and edit',[
+    ['recording','Recording'],
+    ['episodes','Episode details']
+   ]],
+   ['Publish and promote',[
+    ['production','Release checklist'],
+    ['schedule','Calendar'],
+    ['marketing','Marketing']
+   ]]
   ];
-  const steps=stages.map(([id,title,description],i)=>
-   '<li><button type="button" onclick="hqWorkspace.open(&quot;'+id+'&quot;)"><span class="hq-simple-number">'+(i+1)+'</span><span class="hq-simple-copy"><strong>'+title+'</strong><small>'+description+'</small></span><span class="hq-simple-arrow" aria-hidden="true">→</span></button></li>'
+  const steps=stages.map(([title,actions])=>
+   '<li class="hq-workflow-stage"><h3>'+escape(title)+'</h3><ul>'+actions.map(([id,label])=>
+    '<li>'+navButton(id,label)+'</li>'
+   ).join('')+'</ul></li>'
   ).join('');
-  return '<section class="section hq-today hq-home-simple"><div class="hq-page-eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>One step at a time.</h1><p class="hq-lede">Choose what you are working on. Opening a step does not create or publish anything.</p>'
-   +'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p>'+
-   (next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>')+
-   ' <button type="button" class="secondary" onclick="clEpisodeWizard.start()">Episode setup wizard</button></article>'+transcriptSuggestions()
-   +'<div class="hq-simple-heading"><h2>Episode steps</h2><span class="subtle">Open only what you need</span></div><ol class="hq-simple-steps">'+steps+'</ol>'
-   +'<details class="hq-home-extras"><summary>Other tools and saved work</summary><div><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;ourmovies&quot;)">Our Movies</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;cocktails&quot;)">Cocktail Bar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;schedule&quot;)">Calendar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;bingo&quot;)">Bingo Builder</button></div></details></section>';
+  return '<section class="section hq-today hq-home-simple"><h1>Today</h1>'
+   +'<article class="hq-next-item"><div class="kicker">'+(next?'Next unfinished episode':'Next episode')+'</div><h2>'+escape(next?.title||'Choose a movie')+'</h2>'
+   +(next?'<p class="subtle">'+escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):'')+'</p>':'')
+   +(next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>') + '<button type="button" class="secondary" onclick="clEpisodeWizard.start()">Episode setup wizard</button></article>'
+   +'<div class="hq-simple-heading"><h2>Episode workflow</h2></div><ol class="hq-workflow">'+steps+'</ol>'
+   +transcriptSuggestions()+'</section>';
  }
  function top(){
   return '<header class="topbar hq-topbar"><div class="hq-topbar-line"><strong>Cheese Louise HQ</strong><details class="hq-account"><summary>'+escape(profile?.display_name||'Account')+'</summary><div><p>Shared workspace · '+(members||[]).length+' members</p><p>Join code: <strong>'+escape(workspace?.join_code||'Not available')+'</strong></p><button class="secondary" onclick="signOut()">Sign out</button></div></details></div><div class="search-row"><label class="hq-search-label" for="globalSearch">Search Movie Radar</label><div class="hq-movie-search" role="search" aria-label="Movie Radar"><span class="hq-search-icon" aria-hidden="true"></span><input id="globalSearch" class="search" type="search" placeholder="Movie title, actor, or story idea" value="'+escape(searchText)+'" oninput="setSearch(this.value)" aria-label="Search Movie Radar"><button type="button" class="hq-clear-search" onclick="hqWorkspace.clearSearch()">Clear</button></div></div><button type="button" id="hq-refresh" class="hq-refresh" '+(!pendingRefresh?'hidden':'')+' onclick="hqWorkspace.refresh()">Shared updates available. Refresh when ready.</button></header>';

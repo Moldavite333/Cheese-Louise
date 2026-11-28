@@ -1,35 +1,4 @@
-/* Shared signed-in HQ surfaces and movie discovery hierarchy. */
-body.hq-signed-in {
-  --bg: #101b18;
-  --panel: #192923;
-  --panel-2: #22372f;
-  --surface: #22372f;
-  --line: #3c5147;
-  --text: #fcf3e3;
-  --muted: #b9c7bc;
-  --accent: #f1cd79;
-  --shadow: 0 8px 24px #06120c26;
-  --radius: 16px;
-  background: radial-gradient(ellipse at 75% 0%, #24372d 0%, var(--bg) 34rem);
-}
-.hq-signed-in :is(.hq-sidebar,.hq-mobile-nav) {background: #14231d;}
-.hq-signed-in .hq-topbar {background: #101b18f7;box-shadow: 0 8px 20px #09140e21;}
-.hq-signed-in .hq-topbar-line > strong {font-size: .86rem;color: var(--text);}
-.hq-signed-in :is(.hq-sidebar-brand strong,.hq-today h1,.new-find-header .page-title) {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-weight: 700;
-}
-.hq-signed-in .hq-sidebar-brand > span {
-  background: #eacd90;
-  color: #283028;
-  box-shadow: inset 0 0 0 1px #fff3d577;
-  font-family: Georgia, serif;
-}
-.hq-signed-in :is(.hq-sidebar button,.hq-mobile-nav button,.hq-account summary) {min-height: 44px;}
-.hq-signed-in .hq-account summary {align-content: center;}
-.hq-signed-in :is(.card,.modal,.hq-next-item) {border-color: var(--line);}
-.hq-signed-in :is(.hq-next-item,.hq-simple-steps) {border-radius: var(--radius);}
-.hq-signed-in .hq-next-item {background: linear-gradient(120deg,#294135,var(--panel) 68%);}
+/* Movie Radar and episode setup. */
 .hq-movie-search {
   display: grid;
   grid-template-columns: 20px minmax(0,1fr) auto;

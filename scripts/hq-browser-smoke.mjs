@@ -15,7 +15,7 @@ try{
  await page.route('**/fixture-poster.svg',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#416c57"/><text x="20" y="140" fill="white">MOVIE POSTER</text></svg>'}));
  await page.addInitScript(()=>{
   const makeQuery=()=>{const query=new Proxy({then(resolve){return Promise.resolve(resolve({data:[],error:null}))}},{get(target,key){if(key in target)return target[key];if(key==='single'||key==='maybeSingle')return async()=>({data:null,error:null});return ()=>query}});return query};
-  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='search-romantiverse'&&body.lookup_exact&&body.query.toLowerCase()==='falling together'?{data:{results:[{tmdb_id:2024,tmdb_type:'movie',source_type:'tmdb_exact_title',exact_title_match:true,title:'Falling Together',year:2024,summary:'Neighbors find romance.',stars:['Ashley Williams','Paul Campbell'],genres:['Romance','TV Movie']}]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'bingo_catalog',title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
+  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='search-romantiverse'&&body.lookup_exact&&body.query.toLowerCase()==='falling together'?{data:{results:[{tmdb_id:2024,tmdb_type:'movie',source_type:'tmdb_exact_title',exact_title_match:true,title:'Falling Together',year:2024,summary:'Neighbors find romance.',stars:['Ashley Williams','Paul Campbell'],genres:['Romance','TV Movie']}]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'bingo_catalog',source_metadata:{romantiverse:{status:'eligible',reason:'A magic hourglass sends a woman back in time.',source:'https://fixture.example/movie'}},title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
  });
  await page.goto(origin,{waitUntil:'networkidle'});
  await page.evaluate(()=>{
@@ -34,9 +34,20 @@ try{
   state.schedule=[{id:'fixture-event',title:'Record the holiday episode and review the very long production checklist together',item_type:'record',starts_at:new Date().toISOString(),notes:'Fixture calendar item'}];
   render();
  });
- await page.getByRole('heading',{name:'Make the next episode.',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Today',exact:true}).waitFor();
  assert.ok(await page.getByRole('heading',{name:'Upcoming episode',exact:true}).isVisible());
- assert.ok(await page.locator('.hq-overview').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
+ assert.ok(await page.locator('.hq-next-item').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
+ const colors=await page.locator('body').evaluate(el=>{
+  const style=getComputedStyle(el);
+  return [style.backgroundColor,style.color,style.colorScheme];
+ });
+ assert.deepEqual(colors,['rgb(25, 21, 28)','rgb(255, 242, 226)','dark']);
+ assert.deepEqual(await page.locator('.hq-workflow h3').allTextContents(),['Plan the episode','Record and edit','Publish and promote']);
+ const workflow=page.locator('.hq-workflow');
+ assert.equal(await workflow.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width<=760?1:3);
+ await workflow.getByRole('button',{name:'Calendar',exact:true}).click();
+ assert.equal(await page.locator('#hq-main').getAttribute('data-hq-view'),'schedule');
+ await page.evaluate(()=>hqWorkspace.open('home'));
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dashboard fits '+width);
  if(width<=900){
   assert.equal(await page.locator('.hq-mobile-nav button').count(),5);
@@ -200,26 +211,29 @@ try{
    if(width<=900)assert.ok(await page.evaluate(()=>document.querySelector('.clp-sticky-actions').getBoundingClientRect().bottom<=document.querySelector('.hq-mobile-nav').getBoundingClientRect().top+1),'Recording actions clear mobile navigation');
    await page.evaluate(()=>clProduction.view('record'));
    assert.equal(await page.locator('.cl-storyboard,.clp-marker,.clp-segment-map').count(),0,'Live Record is a reading desk without scenes or markers');
-   assert.ok(await page.getByRole('heading',{name:'Nick’s notes',exact:true}).isVisible());
+   assert.ok(await page.getByRole('heading',{name:'Nick’s recording notes',exact:true}).isVisible());
+   assert.equal(await page.locator('.cldesk-notes').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 244, 229)','Live notes retain a light paper surface');
    assert.ok(!(await page.locator('.cldesk-notes').innerText()).includes('Jenny’s separate scene note'),'Other host’s scene notes stay out of the desk');
    assert.ok(await page.locator('.cldesk-bingo .clp-bingo-board').isVisible(),'Own Bingo card stays available');
    assert.equal(await page.locator('.cldesk-bingo .clp-bingo-cell.is-bingo').count(),0,'Broken line stays broken on the desk');
-   await page.getByRole('button',{name:'+ Note',exact:true}).click();
-   const personal=page.locator('.cldesk-note textarea').last();await personal.fill('Nick desk note survives timer and host changes.');
-   await page.getByRole('checkbox',{name:/Done:/}).last().check();
-   assert.ok(await page.locator('.cldesk-note').last().evaluate(el=>el.classList.contains('is-done')),'Done dims the note');
+   const note='Nick desk note survives timer and host changes.';
+   const notebook=page.getByRole('list',{name:'Recording notes',exact:true});
+   const editor=page.locator('details[data-clp-detail="edit-host-notebook"]');
+   if(!await editor.evaluate(el=>el.open))await editor.locator('summary').click();
+   await editor.getByRole('textbox',{name:'Recording notes',exact:true}).fill(note);
+   await notebook.getByRole('checkbox',{name:note,exact:true}).check();
+   assert.ok(await notebook.locator('.cldesk-note').evaluate(el=>el.classList.contains('is-done')),'Done dims the note');
    await page.locator('.cldesk-timer').getByRole('button',{name:'Start',exact:true}).click();
    await page.waitForFunction(()=>document.getElementById('cldesk-time').textContent!=='00:00:00');
    await page.locator('.cldesk-timer').getByRole('button',{name:'Pause',exact:true}).click();
    await page.locator('.cldesk-host').getByRole('button',{name:'Jenny',exact:true}).click();
-   assert.ok(await page.getByRole('heading',{name:'Jenny’s notes',exact:true}).isVisible());
-   assert.equal(await page.locator('.cldesk-note textarea').filter({hasText:'Nick desk note'}).count(),0,'Nick’s new note stays private to his workspace view');
-   assert.equal(await page.locator('.cldesk-note input:checked').count(),0,'Done is independent for each host');
+   assert.ok(await page.getByRole('heading',{name:'Jenny’s recording notes',exact:true}).isVisible());
+   assert.equal(await notebook.getByText(note,{exact:true}).count(),0,'Nick’s new note stays private to his workspace view');
+   assert.equal(await notebook.locator('input:checked').count(),0,'Done is independent for each host');
    await page.locator('.cldesk-host').getByRole('button',{name:'Nick',exact:true}).click();
-   assert.equal(await page.locator('.cldesk-note textarea').last().inputValue(),'Nick desk note survives timer and host changes.');
-   assert.equal(await page.locator('.cldesk-note input:checked').count(),1);
+   assert.ok(await notebook.getByRole('checkbox',{name:note,exact:true}).isChecked());
    await page.getByRole('button',{name:'Larger notes',exact:true}).click();
-   assert.ok(await page.locator('.cldesk-note textarea').last().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=22));
+   assert.ok(await notebook.getByText(note,{exact:true}).evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=22));
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'New reading desk fits '+width);
    await page.screenshot({path:'artifacts/hq-live-desk-'+width+'.png',fullPage:true});
   }
@@ -235,7 +249,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
  await page.getByRole('button',{name:'Find movies for us',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&discoveryLoaded);
- assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
+ assert.ok(await page.getByRole('region',{name:'Pick of the Week'}).isVisible());
  await page.waitForFunction(()=>document.querySelector('.cl-editorial-poster img')?.naturalWidth>0);
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
  await page.getByRole('button',{name:'Refresh picks',exact:true}).click();
@@ -243,7 +257,7 @@ try{
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Refreshing preserves eligible recommendations instead of exhausting them');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
  await search.fill('Falling Together');
- await page.locator('#romantiverseSearchHost').getByRole('button',{name:'Look up on TMDB'}).click();
+ await page.locator('#romantiverseSearchHost').getByRole('button',{name:'Search more sources'}).click();
  await page.waitForFunction(()=>state.romantiverseSearchResults.some(m=>m.title==='Falling Together'));
  assert.ok(await page.locator('#romantiverseSearchHost').getByRole('heading',{name:'Falling Together',exact:true}).isVisible(),'Exact title outside catalog is visible');
  await page.evaluate(()=>{movieFilters.holiday='Christmas';movieFilters.yearMin=2026;movieFilters.mode='mutual';refreshRomantiverseSearchPanel()});

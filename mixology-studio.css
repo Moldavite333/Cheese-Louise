@@ -33,3 +33,14 @@
 .mix-movie-recommendations .mix-recipe-context{display:none}.mix-movie-recommendations .mix-tools{grid-template-columns:1fr}.mix-movie-recommendations .mix-header{align-items:flex-start}
 
 .mix-movie-recommendations .mix-movie-context{display:none}.mix-movie-recommendations .mix-tools-main>.mix-tools-actions{display:none}.mix-movie-recommendations .mix-concepts{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}.mix-movie-recommendations .mix-header p{margin-block:8px}.mix-movie-recommendations .mix-concepts article{margin-top:0}
+
+.mix-entry.mix-bar{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:18px}
+.mix-bar .mix-header{width:100%}
+.mix-bar-work{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));align-items:start;gap:14px}
+.mix-bar-work summary{min-height:44px;align-content:center;cursor:pointer;color:var(--text);font-weight:700}
+.mix-bar-work fieldset{display:grid;gap:10px;margin:10px 0 0;padding:0;border:0;min-width:0}
+.mix-bar-work fieldset label,.mix-library label{display:grid;gap:6px}
+.mix-bar-work fieldset select{width:100%;min-width:0}
+.mix-entry.mix-bar details button{margin:0}
+.mix-bar .mix-library button,.mix-bar .mix-resume button{text-align:left;max-width:100%;overflow-wrap:anywhere}
+.mix-bar>button{justify-self:start;text-align:left}

@@ -28,7 +28,7 @@
     return count?'Matches v'+v.version_number+' · '+count+' tasting observation'+(count===1?'':'s'):'Current draft has no recorded tasting';
   }
   function origin(){return {tab:currentTab,hub:cocktailHubView,episode:selectedEpisode,movie:selectedMovie,fields:[...document.querySelectorAll('.modal input,.modal textarea,.modal select')].map(el=>({id:el.id,value:el.value,checked:el.checked})),dirty:!!document.querySelector('.modal[data-hq-dirty="true"]')};}
-  async function open(cocktailId=null,variant='alcoholic',returnTo=null){
+  async function open(cocktailId=null,variant='alcoholic',returnTo=null,newName=''){
     if(!scope())return;
     if(valid()&&ui.feedbackDirty&&!confirm('Leave this tasting? The comment is kept on this browser.'))return;
     const token=++request,id=cocktailId||C.id(),back=returnTo||(active()?ui.back:origin());
@@ -37,6 +37,7 @@
     let cached=null;try{cached=JSON.parse(localStorage.getItem(key(id,variant))||'null')}catch{}
     const seed=cached?.document||(variant==='alcohol_free'?C.fromLegacy({name:(c?.name||'Untitled cocktail').slice(0,140)+' · Alcohol-free'}):C.fromLegacy(c));
     if(!c&&!cached&&variant==='alcoholic'){let n=1;while(state.cocktails.some(row=>row.name.toLowerCase()===seed.name.toLowerCase()))seed.name='Untitled cocktail ('+(++n)+')';}
+    if(newName)seed.name=newName;
     const row=cached?.row||{id:null,revision:0,document:seed,legacy_evidence:{}};
     const context={scope:scope(),cocktail:id,variant,back,tab:'recipe',versions:[],tastings:[],versionId:null,compareA:null,compareB:null,error:'',feedback:null,feedbackDirty:false,inspirationMovie:back.movie||state.episodes.find(e=>e.id===back.episode)?.movie_id||null,movieContextStatus:'loading',movieNotice:''};
     try{const view=JSON.parse(localStorage.getItem(key(id,variant)+':view')||'null');if(view){context.tab=['recipe','history','taste','research','bartender','tastes','prep','photos','publication'].includes(view.tab)?view.tab:'recipe';for(const k of ['versionId','compareA','compareB'])if(typeof view[k]==='string'&&/^[0-9a-f-]{36}$/i.test(view[k]))context[k]=view[k];}}catch{}
@@ -188,10 +189,45 @@
     const recentNames=new Map(drafts.filter(r=>r.variant==='alcoholic').map(r=>[r.id,r.name]));
     const recipes=(state.cocktails||[]).filter(r=>(!r.workspace_id||r.workspace_id===workspace?.id)&&/^[0-9a-f-]{36}$/i.test(r.id));
     const known=new Set(recipes.map(r=>r.id));
-    const rows=recipes.filter(r=>query||r.cocktail_type==='cheese_louise').map(r=>({id:r.id,variant:'alcoholic',name:r.name,draftName:recentNames.get(r.id)}));
+    const rows=recipes.filter(r=>query||r.cocktail_type==='cheese_louise').map(r=>({id:r.id,variant:'alcoholic',name:r.name,draftName:recentNames.get(r.id),canDelete:r.cocktail_type==='cheese_louise'}));
     rows.push(...drafts.filter(r=>!known.has(r.id)||r.variant==='alcohol_free'));
     const found=rows.filter(r=>!query||String(r.name+' '+(r.draftName||'')).toLowerCase().includes(query)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
-    return '<p class="subtle">'+found.length+' '+(found.length===1?'cocktail':'cocktails')+(found.length>libraryLimit?' · showing '+libraryLimit:'')+'</p>'+(found.length?'<div class="mix-toolbar">'+found.slice(0,libraryLimit).map(r=>'<button class="secondary" onclick="clMixology.open(\''+r.id+'\',\''+r.variant+'\')">'+esc(r.name)+(r.variant==='alcohol_free'?' · Alcohol free':'')+'</button>').join('')+'</div>'+(found.length>libraryLimit?'<button class="secondary" onclick="clMixology.moreSaved()">Show more cocktails</button>':''):'<p>'+(query?'No cocktails match that search.':'Your saved Cheese Louise cocktails will appear here.')+'</p>');
+    return '<p class="subtle">'+found.length+' '+(found.length===1?'cocktail':'cocktails')+(found.length>libraryLimit?' · showing '+libraryLimit:'')+'</p>'+(found.length?'<div class="mix-toolbar">'+found.slice(0,libraryLimit).map(r=>'<div class="mix-saved-recipe"><button class="secondary" onclick="clMixology.open(\''+r.id+'\',\''+r.variant+'\')">'+esc(r.name)+(r.variant==='alcohol_free'?' · Alcohol free':'')+'</button>'
+      +(r.canDelete?'<button class="secondary mix-delete-draft" aria-label="Delete draft '+esc(r.name)+'" onclick="clMixology.deleteDraft(\''+r.id+'\')">Delete draft</button>':'')+'</div>').join('')+'</div>'+(found.length>libraryLimit?'<button class="secondary" onclick="clMixology.moreSaved()">Show more cocktails</button>':''):'<p>'+(query?'No cocktails match that search.':'Your saved Cheese Louise cocktails will appear here.')+'</p>');
+  }
+  let deletingDraft=false;
+  async function deleteDraft(id){
+    if(deletingDraft||!scope())return;
+    const recipe=(state.cocktails||[]).find(c=>c.id===id&&c.cocktail_type==='cheese_louise');
+    if(!recipe||!confirm('Delete "'+recipe.name+'" and its workshop and research from the shared Cocktail Bar?'))return;
+    const account=scope();
+    deletingDraft=true;
+    try{
+      await call('mixology_discard_draft',{p_workspace:workspace.id,p_cocktail:id});
+      if(account!==scope())return;
+      state.cocktails=state.cocktails.filter(c=>c.id!==id);
+      try{
+        localStorage.setItem(recentKey(),JSON.stringify(recent().filter(r=>r.id!==id)));
+        for(const variant of ['alcoholic','alcohol_free']){
+          for(const suffix of ['',':view',':checkpoint'])localStorage.removeItem(key(id,variant)+suffix);
+        }
+      }catch{}
+      render();
+    }catch(error){
+      if(account===scope())alert(error.code==='23503'?'This draft is used by other Mixology records and cannot be deleted.':setupMessage(error));
+    }finally{deletingDraft=false;}
+  }
+  function newCocktail(){
+    const name=prompt('Name the new cocktail')?.trim();
+    if(!name)return;
+    if(name.length>140){alert('Use a cocktail name of 140 characters or fewer.');return;}
+    libraryQuery='';libraryLimit=30;
+    return open(null,'alcoholic',null,name);
+  }
+  function openEpisodeCocktail(){
+    const id=document.getElementById('epCocktailId')?.value;
+    if(!id){alert('Choose a linked cocktail in the episode first.');return;}
+    return open(id);
   }
   function searchSaved(value){libraryQuery=value;libraryLimit=30;refreshSaved();}
   function refreshSaved(){const results=document.getElementById('mix-saved-results');if(results)results.innerHTML=savedCocktailResults();}
@@ -199,7 +235,17 @@
     if(ui)return page();
     if(!scope())return basePage();
     if(libraryScope!==scope()){libraryScope=scope();libraryQuery='';libraryLimit=30;legacyCatalogOpen=false;moreToolsOpen=false;}
-    return '<section class="section mix-entry"><header class="mix-header"><div><h1>Cocktail Bar</h1><p>Open a recipe to edit it or draft a post.</p></div><button class="primary" onclick="clMixology.newCocktail()">New cocktail</button></header><h2>Saved cocktails</h2><label>Search by cocktail name<input type="search" class="search" id="mix-saved-search" value="'+esc(libraryQuery)+'" placeholder="Search your recipes and the classics" oninput="clMixology.searchSaved(this.value)"></label><div id="mix-saved-results" >'+savedCocktailResults()+'</div><details id="mix-recent-drafts" '+(document.getElementById('mix-recent-drafts')?.open?'open':'')+'><summary>Recent recipe drafts</summary><div class="mix-toolbar">'+recent().filter(r=>/^[0-9a-f-]{36}$/i.test(r.id)&&['alcoholic','alcohol_free'].includes(r.variant)).map(r=>'<button class="secondary" onclick="clMixology.open(\''+r.id+'\',\''+r.variant+'\')">'+esc(r.name)+'</button>').join('')+'</div></details><details '+(document.getElementById('mix-movie-start')?.open?'open':'')+' id="mix-movie-start"><summary>Start from a movie</summary>'+movieEntry()+'</details><button class="secondary" aria-expanded="'+legacyCatalogOpen+'" onclick="clMixology.toggleCatalog()">'+(legacyCatalogOpen?'Hide':'Open')+' classic catalog and matching tools</button></section>'+(legacyCatalogOpen?basePage():'');
+    const drafts=recent().filter(r=>/^[0-9a-f-]{36}$/i.test(r.id)&&['alcoholic','alcohol_free'].includes(r.variant));
+    const recipeButton=(r,label)=>'<button class="secondary" onclick="clMixology.open(\''+r.id+'\',\''+r.variant+'\')">'+esc(label)+(r.variant==='alcohol_free'?' · Alcohol free':'')+'</button>';
+    const latest=drafts[0];
+    const recipeName=r=>r.name?.trim()||'Untitled cocktail';
+    return '<section class="section mix-entry mix-bar"><header class="mix-header"><h1>Cocktail Bar</h1><button class="primary" onclick="clMixology.newCocktail()">New cocktail</button></header>'
+      +'<div class="mix-bar-work">'
+      +(latest?'<section class="card card-pad mix-resume"><h2>Continue a recipe</h2>'+recipeButton(latest,recipeName(latest))
+      +'<details id="mix-recent-drafts" '+(document.getElementById('mix-recent-drafts')?.open?'open':'')+'><summary>Recent recipe drafts</summary><div class="mix-toolbar">'+drafts.map(r=>recipeButton(r,recipeName(r))).join('')+'</div></details></section>':'')
+      +'<details class="card card-pad" '+(document.getElementById('mix-movie-start')?.open?'open':'')+' id="mix-movie-start"><summary>Start from a movie</summary>'+movieEntry()+'</details></div>'
+      +'<section class="card card-pad mix-library"><h2>Saved cocktails</h2><label>Search by cocktail name<input type="search" class="search" id="mix-saved-search" value="'+esc(libraryQuery)+'" placeholder="Search recipes and classics" oninput="clMixology.searchSaved(this.value)"></label><div id="mix-saved-results">'+savedCocktailResults()+'</div></section>'
+      +'<button class="secondary" aria-expanded="'+legacyCatalogOpen+'" onclick="clMixology.toggleCatalog()">'+(legacyCatalogOpen?'Hide':'Open')+' classic catalog and matching tools</button></section>'+(legacyCatalogOpen?basePage():'');
   };
   modal=function(){if(active())return '';const html=baseModal();if(selectedEpisode){const episode=state.episodes.find(e=>e.id===selectedEpisode);if(episode?.cocktail_id)return html.replace('<div class="episode-editor-actions">','<div class="episode-editor-actions"><button class="secondary" onclick="clMixology.open(\''+episode.cocktail_id+'\')">Develop linked cocktail</button><button class="secondary" onclick="clMixology.prepareEpisode()">Prepare linked cocktail</button>');}if(selectedMovie&&state.movies.some(m=>m.id===selectedMovie))return html.replace('</h2>','</h2><button class="secondary" onclick="clMixology.openForMovie(\''+selectedMovie+'\')">Develop cocktail</button>');return html;};
   // Episodes append their editor after shell rendering rather than through modal().
@@ -207,7 +253,7 @@
   v16EpisodeModal=function(){if(active())return '';const html=baseEpisodeModal();return html.replace('<div class="episode-editor-actions">','<div class="episode-editor-actions"><button class="secondary" onclick="clMixology.openEpisodeCocktail()">Develop linked cocktail</button><button class="secondary" onclick="clMixology.prepareEpisode()">Prepare linked cocktail</button>');};
   // Existing saved cocktail actions now reach the same studio from any HQ context.
   editCocktail=function(id){void open(id)};window.editCocktail=editCocktail;
-  window.clMixology={productionContext:()=>valid()?{cocktailId:ui.cocktail,variant:ui.variant,scope:ui.scope,workspaceId:workspace.id,episodeId:ui.back.episode||null,toolTab:ui.tab,row:{id:ui.store.row.id},versions:ui.versions,approvals:ui.approvals||[]}:null,accountScope:scope,hostName:memberName,context:()=>valid()?{scope:ui.scope,workspaceId:workspace.id,actorId:me(),cocktailId:ui.cocktail,variant:ui.variant,toolTab:ui.tab,row:C.clone(ui.store.row),document:C.clone(ui.store.document),episodeId:ui.back.episode||null,movieId:ui.inspirationMovie||null,movieContextStatus:ui.movieContextStatus}:null,flush:()=>valid()?ui.store.flush():Promise.resolve(false),repaint:()=>{if(active())render()},replaceDraft:document=>{C.validate(document);changed(d=>{for(const k of Object.keys(d))delete d[k];Object.assign(d,C.clone(document));},true)},open,searchSaved,newCocktail:()=>{libraryQuery='';libraryLimit=30;return open()},moreSaved:()=>{libraryLimit+=30;refreshSaved()},toggleCatalog:()=>{legacyCatalogOpen=!legacyCatalogOpen;render()},moreTools:value=>{moreToolsOpen=value},openEpisodeCocktail:()=>open(document.getElementById('epCocktailId')?.value||null),openForMovie,movieChoice,startForMovie:()=>openForMovie(document.getElementById('mix-start-movie')?.value),close,draftScaling:value=>{if(valid())ui.draftScalingOpen=value},decide,prepareEpisode,prepareServings,field,rowField,add,remove,move,undo,saveVersion,resolve,restore,exportDraft,tabs,selectCompare,selectVersion,feedbackField,toggleFlag,saveFeedback,editFeedback,checkShared,retry:async()=>{if(!valid())return;ui.error='';ui.store.dirty=true;await ui.store.flush();if(valid()){try{await history(ui)}catch(error){ui.error=setupMessage(error)}render();}},active};
+  window.clMixology={productionContext:()=>valid()?{cocktailId:ui.cocktail,variant:ui.variant,scope:ui.scope,workspaceId:workspace.id,episodeId:ui.back.episode||null,toolTab:ui.tab,row:{id:ui.store.row.id},versions:ui.versions,approvals:ui.approvals||[]}:null,accountScope:scope,hostName:memberName,context:()=>valid()?{scope:ui.scope,workspaceId:workspace.id,actorId:me(),cocktailId:ui.cocktail,variant:ui.variant,toolTab:ui.tab,row:C.clone(ui.store.row),document:C.clone(ui.store.document),episodeId:ui.back.episode||null,movieId:ui.inspirationMovie||null,movieContextStatus:ui.movieContextStatus}:null,flush:()=>valid()?ui.store.flush():Promise.resolve(false),repaint:()=>{if(active())render()},replaceDraft:document=>{C.validate(document);changed(d=>{for(const k of Object.keys(d))delete d[k];Object.assign(d,C.clone(document));},true)},open,searchSaved,newCocktail,deleteDraft,moreSaved:()=>{libraryLimit+=30;refreshSaved()},toggleCatalog:()=>{legacyCatalogOpen=!legacyCatalogOpen;render()},moreTools:value=>{moreToolsOpen=value},openEpisodeCocktail,openForMovie,movieChoice,startForMovie:()=>openForMovie(document.getElementById('mix-start-movie')?.value),close,draftScaling:value=>{if(valid())ui.draftScalingOpen=value},decide,prepareEpisode,prepareServings,field,rowField,add,remove,move,undo,saveVersion,resolve,restore,exportDraft,tabs,selectCompare,selectVersion,feedbackField,toggleFlag,saveFeedback,editFeedback,checkShared,retry:async()=>{if(!valid())return;ui.error='';ui.store.dirty=true;await ui.store.flush();if(valid()){try{await history(ui)}catch(error){ui.error=setupMessage(error)}render();}},active};
   const previousShell=shell;shell=function(...args){const result=previousShell(...args);if(valid()){showStatus();window.clMixologyTools?.feedbackHints?.(ui.feedback?.comment||'');}return result;};
   window.addEventListener('beforeunload',event=>{if(valid()&&(ui.store.dirty||ui.feedbackDirty&&ui.feedbackStorageFailed)){event.preventDefault();event.returnValue='';}});
   window.addEventListener('online',()=>{if(valid())void ui.store.flush()});
