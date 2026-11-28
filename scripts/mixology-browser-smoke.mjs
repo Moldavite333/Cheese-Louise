@@ -37,9 +37,9 @@ try{
   // A standalone recipe gets a new canonical identity; the counterpart starts empty.
   await page.evaluate(()=>{selectedEpisode=null;openCocktailBar()});
   const newCocktail=page.getByRole('button',{name:'New cocktail',exact:true});
-  const before=(await f.db.query('select id from cocktails where workspace_id=$1',[W])).rows.length;
+  const before=await page.evaluate(()=>state.cocktails.length);
   page.once('dialog',dialog=>dialog.dismiss());await newCocktail.click();
-  assert.equal((await f.db.query('select id from cocktails where workspace_id=$1',[W])).rows.length,before);
+  assert.equal(await page.evaluate(()=>state.cocktails.length),before);
   assert.ok(await newCocktail.isVisible());
   page.once('dialog',dialog=>dialog.accept('Standalone trial '+width));await newCocktail.click();await saved(page);
   assert.equal(await page.locator('#mix-name').inputValue(),'Standalone trial '+width);
