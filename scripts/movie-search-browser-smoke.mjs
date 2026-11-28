@@ -19,7 +19,7 @@ const origin='http://127.0.0.1:'+server.address().port;
 let browser;
 try{
  browser=await chromium.launch();
- for(const width of [360,1440]){
+ for(const width of [360,768,1440]){
   const page=await browser.newPage({viewport:{width,height:900},isMobile:width===360,hasTouch:width===360});
   await page.route('**/*',route=>new URL(route.request().url()).origin===origin
    ?route.continue():route.fulfill({status:200,contentType:'text/javascript',body:''}));
@@ -44,6 +44,12 @@ try{
       return {data:{results:[{title:'Falling Together',year:2024,tmdb_type:'movie',tmdb_id:2024,
        source_type:'tmdb_exact_title',exact_title_match:true,stars:['Ashley Williams','Paul Campbell']}]}};
      }
+     if(name==='search-romantiverse'&&body.query==='Unavailable fixture'&&body.broader_lookup){
+      return {data:{results:[],exact_lookup_warning:'TMDB unavailable. Try again.'}};
+     }
+     if(name==='recommend-romantiverse'&&window.__failFeed){
+      return {data:{results:[],catalog_stale:true}};
+     }
      return {data:{results:[],count:0}};
     }}
    })};
@@ -59,6 +65,7 @@ try{
    state.movies.push({id:'biltmore',title:'A Biltmore Christmas',year:2023,network:'Hallmark Channel',
     votes:{a:'yes',b:'yes'},comments:[],tags:[],bookmarks:{}});
    state.discoveryResults=[{title:'A Biltmore Christmas',year:2023,tmdb_id:2023,source_type:'bingo_catalog'}];
+   state.discoveryResults.push({title:'A Grand Biltmore Christmas: A Very Long Alternate Title for Layout Testing',year:2024,tmdb_id:3024,source_type:'bingo_catalog'});
    discoveryLoaded=true;clRecLastFetchAt=Date.now();
    hqWorkspace.open('movies');
   });
@@ -66,6 +73,9 @@ try{
   await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
   assert.match(await spotlight.innerText(),/Both voted Yes[\s\S]*A Biltmore Christmas/);
   assert.ok(await spotlight.evaluate(el=>getComputedStyle(el).borderTopWidth==='2px'));
+  await page.evaluate(async()=>{window.__failFeed=true;await discoverCheeseMovies(true);});
+  await page.getByText('The catalog could not refresh. Showing the previous picks.',{exact:true}).waitFor();
+  assert.equal(await spotlight.count(),1);
   await spotlight.getByRole('button',{name:'View A Biltmore Christmas'}).click();
   await page.getByRole('dialog').getByRole('heading',{name:'A Biltmore Christmas'}).waitFor();
   await page.keyboard.press('Escape');
@@ -76,6 +86,7 @@ try{
   const panel=page.getByRole('region',{name:'Movie search results'});
   const title=panel.getByRole('heading',{name:'Return to Santa',exact:true});
   await title.waitFor();
+  assert.equal(await search.evaluate(input=>input===document.activeElement),true);
   assert.equal(await title.count(),1);
   assert.match(await panel.innerText(),/Recorded · Both No/);
   assert.match(await panel.innerText(),/Paul Campbell · Rachel Boston/);
@@ -96,6 +107,11 @@ try{
   await panel.getByRole('heading',{name:'Falling Together',exact:true}).waitFor();
   assert.match(await panel.innerText(),/TMDB · exact title/);
   assert.ok(await panel.getByRole('button',{name:'Add and open'}).isVisible());
+  await search.fill('Unavailable fixture');
+  await panel.getByText('No movies match this search.',{exact:true}).waitFor();
+  await panel.getByRole('button',{name:'Look up on TMDB'}).click();
+  await panel.getByText('TMDB unavailable. Try again.',{exact:true}).waitFor();
+  assert.equal(await panel.getByRole('button',{name:'Add and open'}).count(),0);
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   assert.equal(await search.inputValue(),'');
   await page.locator('#radarBrowseResults').waitFor({state:'visible'});
@@ -104,7 +120,7 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.close();
  }
- console.log('Movie search and canonical episode resume passed at 360px touch and 1440px keyboard widths.');
+ console.log('Feed recovery, movie search and episode resume passed at 360px touch, 768px and 1440px keyboard widths.');
 }finally{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));
