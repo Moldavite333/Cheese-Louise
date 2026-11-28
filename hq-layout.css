@@ -36,6 +36,33 @@ html{scroll-padding-top:calc(var(--hq-header-height) + 16px)}
 .new-find-poster img{object-fit:contain}
 .new-find-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
 .new-find-card{grid-template-columns:100px minmax(0,1fr)}
+#radarDiscoveryResults .new-find-grid {
+  grid-template-columns: repeat(auto-fill,minmax(min(100%,220px),1fr));
+}
+#radarDiscoveryResults .new-find-card {
+  grid-template-columns: minmax(0,1fr);
+  grid-template-rows: auto 1fr;
+}
+#radarDiscoveryResults .new-find-poster {
+  position: relative;
+  min-height: 0;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+}
+#radarDiscoveryResults .new-find-poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#radarDiscoveryResults .new-find-body > p:first-of-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
 .movie-header-actions{display:flex;flex-wrap:wrap;gap:10px}
 .rom-search-head>div{min-width:0}
 .rom-search-head>.secondary{flex-shrink:0}
