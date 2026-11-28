@@ -77,11 +77,20 @@ try{
    const romantiverse={status:'eligible',reason:'An hourglass takes the screenwriter into an old movie.',source:'https://www.hallmarkchannel.com/a-biltmore-christmas'};
    state.discoveryResults=[{title:'A Biltmore Christmas',year:2023,tmdb_id:2023,source_type:'bingo_catalog',poster_url:'/icon.svg',source_metadata:{romantiverse}}];
    state.discoveryResults.push({title:'Adventures in Love & Birding',year:2025,tmdb_id:3024,source_type:'bingo_catalog',source_metadata:{romantiverse:{...romantiverse,reason:'A birding competition becomes a fake-dating story.'}}});
+   for(let i=0;i<7;i++)state.discoveryResults.push({title:'Upcoming romance '+i,tmdb_id:5000+i,source_type:'bingo_catalog',premiere_date:'2090-12-05',
+    source_url:romantiverse.source,source_metadata:{romantiverse,premiere:{verified:true,at:'2090-12-05T20:00:00-05:00'}}});
    discoveryLoaded=true;clRecLastFetchAt=Date.now();
    hqWorkspace.open('movies');
   });
   const spotlight=page.locator('#radarDiscoveryResults .cl-feed-card--spotlight');
   await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
+  const comingSoon=page.getByRole('region',{name:'Coming Soon'});
+  const shelf=comingSoon.locator('.cl-shelf-track');
+  assert.ok(await shelf.evaluate(el=>el.scrollWidth>el.clientWidth),'Coming Soon uses a scrollable poster shelf at '+width);
+  await comingSoon.getByRole('button',{name:'Next Coming Soon movies'}).click();
+  await page.waitForFunction(()=>document.getElementById('coming-soon').scrollLeft>0);
+  await comingSoon.getByRole('button',{name:'Previous Coming Soon movies'}).click();
+  await page.waitForFunction(()=>document.getElementById('coming-soon').scrollLeft===0);
   const tools=page.getByRole('region',{name:'Movie tools'});
   assert.ok(await tools.evaluate(element=>!!(document.querySelector('#radarBrowseResults').compareDocumentPosition(element)&Node.DOCUMENT_POSITION_FOLLOWING)));
   const filters=tools.locator('#radarFiltersButton');

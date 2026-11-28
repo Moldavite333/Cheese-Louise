@@ -1,20 +1,24 @@
 /* Shared signed-in palette, typography, and surfaces for Cheese Louise HQ. */
 body.hq-signed-in {
-  --bg: #19151c;
+  --brand-forest: #193f35;
+  --brand-cream: #f7f0e2;
+  --brand-cranberry: #873b4b;
+  --brand-gold: #c49b52;
+  --bg: #101d19;
   --background: var(--bg);
-  --panel: #251e28;
-  --panel-2: #302737;
+  --panel: #182923;
+  --panel-2: #22372f;
   --surface: var(--panel-2);
-  --line: #514354;
-  --text: #fff2e2;
-  --muted: #c9b9c5;
-  --accent: #ffc879;
-  --accent2: #efa9ad;
+  --line: #42584d;
+  --text: var(--brand-cream);
+  --muted: #bac9bd;
+  --accent: #edbc60;
+  --accent2: #efb0ae;
   --shadow: 0 5px 16px #100c131f;
   --radius: 12px;
-  --hq-chrome: #211820;
-  --hq-selected: #453039;
-  --hq-display: Georgia, Cambria, "Times New Roman", serif;
+  --hq-chrome: #132620;
+  --hq-selected: #254639;
+  --hq-display: "Playfair Display", Georgia, Cambria, serif;
   color-scheme: dark;
 }
 .hq-signed-in .hq-sidebar,
@@ -78,7 +82,7 @@ body.hq-signed-in {
 .hq-next-item {
   overflow-wrap: anywhere;
   border-left: 4px solid var(--accent);
-  background: linear-gradient(115deg, #382633, var(--panel) 76%);
+  background: linear-gradient(115deg, var(--brand-forest), var(--panel) 76%);
 }
 .hq-next-item > h2 {
   font-size: clamp(1.55rem, 3.4vw, 2.5rem);
@@ -113,7 +117,7 @@ body.hq-signed-in {
   background: var(--panel-2);
 }
 .hq-signed-in .poster:has(.radar-poster-image) .poster-title {
-  background: #19151cd9;
+  background: #101d19d9;
 }
 /* The live notes keep their paper surface and use the shared HQ colors in the toolbar. */
 .hq-signed-in .cldesk {

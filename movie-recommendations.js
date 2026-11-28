@@ -77,12 +77,27 @@ discoveryPanel=function(){
   (meta.history_warning?'<p class="subtle" role="status">'+esc(meta.history_warning)+'</p>':'')+
   '<section class="cl-weekly-pick" aria-label="Pick of the Week"><h3>Pick of the Week</h3>'+
    (weekly?clRecFeedCard(weekly,false,true):'<p class="subtle">No eligible weekly pick in this view.</p>')+'</section>'+
-  '<h3>Coming Soon</h3>'+(sections.soon.length?'<div class="new-find-grid">'+sections.soon.map(movie=>clRecFeedCard(movie,true)).join('')+'</div>':'<p class="subtle">No verified upcoming premieres in this view.</p>')+
-  '<h3>Top 20 for Cheese Louise</h3>'+(sections.top.length?'<div class="new-find-grid">'+sections.top.map(movie=>clRecFeedCard(movie)).join('')+'</div>':'<p class="subtle">No confirmed released movies match this view.</p>')+
-  '<h3>More Movies to Discover</h3>'+(sections.more.length?'<div class="new-find-grid">'+sections.more.map(movie=>clRecFeedCard(movie)).join('')+'</div>':'<p class="subtle">You’ve reached the end of the eligible picks in this view.</p>')+
+  clRecShelf('coming-soon','Coming Soon',sections.soon,'No verified upcoming premieres in this view.',true)+
+  clRecShelf('top-picks','Top 20 for Cheese Louise',sections.top,'No confirmed released movies match this view.')+
+  clRecShelf('more-picks','More Movies to Discover',sections.more,'You’ve reached the end of the eligible picks in this view.')+
   (!rows.length?'<button class="secondary" onclick="clBroadenFinder()">Clear filters</button>':'')+
   '<details><summary>About these picks</summary><p class="subtle">'+rows.length+' matches · '+matched.length+' favorites informed this feed</p><p class="subtle">'+matched.map(m=>esc(m.title)+(m.year?' ('+Number(m.year)+')':'')).join(' · ')+(unmatched.length?'<br>Unmatched favorites: '+unmatched.map(esc).join(' · '):'')+'</p></details>'+
   (meta.review?.length?'<details><summary>Needs review ('+meta.review.length+')</summary><ul>'+meta.review.map(movie=>'<li><strong>'+esc(movie.title)+'</strong> '+esc(movie.year||'')+' · '+esc(movie.reason)+'</li>').join('')+'</ul></details>':'')+'</div>';
+};
+function clRecShelf(id,label,movies,empty,upcoming=false){
+ const title='movie-shelf-'+id;
+ const controls=movies.length>1?'<div class="cl-shelf-controls">'+[-1,1].map(direction=>
+  '<button type="button" class="secondary" aria-label="'+(direction<0?'Previous ':'Next ')+esc(label)+' movies" aria-controls="'+id+
+  '" data-direction="'+direction+'" onclick="clScrollMovieShelf(this)">'+(direction<0?'‹':'›')+'</button>').join('')+'</div>':'';
+ return '<section class="cl-movie-shelf" aria-labelledby="'+title+'"><div class="cl-shelf-heading"><h3 id="'+title+'">'+esc(label)+'</h3>'+controls+'</div>'+
+  (movies.length?'<div id="'+id+'" class="cl-shelf-track" aria-labelledby="'+title+'" role="group" tabindex="0">'+movies.map(movie=>clRecFeedCard(movie,upcoming)).join('')+'</div>':
+   '<p class="subtle">'+esc(empty)+'</p>')+'</section>';
+}
+window.clScrollMovieShelf=button=>{
+ const shelf=document.getElementById(button.getAttribute('aria-controls'));
+ if(!shelf)return;
+ shelf.scrollBy({left:Number(button.dataset.direction)*Math.round(shelf.clientWidth*.85),
+  behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 };
 function clRecWeeklyPick(rows,editorial={},now=new Date()){
  const monday=new Date(now);
@@ -142,7 +157,9 @@ function clRecFeedCard(candidate,upcoming=false,weekly=false){
  const cast=clMovieTitleSearch.cast(movie).slice(0,2).map(esc).join(' · ');
  const reason=clRomantiverseEligibility(candidate).reason;
  const source=meta.premiere?.source_url||candidate.source_url;
- const art='<span aria-hidden="true">CL</span>'+(/^(https:\/\/|\/(?!\/))/i.test(movie.poster_url||'')?'<img src="'+esc(movie.poster_url)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'');
+ const image=/^(https:\/\/|\/(?!\/))/i.test(movie.poster_url||'')?
+  '<img src="'+esc(movie.poster_url)+'" alt="" loading="'+(weekly?'eager':'lazy')+'" decoding="async" onerror="this.remove()">':'';
+ const art='<span aria-hidden="true">CL</span>'+image;
  const action=saved?'openMovie(this.dataset.movieId)':'clOpenDiscoveryMovieDetails(Number(this.dataset.movieId))';
  const movieId=saved?.id||candidate.tmdb_id;
  const currentVote=saved?.votes?.[typeof me==='function'?me():null];
@@ -152,7 +169,8 @@ function clRecFeedCard(candidate,upcoming=false,weekly=false){
   '" onclick="'+voteAction+'">'+(value==='yes'?'👍 Thumbs Up':'👎 Thumbs Down')+'</button>').join('')+'</div>':'';
  return '<div class="cl-feed-card'+(weekly?' cl-feed-card--weekly':'')+(mutual?' cl-feed-card--spotlight':'')+'">'+
   (mutual?'<div class="cl-feed-spotlight"><span aria-hidden="true">✦</span> <strong>Don’t miss</strong><span>Both Hosts Voted Yes</span></div>':'')+
-  '<article class="cl-editorial-card card"><div class="cl-editorial-poster">'+art+'</div><div class="cl-editorial-copy">'+
+  '<article class="cl-editorial-card card">'+(weekly&&image?'<div class="cl-weekly-backdrop" aria-hidden="true">'+image+'</div>':'')+
+  '<button type="button" class="cl-editorial-poster" tabindex="-1" data-movie-id="'+esc(movieId)+'" aria-label="Open '+title+'" onclick="'+action+'">'+art+'</button><div class="cl-editorial-copy">'+
   '<h4>'+title+'</h4>'+
   (credits?'<p class="cl-editorial-meta">'+credits+'</p>':'')+
   (cast?'<p class="cl-editorial-meta">'+cast+'</p>':'')+

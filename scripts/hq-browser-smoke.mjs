@@ -41,7 +41,7 @@ try{
   const style=getComputedStyle(el);
   return [style.backgroundColor,style.color,style.colorScheme];
  });
- assert.deepEqual(colors,['rgb(25, 21, 28)','rgb(255, 242, 226)','dark']);
+ assert.deepEqual(colors,['rgb(16, 29, 25)','rgb(247, 240, 226)','dark']);
  assert.deepEqual(await page.locator('.hq-workflow h3').allTextContents(),['Plan the episode','Record and edit','Publish and promote']);
  const workflow=page.locator('.hq-workflow');
  assert.equal(await workflow.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width<=760?1:3);
