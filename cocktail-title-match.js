@@ -116,6 +116,7 @@
     const text=[story.title,story.summary].filter(Boolean).join(' ');
     const recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ');
     const clues=[
+      [/\bgingerbread\b/i,/\bgingerbread\b/i,'gingerbread',25],
       [/\bmaple\b/i,/\bmaple\b/i,'maple',18],
       [/\bpumpkin\b/i,/\bpumpkin\b/i,'pumpkin',18],
       [/\bapples?\b/i,/\bapples?\b|calvados|applejack/i,'apple',16],
