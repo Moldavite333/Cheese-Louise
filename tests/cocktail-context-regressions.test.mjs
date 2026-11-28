@@ -66,3 +66,13 @@ test('apple and cider story clues require explicit movie evidence',()=>{
  assert.deepEqual(Array.from(clues({title:'Home Again',summary:'A family reunites at an orchard.',selectedTraits:[{name:'Apple cider'}]})),[]);
  assert.deepEqual(Array.from(clues({title:'Home Again',synopsis:'They share a glass of cider.'})),['story ingredient: cider']);
 });
+
+test('a gingerbread scene rewards a gingerbread recipe over a generic seasonal flavor',()=>{
+ const h=cocktailHarness();
+ const movie={title:'Christmas Reunion',summary:'The opening scene is a gingerbread competition.',season:'Winter',holiday:'Christmas'};
+ const gingerbread=h.context.clSmartMatch(movie,recipe('Gingerbread Loophole','dark rum\ngingerbread syrup\nblack tea','Dark Rum'));
+ const cider=h.context.clSmartMatch(movie,recipe('Cider Highball','dark rum\napple cider','Dark Rum'));
+ assert.ok(gingerbread.reasons.includes('story ingredient: gingerbread'));
+ assert.ok(!cider.reasons.some(r=>r.startsWith('story ingredient:')));
+ assert.ok(gingerbread.score>cider.score);
+});
