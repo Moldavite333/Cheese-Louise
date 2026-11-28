@@ -61,7 +61,7 @@ discoveryPanel=function(){
  if(!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<button class="primary" onclick="discoverCheeseMovies(true)">Find movies for us</button></div>';
  let rows=(state.discoveryResults||[]).filter(c=>{
   const saved=clRecSavedMovie(c);
-  if(saved&&(saved.status==='recorded'||Object.values(saved.votes||{}).filter(v=>v==='no').length>=2))return false;
+  if(saved&&(clMovieTitleSearch.recorded(saved,state.episodes)||Object.values(saved.votes||{}).filter(v=>v==='no').length>=2))return false;
   return (saved||!discoveryHidden.has(Number(c.tmdb_id)))&&discoveryMatchesCurrentView(c);
  });
  if(clTasteSort==='taste')rows=clTasteRank(rows).sort((a,b)=>clRecYesCount(b)-clRecYesCount(a));

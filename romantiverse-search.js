@@ -124,7 +124,7 @@ function romantiverseTitleCard(movie){
  const votes=Object.values(movie.votes||{});
  const release=romantiverseTitleSearch.release(movie);
  const status=(saved?[
-  movie.status==='recorded'?'Recorded':null,
+  romantiverseTitleSearch.recorded(movie,state.episodes)?'Recorded':null,
   votes.filter(v=>v==='no').length>=2?'Both No':null,
   votes.filter(v=>v==='yes').length>=2?'Both Yes':null,
   Object.values(movie.bookmarks||{}).some(Boolean)||movie.status==='saved'?'Saved':null,

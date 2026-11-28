@@ -46,6 +46,16 @@ test('a verified future premiere never uses a released Top 20 slot',()=>{
  assert.equal(after.top[0].title,santa.title);
  assert.equal(after.more.length,1);
 });
+test('recorded and released episode links supersede stale movie review status',async()=>{
+ const {c}=client();await c.discoverCheeseMovies(true);
+ const picks=c.state.discoveryResults.slice(0,3);
+ c.state.movies=picks.map((movie,i)=>({id:'movie-'+i,title:movie.title,year:movie.year,status:'needs_review',votes:{nick:'yes'}}));
+ c.state.episodes=['recorded','released','watched'].map((status,i)=>({movie_id:'movie-'+i,status}));
+ const html=c.discoveryPanel();
+ assert.ok(!html.includes('<article>SAVED '+picks[0].title+'</article>'));
+ assert.ok(!html.includes('<article>SAVED '+picks[1].title+'</article>'));
+ assert.ok(html.includes('<article>SAVED '+picks[2].title+'</article>'));
+});
 test('season filters still restrict the pool to actual catalog Fall romances',async()=>{
  const {c}=client();c.movieFilters.season='Fall';await c.discoverCheeseMovies(true);
  assert.equal(c.state.discoveryResults.length,12);assert.ok(c.state.discoveryResults.every(m=>m.season==='Fall'&&m.source_type==='bingo_catalog'));

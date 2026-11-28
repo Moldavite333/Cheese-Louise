@@ -95,5 +95,10 @@
       (!query.year || year(movie) === query.year);
   }
 
-  root.clMovieTitleSearch = {normalize, parse, metadata, year, cast, score, compare, confident, release};
+  function recorded(movie, episodes = []) {
+    return movie?.status === 'recorded' || (!!movie?.id && episodes.some(episode =>
+      episode.movie_id === movie.id && ['recorded', 'released', 'published'].includes(episode.status)));
+  }
+
+  root.clMovieTitleSearch = {normalize, parse, metadata, year, cast, score, compare, confident, release, recorded};
 })(globalThis);
