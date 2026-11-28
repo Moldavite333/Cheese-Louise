@@ -116,6 +116,7 @@ function clSavedMovieDetailModal(){
         ${clMovieDetailLinks(m)}
         <div class="cl-movie-detail-actions">
           ${prepare}
+          <button type="button" class="secondary" data-movie-id="${esc(m.id)}" onclick="clEpisodeWizard.useMovie(this.dataset.movieId)">Start setup</button>
           <button class="secondary" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
           <button class="secondary" onclick="scheduleMovie('${m.id}')">📅 Schedule</button>
         </div>

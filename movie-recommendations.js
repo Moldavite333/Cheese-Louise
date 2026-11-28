@@ -139,6 +139,7 @@ function clRecFeedCard(candidate,upcoming=false){
   (movie.summary?'<p class="cl-editorial-summary">'+esc(movie.summary)+'</p>':'')+
   (reason?'<details><summary>Why this pick?</summary><p>'+esc(reason)+'</p></details>':'')+
   '<button type="button" class="secondary cl-editorial-action" data-movie-id="'+esc(movieId)+'" aria-label="View '+title+'" onclick="'+action+'">View movie</button>'+
+  '<button type="button" class="secondary" data-movie-id="'+esc(movieId)+'" aria-label="Start setup for '+title+'" onclick="clEpisodeWizard.'+(saved?'useMovie(this.dataset.movieId)':'useCandidate(Number(this.dataset.movieId))')+'">Start setup</button>'+
   '</div></article></div>';
 }
 const clRecDiscoveryCard=discoveryCard;

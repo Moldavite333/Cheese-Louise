@@ -142,6 +142,7 @@ function romantiverseTitleCard(movie){
    ${movie.summary?`<p>${esc(movie.summary)}</p>`:''}
    ${saved?`<button class="primary" onclick="openMovie('${esc(movie.id)}')">Open movie</button>`:
     `<button class="primary" onclick="addRomantiverseSearchMovie(${Number(movie.tmdb_id)},false)">Add and open</button>`}
+   <button type="button" class="secondary" data-movie-id="${esc(saved?movie.id:movie.tmdb_id)}" onclick="${saved?'clEpisodeWizard.useMovie(this.dataset.movieId)':'clEpisodeWizard.useCandidate(Number(this.dataset.movieId),true)'}">Start setup</button>
   </div></article>`;
 }
 

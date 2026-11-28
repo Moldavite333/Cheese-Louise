@@ -104,7 +104,8 @@
   ).join('');
   return '<section class="section hq-today hq-home-simple"><div class="hq-page-eyebrow">YOUR PRODUCTION WORKSPACE</div><h1>One step at a time.</h1><p class="hq-lede">Choose what you are working on. Opening a step does not create or publish anything.</p>'
    +'<article class="hq-next-item"><div class="kicker">Next unfinished episode</div><h2>'+escape(next?.title||'Ready for the next movie')+'</h2><p class="subtle">'+(next?escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):''):'Choose a movie to begin.')+'</p>'+
-   (next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>')+'</article>'+transcriptSuggestions()
+   (next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>')+
+   ' <button type="button" class="secondary" onclick="clEpisodeWizard.start()">Episode setup wizard</button></article>'+transcriptSuggestions()
    +'<div class="hq-simple-heading"><h2>Episode steps</h2><span class="subtle">Open only what you need</span></div><ol class="hq-simple-steps">'+steps+'</ol>'
    +'<details class="hq-home-extras"><summary>Other tools and saved work</summary><div><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;ourmovies&quot;)">Our Movies</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;cocktails&quot;)">Cocktail Bar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;schedule&quot;)">Calendar</button><button type="button" class="secondary" onclick="hqWorkspace.open(&quot;bingo&quot;)">Bingo Builder</button></div></details></section>';
  }
@@ -118,7 +119,7 @@
   if(!showSearch){const start=html.indexOf('<div class="search-row">'),end=html.indexOf('<button type="button" id="hq-refresh"');
    html=html.slice(0,start)+'<button class="secondary hq-search-shortcut" onclick="hqWorkspace.search()">Find a movie <span aria-hidden="true">↗</span></button>'+html.slice(end);
   }
-  return html;
+  return html+(window.clEpisodeWizard?.panel()||'');
  };
  const oldShell=shell;
  shell=function(content){const focused=document.activeElement,searchFocus=focused?.id==='globalSearch'?{start:focused.selectionStart,end:focused.selectionEnd}:null;oldShell(content);if(searchFocus&&!document.querySelector('.modal-backdrop')){const field=document.getElementById('globalSearch');if(field){field.focus({preventScroll:true});try{field.setSelectionRange(searchFocus.start,searchFocus.end)}catch{}}}const host=document.querySelector('#app > .app-shell');document.body.classList.toggle('hq-signed-in',!!(session&&workspace));if(host){host.id='hq-main';host.tabIndex=-1}annotateDialogs()};

@@ -379,15 +379,18 @@ async function addSchedule(){
   await loadAll(); render();
 }
 
-async function addEpisode(){
-  const title=prompt('Episode title / movie:'); if(!title) return;
-  const guest=prompt('Guest (optional):','')||'';
-  const cocktail=prompt('Cocktail (optional):','')||'';
-  const notes=prompt('Episode notes / angle:','')||'';
-  const {data,error}=await db.from('episodes').insert({workspace_id:workspace.id,title,status:'idea',guest,cocktail,notes,created_by:me()}).select().single();
+async function addEpisode(options){
+  const movieId=options?.movieId, movie=movieId?state.movies.find(item=>item.id===movieId):null;
+  if(movieId&&!movie)return;
+  const title=prompt('Episode title / movie:',movie?.title||''); if(!title?.trim()) return;
+  const guest=movie?'':prompt('Guest (optional):','')||'';
+  const cocktail=movie?'':prompt('Cocktail (optional):','')||'';
+  const notes=movie?'':prompt('Episode notes / angle:','')||'';
+  const {data,error}=await db.from('episodes').insert({workspace_id:workspace.id,title:title.trim(),status:'idea',guest,cocktail,notes,created_by:me(),...(movie?{movie_id:movie.id}:{})}).select().single();
   if(error) return alert(error.message);
   await logActivity(`created episode ${title}.`,'episode',data.id);
   await loadAll(); render();
+  return data.id;
 }
 
 async function quickAdd(){
