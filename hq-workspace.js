@@ -40,7 +40,7 @@
  }
  function dirtyModal(){return document.querySelector('.modal-backdrop .modal[data-hq-dirty="true"]')}
  function open(id){
-  if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return;
+  if(dirtyModal()&&!confirm('Leave this editor? Changes you have not saved will be lost.'))return false;
   if(id==='recording'&&currentTab==='watchalong')window.clProduction?.followWatchMovie?.();
   moreOpen=false;selectedMovie=null;
   const actions={cocktails:'openCocktailBar',traits:'openTraitManager',bingo:'openRomantiverseBingo',checklist:'openPodcastLaunchChecklist',lab:'openShowLabView'};
@@ -49,6 +49,11 @@
   else if(routes.some(r=>r[0]===id))go(id);
   window.scrollTo({top:0,behavior:'instant'});
   if(!document.querySelector('.modal-backdrop'))document.getElementById('hq-main')?.focus({preventScroll:true});
+  return true;
+ }
+ function resumeEpisode(id){
+  if(!(state.episodes||[]).some(episode=>episode.id===id))return;
+  if(open('episodes'))window.openEpisode(id);
  }
  function nextEpisode(episodes){
   const done=/^(published|released|complete|completed|cancelled|canceled|retired)$/i;
@@ -108,16 +113,15 @@
     '<li>'+navButton(id,label)+'</li>'
    ).join('')+'</ul></li>'
   ).join('');
-  const nextAction=next?'episodes':'movies';
   return '<section class="section hq-today hq-home-simple"><h1>Today</h1>'
    +'<article class="hq-next-item"><div class="kicker">'+(next?'Next unfinished episode':'Next episode')+'</div><h2>'+escape(next?.title||'Choose a movie')+'</h2>'
    +(next?'<p class="subtle">'+escape(next.status||'Planning')+(next.release_date?' · '+escape(fmtDate(next.release_date)):'')+'</p>':'')
-   +'<button type="button" class="primary" onclick="hqWorkspace.open(&quot;'+nextAction+'&quot;)">'+(next?'Open Episodes':'Find a movie')+'</button></article>'
+   +(next?'<button type="button" class="primary" data-episode-id="'+escape(next.id)+'" onclick="hqWorkspace.resumeEpisode(this.dataset.episodeId)">Continue this episode</button>':'<button type="button" class="primary" onclick="hqWorkspace.search()">Find a movie</button>') + '<button type="button" class="secondary" onclick="clEpisodeWizard.start()">Episode setup wizard</button></article>'
    +'<div class="hq-simple-heading"><h2>Episode workflow</h2></div><ol class="hq-workflow">'+steps+'</ol>'
    +transcriptSuggestions()+'</section>';
  }
  function top(){
-  return '<header class="topbar hq-topbar"><div class="hq-topbar-line"><strong>Cheese Louise HQ</strong><details class="hq-account"><summary>'+escape(profile?.display_name||'Account')+'</summary><div><p>Shared workspace · '+(members||[]).length+' members</p><p>Join code: <strong>'+escape(workspace?.join_code||'Not available')+'</strong></p><button class="secondary" onclick="signOut()">Sign out</button></div></details></div><div class="search-row"><label class="hq-search-label" for="globalSearch">Search Movie Radar</label><input id="globalSearch" class="search" type="search" placeholder="Movie title, story idea, actor, or studio" value="'+escape(searchText)+'" oninput="setSearch(this.value)" aria-label="Search Movie Radar"></div><button type="button" id="hq-refresh" class="hq-refresh" '+(!pendingRefresh?'hidden':'')+' onclick="hqWorkspace.refresh()">Shared updates available. Refresh when ready.</button></header>';
+  return '<header class="topbar hq-topbar"><div class="hq-topbar-line"><strong>Cheese Louise HQ</strong><details class="hq-account"><summary>'+escape(profile?.display_name||'Account')+'</summary><div><p>Shared workspace · '+(members||[]).length+' members</p><p>Join code: <strong>'+escape(workspace?.join_code||'Not available')+'</strong></p><button class="secondary" onclick="signOut()">Sign out</button></div></details></div><div class="search-row"><label class="hq-search-label" for="globalSearch">Search Movie Radar</label><div class="hq-movie-search" role="search" aria-label="Movie Radar"><span class="hq-search-icon" aria-hidden="true"></span><input id="globalSearch" class="search" type="search" placeholder="Movie title, actor, or story idea" value="'+escape(searchText)+'" oninput="setSearch(this.value)" aria-label="Search Movie Radar"><button type="button" class="hq-clear-search" onclick="hqWorkspace.clearSearch()">Clear</button></div></div><button type="button" id="hq-refresh" class="hq-refresh" '+(!pendingRefresh?'hidden':'')+' onclick="hqWorkspace.refresh()">Shared updates available. Refresh when ready.</button></header>';
  }
  const originalTop=top;
  top=function(){
@@ -126,7 +130,7 @@
   if(!showSearch){const start=html.indexOf('<div class="search-row">'),end=html.indexOf('<button type="button" id="hq-refresh"');
    html=html.slice(0,start)+'<button class="secondary hq-search-shortcut" onclick="hqWorkspace.search()">Find a movie <span aria-hidden="true">↗</span></button>'+html.slice(end);
   }
-  return html;
+  return html+(window.clEpisodeWizard?.panel()||'');
  };
  const oldShell=shell;
  shell=function(content){const focused=document.activeElement,searchFocus=focused?.id==='globalSearch'?{start:focused.selectionStart,end:focused.selectionEnd}:null;oldShell(content);if(searchFocus&&!document.querySelector('.modal-backdrop')){const field=document.getElementById('globalSearch');if(field){field.focus({preventScroll:true});try{field.setSelectionRange(searchFocus.start,searchFocus.end)}catch{}}}const host=document.querySelector('#app > .app-shell');document.body.classList.toggle('hq-signed-in',!!(session&&workspace));if(host){host.id='hq-main';host.tabIndex=-1}annotateDialogs()};
@@ -192,7 +196,10 @@
   window[name]=function(...args){const result=previous.apply(this,args);for(const [id,key] of [['hq-season','season'],['hq-holiday','holiday']]){const control=document.getElementById(id);if(control)control.value=movieFilters[key]||''}if(name==='applyFilterPreset'||name==='clearMovieFilters')scheduleRomantiverseSearch(searchText);return result};
  }
  document.addEventListener('click',event=>{const action=event.target.closest?.('button[onclick]')?.getAttribute('onclick')||'';if(!dirtyModal())return;if(action.includes('scheduleEpisode(')){event.preventDefault();event.stopImmediatePropagation();alert('Save your episode edits before scheduling the recording.');return}if(action.includes('openCocktailBarFromEpisode(')&&!confirm('Open the Cocktail Bar without saving episode edits?')){event.preventDefault();event.stopImmediatePropagation()}},true);
- window.hqWorkspace={open,more,refresh,shouldDeferRefresh,nextEpisode,loadError,cleanForm,search(){open('movies');requestAnimationFrame(()=>document.getElementById('globalSearch')?.focus())}};
+ window.hqWorkspace={open,resumeEpisode,more,refresh,shouldDeferRefresh,nextEpisode,loadError,cleanForm,
+  search(){open('movies');requestAnimationFrame(()=>document.getElementById('globalSearch')?.focus())},
+  clearSearch(){const field=document.getElementById('globalSearch');if(field){field.value='';window.setSearch('');field.focus();}}
+ };
  // Respect the existing auth/recovery startup. Repaint only an already authenticated workspace.
  if(session&&workspace)render();
 })();

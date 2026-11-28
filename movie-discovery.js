@@ -208,11 +208,25 @@ async function discoverCheeseMovies(force=false){
   if(discoveryLoaded) setTimeout(()=>discoveryHydratePosters(force),0);
 }
 
-async function addDiscoveredMovie(id,applyTraits){
-  const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
+const discoveryPendingAdds=new Map();
+function addDiscoveredMovie(id,applyTraits){
+  return persistDiscoveredMovie(id,applyTraits);
+}
+function persistDiscoveredMovie(id,applyTraits,candidate){
+  const c=candidate||(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
+  if(!c||!workspace)return;
+  const key=workspace.id+':'+(c.tmdb_type||'movie')+':'+Number(id);
+  if(discoveryPendingAdds.has(key))return discoveryPendingAdds.get(key);
+  const pending=saveDiscoveredMovie(id,applyTraits,c).finally(()=>discoveryPendingAdds.delete(key));
+  discoveryPendingAdds.set(key,pending);
+  return pending;
+}
+
+async function saveDiscoveredMovie(id,applyTraits,c){
   if(!c||!workspace) return;
+  const workspaceId=workspace.id;
   const existing=discoverySavedMovie(c);
-  if(existing){ selectedMovie=existing.id; render(); return; }
+  if(existing){ selectedMovie=existing.id; render(); return existing.id; }
 
   const isHallmark=c.tmdb_type==='hallmark'||c.source_type==='hallmark_official';
   const isCatalog=c.source_type==='bingo_catalog';
@@ -223,9 +237,11 @@ async function addDiscoveredMovie(id,applyTraits){
     official_hallmark_url:isHallmark?(c.source_url||c.official_source_url||null):null,hallmark_plus_url:c.hallmark_plus_url||null,
     production_companies:(c.production_companies?.length?c.production_companies:c.production_company)||originalMeta.production_companies||originalMeta.production_company||[],
     stars:c.stars?.length?c.stars:originalMeta.stars||[],cast:c.cast?.length?c.cast:c.stars?.length?c.stars:originalMeta.cast||[],director:c.director||originalMeta.director||null,
+    original_title:c.original_title||originalMeta.original_title||null,
+    verified_aliases:c.verified_aliases?.length?c.verified_aliases:originalMeta.verified_aliases||[],
     genres:c.genres?.length?c.genres:originalMeta.genres||[],keywords:c.keywords?.length?c.keywords:originalMeta.keywords||[],external_ids:c.external_ids||originalMeta.external_ids||{},
     year:Number(c.year)||Number(String(c.premiere_date||'').slice(0,4))||null,season:c.season||null,holiday:c.holiday||null,
-    identity_verified:!!c.identity_verified,art_verified:!!c.art_verified,
+    identity_verified:!!(c.identity_verified||originalMeta.identity_verified),art_verified:!!(c.art_verified||originalMeta.art_verified),
     data_sources:isCatalog?['Romantiverse Bingo editorial catalog']:isHallmark?['Hallmark Channel official catalog','Hallmark title metadata']:['TMDB movie search']
   };
   const payload={
@@ -237,7 +253,13 @@ async function addDiscoveredMovie(id,applyTraits){
   if(/^\d{4}-\d{2}-\d{2}$/.test(c.premiere_date||'')) payload.premiere_date=c.premiere_date;
 
   const {data,error}=await db.from('movies').insert(payload).select().single();
+  if(error?.code==='23505'&&workspace?.id===workspaceId){
+    await loadAll();
+    const existing=discoverySavedMovie(c);
+    if(existing&&workspace?.id===workspaceId){openMovie(existing.id);return existing.id;}
+  }
   if(error) return alert(error.message);
+  if(workspace?.id!==workspaceId)return;
 
   const suggestions=applyTraits?discoveryTraitSuggestions(c):[];
   if(suggestions.length){
@@ -249,7 +271,9 @@ async function addDiscoveredMovie(id,applyTraits){
   discoveryHidden.add(Number(id));
   await logActivity(`found and added ${c.title} from ${originLabel}${suggestions.length?` with ${suggestions.length} confirmed Cheese Traits`:''}.`,'movie',data.id);
   await loadAll();
+  if(workspace?.id!==workspaceId)return;
   selectedMovie=data.id; traitSearch=''; traitSelectedOnly=false; render();
+  return data.id;
 }
 
 function hideDiscoveredMovie(id){ discoveryHidden.add(Number(id)); render(); }

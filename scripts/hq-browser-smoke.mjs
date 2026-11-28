@@ -15,7 +15,7 @@ try{
  await page.route('**/fixture-poster.svg',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="#416c57"/><text x="20" y="140" fill="white">MOVIE POSTER</text></svg>'}));
  await page.addInitScript(()=>{
   const makeQuery=()=>{const query=new Proxy({then(resolve){return Promise.resolve(resolve({data:[],error:null}))}},{get(target,key){if(key in target)return target[key];if(key==='single'||key==='maybeSingle')return async()=>({data:null,error:null});return ()=>query}});return query};
-  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='search-romantiverse'&&body.lookup_exact&&body.query.toLowerCase()==='falling together'?{data:{results:[{tmdb_id:2024,tmdb_type:'movie',source_type:'tmdb_exact_title',exact_title_match:true,title:'Falling Together',year:2024,summary:'Neighbors find romance.',stars:['Ashley Williams','Paul Campbell'],genres:['Romance','TV Movie']}]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'bingo_catalog',title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
+  window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>makeQuery(),rpc:async()=>({data:[],error:null}),functions:{invoke:async(name,{body}={})=>name==='movie-research'?{data:{briefs:window.__fixtureResearch||[]}}:name==='search-romantiverse'&&body.lookup_exact&&body.query.toLowerCase()==='falling together'?{data:{results:[{tmdb_id:2024,tmdb_type:'movie',source_type:'tmdb_exact_title',exact_title_match:true,title:'Falling Together',year:2024,summary:'Neighbors find romance.',stars:['Ashley Williams','Paul Campbell'],genres:['Romance','TV Movie']}]}}:name==='recommend-romantiverse'?{data:{results:[{tmdb_id:1000+Number(body.batch),tmdb_type:'movie',source_type:'bingo_catalog',source_metadata:{romantiverse:{status:'eligible',reason:'A magic hourglass sends a woman back in time.',source:'https://fixture.example/movie'}},title:'A magical new romance '+body.batch,summary:'An enchanted hourglass sends a woman back in time to find love.',poster_url:'/fixture-poster.svg',premiere_date:'2023-11-01',season:'Fall',genres:['Romance','TV Movie'],recommendation_score:82,why:['Shares time-travel romance themes with A Biltmore Christmas']}],matched_favorites:[{title:'A Biltmore Christmas',year:2023}]}}:{data:{results:[],count:0}}},channel:()=>({on(){return this},subscribe(){return this}}),removeChannel(){}})};
  });
  await page.goto(origin,{waitUntil:'networkidle'});
  await page.evaluate(()=>{
@@ -249,22 +249,15 @@ try{
  await page.waitForFunction(()=>document.querySelector('#movieGrid')?.textContent.includes('Autumn at the Orchard'));
  await page.getByRole('button',{name:'Find movies for us',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&discoveryLoaded);
- assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
- await page.waitForFunction(()=>document.querySelector('.new-find-poster img')?.naturalWidth>0);
- const posterCard=page.locator('.new-find-card').filter({has:page.locator('.new-find-poster img')}).first();
- const geometry=await posterCard.evaluate(card=>{
-  const poster=card.querySelector('.new-find-poster').getBoundingClientRect();
-  const body=card.querySelector('.new-find-body').getBoundingClientRect();
-  return {width:poster.width,ratio:poster.width/poster.height,stacked:body.top>=poster.bottom-1,full:Math.abs(card.clientWidth-poster.width)<=1};
- });
- assert.ok(geometry.width>=Math.min(300,width-40),'Poster is large enough to read at '+width);
- assert.ok(Math.abs(geometry.ratio-2/3)<.02&&geometry.stacked&&geometry.full,'Recommendation is a full-width portrait poster above details');
+ assert.ok(await page.getByRole('region',{name:'Pick of the Week'}).isVisible());
+ await page.waitForFunction(()=>document.querySelector('.cl-editorial-poster img')?.naturalWidth>0);
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
  await page.getByRole('button',{name:'Refresh picks',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1000);
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Refreshing preserves eligible recommendations instead of exhausting them');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
  await search.fill('Falling Together');
+ await page.locator('#romantiverseSearchHost').getByRole('button',{name:'Search more sources'}).click();
  await page.waitForFunction(()=>state.romantiverseSearchResults.some(m=>m.title==='Falling Together'));
  assert.ok(await page.locator('#romantiverseSearchHost').getByRole('heading',{name:'Falling Together',exact:true}).isVisible(),'Exact title outside catalog is visible');
  await page.evaluate(()=>{movieFilters.holiday='Christmas';movieFilters.yearMin=2026;movieFilters.mode='mutual';refreshRomantiverseSearchPanel()});

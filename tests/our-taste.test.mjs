@@ -5,11 +5,21 @@ import {selectCatalog,createCatalogHandler} from '../supabase/functions/_shared/
 const E=globalThis.clOurMovieTasteEngine;
 const pretend={title:'Our pretend-couple pick',summary:'They are pretending to be a couple to win back their exes.',votes:{a:'yes',b:'yes'}};
 const inherited={title:'Our inherited-inn pick',summary:'She inherited half of the inn and returns home to save the business.',votes:{a:'yes',b:'yes'}};
+const romantiverse={status:'eligible',reason:'Reviewed episode hook',source:'https://fixture.test/movie'};
 test('Our Movies weights both Yes above one Yes, Saved and Maybe; rejection is not a positive',()=>{
  const values=[E.signals(pretend).weight,E.signals({votes:{a:'yes'}}).weight,E.signals({bookmarks:{a:true}}).weight,E.signals({votes:{a:'maybe'}}).weight];
  assert.ok(values.every((v,i)=>i===0||v<values[i-1]));
  const p=E.preferences([pretend,inherited,{title:'Saved',bookmarks:{a:true}},{title:'Tentative',votes:{a:'maybe'}},{title:'Rejected',votes:{a:'no'},bookmarks:{a:true}}]);
  assert.equal(p.likes.length,4);assert.equal(p.dislikes.length,1);assert.ok(!p.likes.some(m=>m.title==='Rejected'));assert.equal(E.profile(p).both,2);
+});
+test('episode progress is a distinct weak signal and explicit feedback takes priority',()=>{
+ const movies=[{id:'one',title:'One'},{id:'two',title:'Two',votes:{a:'no'}},{id:'three',title:'Three',votes:{a:'yes'}}];
+ const episodes=[{movie_id:'one',status:'planning'},{movie_id:'one',status:'recorded',notes:'Private text'},
+  {movie_id:'two',status:'watched'},{movie_id:'three',status:'planning'}];
+ const preferences=E.preferences(movies,episodes);
+ assert.deepEqual(preferences.likes.map(movie=>movie.signal),['recorded','yes']);
+ assert.ok(preferences.likes[0].weight<preferences.likes[1].weight);
+ assert.doesNotMatch(JSON.stringify(preferences),/Private text/);
 });
 test('generic Christmas is not a close match, but a specific shared story premise points to the actual choice',()=>{
  const p=E.profile(E.preferences([pretend,inherited]));
@@ -25,13 +35,13 @@ test('No votes lower similar story scores rather than banning a shared holiday',
  assert.ok(E.match(pretend,after).score<E.match(pretend,before).score);assert.ok(E.match(inherited,after).score>=E.match(pretend,after).score);
 });
 test('rank before limiting, never rotate a weak batch ahead of a close fit, and widen only on request',()=>{
- const body={version:1,movies:[{id:'flat',title:'A Generic Christmas',season:'Christmas',release_year:2025,synopsis:'Two strangers meet.'},{id:'fit',title:'Z Inn for Two',season:'Christmas',release_year:2025,synopsis:inherited.summary}]};
- const p=E.preferences([inherited]);const r=selectCatalog(body,{...p,max_results:1,batch:99},true);assert.equal(r.results[0].title,'Z Inn for Two');assert.equal(r.broader_count,1);
- assert.equal(selectCatalog(body,{...p,max_results:24},true).results.length,1);assert.equal(selectCatalog(body,{...p,include_broader:true},true).results.length,2);
+ const body={version:1,movies:[{id:'flat',title:'A Generic Christmas',season:'Christmas',release_year:2025,synopsis:'Two strangers meet.',romantiverse},{id:'fit',title:'Z Inn for Two',season:'Christmas',release_year:2025,synopsis:inherited.summary,romantiverse}]};
+ const p=E.preferences([inherited]);const r=selectCatalog(body,{...p,max_results:1,batch:99},true,[]);assert.equal(r.results[0].title,'Z Inn for Two');assert.equal(r.broader_count,1);
+ assert.equal(selectCatalog(body,{...p,max_results:24},true,[]).results.length,1);assert.equal(selectCatalog(body,{...p,include_broader:true},true,[]).results.length,2);
 });
 test('enrich story metadata before final ranking; public metadata cache cannot reuse another private taste profile',async()=>{
- const body={version:1,movies:[{id:'a',title:'A Plain Title',season:'Christmas',release_year:2025},{id:'z',title:'Z Secret Title',season:'Christmas',release_year:2025}]};let calls=0;
- const handler=createCatalogHandler({fallback:body,recommend:true,env:()=> 'fixture-token',fetcher:async url=>{
+ const body={version:1,movies:[{id:'a',title:'A Plain Title',season:'Christmas',release_year:2025,romantiverse},{id:'z',title:'Z Secret Title',season:'Christmas',release_year:2025,romantiverse}]};let calls=0;
+ const handler=createCatalogHandler({fallback:body,recommend:true,editorial:[],env:()=> 'fixture-token',fetcher:async url=>{
   if(url.includes('/catalog/'))return new Response(JSON.stringify(body));calls++;const u=new URL(url);
   if(u.pathname.endsWith('/search/movie')){const title=u.searchParams.get('query');return new Response(JSON.stringify({results:[{id:title.startsWith('Z')?2:1,title,release_date:'2025-11-01',genre_ids:[10749,10770]}]}))}
   const special=u.pathname.endsWith('/2');return new Response(JSON.stringify({id:special?2:1,title:special?'Z Secret Title':'A Plain Title',release_date:'2025-11-01',overview:special?'A fake relationship becomes real.':'Two people meet at Christmas.',genres:[{id:10749,name:'Romance'},{id:10770,name:'TV Movie'}]}));

@@ -2,6 +2,7 @@
 // Makes saved Radar cards and New Finds open a large, read-friendly detail view.
 
 let clDiscoveryMovieDetailId = null;
+let clSearchMovieDetail = null;
 
 function clMovieDetailInteractiveTarget(target){
   return !!target?.closest?.('button,a,input,select,textarea,summary,details,label');
@@ -26,7 +27,8 @@ function clMovieDetailPoster(item){
     : `<div class="cl-movie-detail-poster cl-movie-detail-poster-fallback">CL</div>`;
 }
 
-function clOpenDiscoveryMovieDetails(tmdbId){
+function clOpenDiscoveryMovieDetails(tmdbId,fromSearch=false){
+  clSearchMovieDetail=fromSearch?romantiverseSearchCandidate(tmdbId):null;
   const id=Number(tmdbId);
   // Romantiverse Search keeps external matches in its own state array.
   // Promote the clicked candidate before opening so the existing detail,
@@ -34,7 +36,7 @@ function clOpenDiscoveryMovieDetails(tmdbId){
   if(typeof ensureRomantiverseCandidateInDiscovery==='function'){
     ensureRomantiverseCandidateInDiscovery(id);
   }
-  clDiscoveryMovieDetailId=id;
+  clDiscoveryMovieDetailId=fromSearch?clSearchMovieDetail?.tmdb_id:id;
   selectedMovie=null;
   render();
 }
@@ -42,7 +44,9 @@ function clOpenDiscoveryMovieDetails(tmdbId){
 function clCloseDiscoveryMovieDetails(event){
   if(event && event.target!==event.currentTarget) return;
   clDiscoveryMovieDetailId=null;
+  clSearchMovieDetail=null;
   render();
+  if(typeof restoreRomantiverseResult==='function')restoreRomantiverseResult();
 }
 
 function clCloseSavedMovieDetails(event){
@@ -51,6 +55,7 @@ function clCloseSavedMovieDetails(event){
   if(typeof traitSearch!=='undefined') traitSearch='';
   if(typeof traitSelectedOnly!=='undefined') traitSelectedOnly=false;
   render();
+  if(typeof restoreRomantiverseResult==='function')restoreRomantiverseResult();
 }
 
 async function clAddDiscoveryFromDetail(tmdbId,applyTraits){
@@ -58,10 +63,36 @@ async function clAddDiscoveryFromDetail(tmdbId,applyTraits){
   await addDiscoveredMovie(Number(tmdbId),!!applyTraits);
 }
 
+async function clSelectDiscoveryMovie(tmdbId){
+  const candidate=(state.discoveryResults||[]).find(movie=>Number(movie.tmdb_id)===Number(tmdbId));
+  if(!candidate)return;
+  const linked=typeof romantiverseSearchLinkedMovie==='function'?romantiverseSearchLinkedMovie(candidate):discoverySavedMovie(candidate);
+  const movieId=linked?.id||await persistDiscoveredMovie(Number(tmdbId),false,candidate);
+  if(!movieId)return;
+  clDiscoveryMovieDetailId=null;
+  clSelectSavedMovie(movieId);
+}
+
+function clSelectSavedMovie(movieId){
+  const linked=(state.episodes||[]).filter(episode=>episode.movie_id===movieId);
+  if(linked.length>1){openMovie(movieId);return;}
+  window.clPrepareSavedMovie(movieId,linked[0]?.id);
+}
+
 function clHideDiscoveryFromDetail(tmdbId){
   clDiscoveryMovieDetailId=null;
   hideDiscoveredMovie(Number(tmdbId));
 }
+
+window.clPrepareSavedMovie=function(movieId,episodeId){
+  if(!(state.movies||[]).some(movie=>movie.id===movieId))return;
+  if(episodeId){
+    if(!(state.episodes||[]).some(episode=>episode.id===episodeId&&episode.movie_id===movieId))return;
+    window.hqWorkspace.resumeEpisode(episodeId);
+    return;
+  }
+  if(window.hqWorkspace.open('watchalong')&&currentTab==='watchalong')window.watchAlongChangeMovie(movieId);
+};
 
 function clSavedMovieDetailModal(){
   const m=(state.movies||[]).find(x=>x.id===selectedMovie);
@@ -71,6 +102,10 @@ function clSavedMovieDetailModal(){
   const traits=(m.selectedTraits||[]).slice().sort((a,b)=>Number(b.points||0)-Number(a.points||0)||a.name.localeCompare(b.name));
   const meta=[m.network,m.premiere_date?fmtDate(m.premiere_date):m.date,m.holiday,m.season].filter(Boolean);
   const notes=(m.notes||'').trim();
+  const episodes=(state.episodes||[]).filter(episode=>episode.movie_id===m.id);
+  const prepare=episodes.length===1
+    ?`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}','${esc(episodes[0].id)}')">Resume episode</button>`
+    :`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}')">Prepare in Watch Along</button>`;
 
   return `<div class="modal-backdrop" onclick="clCloseSavedMovieDetails(event)"><div class="modal cl-movie-detail-modal" onclick="event.stopPropagation()">
     <div class="modal-header cl-movie-detail-header">
@@ -85,9 +120,12 @@ function clSavedMovieDetailModal(){
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(m.providers)}</div>
         ${clMovieDetailLinks(m)}
         <div class="cl-movie-detail-actions">
-          <button class="${saved?'primary':'secondary'}" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
+          ${prepare}
+          <button type="button" class="secondary" data-movie-id="${esc(m.id)}" onclick="clEpisodeWizard.useMovie(this.dataset.movieId)">Start Episode Setup</button>
+          <button class="secondary" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
           <button class="secondary" onclick="scheduleMovie('${m.id}')">📅 Schedule</button>
         </div>
+        ${episodes.length>1?`<details><summary>Linked episodes</summary>${episodes.map(episode=>`<button class="secondary" onclick="clPrepareSavedMovie('${esc(m.id)}','${esc(episode.id)}')">${esc(episode.title)}</button>`).join('')}</details>`:''}
       </div>
     </div>
 
@@ -137,8 +175,18 @@ function clSavedMovieDetailModal(){
 }
 
 function clDiscoveryMovieDetailModal(){
-  const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(clDiscoveryMovieDetailId));
+  const c=clSearchMovieDetail||(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(clDiscoveryMovieDetailId));
   if(!c) return '';
+  if(clSearchMovieDetail){
+   const key=esc(romantiverseCandidateKey(c));
+   return `<div class="modal-backdrop" onclick="clCloseDiscoveryMovieDetails(event)"><div class="modal cl-movie-detail-modal" onclick="event.stopPropagation()">
+    <div class="modal-header"><h2>${esc(c.title)}</h2><button class="close" aria-label="Close movie" onclick="clCloseDiscoveryMovieDetails()">×</button></div>
+    <div class="cl-movie-detail-hero"><div>${clMovieDetailPoster(c)}</div><div><p>${[clMovieTitleSearch.year(c),c.network,...clMovieTitleSearch.cast(c).slice(0,4)].filter(Boolean).map(esc).join(' · ')}</p>
+    <p>${esc(c.summary||'No synopsis is available yet.')}</p>${clMovieDetailLinks(c)}
+    <button type="button" class="secondary" data-result-key="${key}" onclick="addRomantiverseSearchMovie(this.dataset.resultKey,false)">Add to Radar</button>
+    <button type="button" class="primary" data-result-key="${key}" onclick="clEpisodeWizard.useCandidate(this.dataset.resultKey,true)">Start Episode Setup</button></div></div>
+   </div></div>`;
+  }
   const est=typeof discoveryEstimate==='function'?discoveryEstimate(c):{traits:[],score:0};
   const traits=est?.traits||[];
   const why=c.why||[];
@@ -156,6 +204,7 @@ function clDiscoveryMovieDetailModal(){
         <div class="cl-movie-detail-score-row"><div><div class="kicker">Radar match</div><div class="cl-movie-detail-big-score">🎯 ${Number(c.match_score||0)}</div></div><div><div class="kicker">Estimated Cheese Rating</div><div class="cl-movie-detail-big-score">🧀 ${Number(est?.score||0)}</div></div></div>
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(c.providers)}</div>
         ${clMovieDetailLinks(c)}
+        <div class="cl-movie-detail-actions"><button type="button" class="primary" onclick="clSelectDiscoveryMovie(${Number(c.tmdb_id)})">Select movie</button></div>
       </div>
     </div>
 
@@ -178,8 +227,8 @@ function clDiscoveryMovieDetailModal(){
     ${why.length?`<section class="cl-movie-detail-section"><div class="kicker">Why it surfaced</div><div class="pills cl-movie-detail-tags">${why.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}</div></section>`:''}
 
     <div class="episode-editor-actions cl-movie-detail-footer-actions">
-      <button class="primary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},true)">${traits.length?`Add + confirm ${traits.length} traits`:'Add to Radar'}</button>
-      ${traits.length?`<button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},false)">Add only</button>`:''}
+      <button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},false)">Add to Radar</button>
+      ${traits.length?`<button class="secondary" onclick="clAddDiscoveryFromDetail(${Number(c.tmdb_id)},true)">Add + confirm ${traits.length} traits</button>`:''}
       <button class="secondary" onclick="clHideDiscoveryFromDetail(${Number(c.tmdb_id)})">Hide for now</button>
       <button class="secondary" onclick="clCloseDiscoveryMovieDetails()">Close</button>
     </div>

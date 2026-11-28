@@ -54,7 +54,7 @@ function client(storageFails=false){
  const context={window:null,session:{},workspace:{id:'one'},state:{movies:[],discoveryResults:[]},discoveryHidden:new Set(),discoveryLoaded:false,discoveryLoading:false,discoveryError:'',movieFilters:{},movieCard:()=>'',discoveryCard:()=>'',render(){},searchText:'',
   document:{getElementById:()=>null},localStorage:{getItem:key=>storage.get(key)||null,setItem:(k,v)=>{if(storageFails)throw Error('full');storage.set(k,v)},removeItem:key=>storage.delete(key)},
   setTimeout:()=>0,clearTimeout(){},clSetTasteSort(){},sharedRadarRefreshResults(){},
-  db:{functions:{invoke:async(name,{body})=>{requests.push({name,body});return {data:{results:[{tmdb_id:body.batch+10,title:'Fresh movie '+body.batch,source_type:'bingo_catalog'}],matched_favorites:[]}}}}}};
+  db:{functions:{invoke:async(name,{body})=>{requests.push({name,body});return {data:{results:[{tmdb_id:body.batch+10,title:'Fresh movie '+body.batch,source_type:'bingo_catalog',source_metadata:{romantiverse:{status:'eligible',reason:'Reviewed episode hook',source:'https://fixture.test/movie'}}}],matched_favorites:[]}}}}}};
  context.window=context;vm.createContext(context);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),context);vm.runInContext(read('supabase/functions/_shared/our-movie-taste.js'),context);vm.runInContext(read('movie-recommendations.js'),context);
  return {c:context,requests};
 }

@@ -25,6 +25,8 @@ jobs:
       - name: Test production and filtering logic with isolated fixture data
         run: node --test tests/*.test.mjs
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Check title search and canonical episode resume
+        run: node scripts/movie-search-browser-smoke.mjs
       - name: Check the assembled HQ interface using mocked authentication and data
         run: node scripts/hq-browser-smoke.mjs
       - name: Check cocktail ranking, details and fresh variations on mobile and desktop

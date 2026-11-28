@@ -116,24 +116,8 @@ movies = function(){
   const filterCount = activeFilterCount();
   const newFindCount = sharedRadarCandidateCount();
 
-  return `<section class="section">
-    <div class="page-title">Movie Radar</div>
-    <div class="subtle">Find, save, vote, discuss — and build the Cheese Rating from actual Romantiverse traits.</div>
-    <div class="movie-header-actions">
-      <button class="primary" onclick="addMovie()">+ Add movie</button>
-      <button class="secondary our-movies-shortcut" onclick="hqWorkspace.open('ourmovies')">Our Movies</button>
-      <button id="radarFiltersButton" class="secondary" onclick="toggleMovieFilters()">⚙ Filters${filterCount?` (${filterCount})`:''}</button>
-      <button class="secondary" onclick="openTraitManager()">🧀 Trait Library</button>
-    </div>
-    <div class="subtle" style="margin-top:10px">Radar filters apply to <strong>both New Finds and movies already added to the Radar</strong>.</div>
-  </section>
-
-  <section class="section">
-    ${sharedRadarToolbarHtml()}
-    ${cheesePresetButtons()}
-    <div id="movieFilterHost">${showMovieFilters?cheeseFilterPanel():''}</div>
-
-    <div id="newFindMatchLine" class="subtle" style="margin:16px 0 8px"><strong>${newFindCount}</strong> New Find${newFindCount===1?'':'s'} match the current Radar filters</div>
+  return `<section class="section hq-radar-feed" aria-label="Movie Radar">
+    <div id="radarBrowseResults" ${searchText.trim().length>=2?'hidden':''}>
     <div id="radarDiscoveryResults" class="discovery-section">${discoveryPanel()}</div>
 
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;margin-top:24px;flex-wrap:wrap">
@@ -141,6 +125,22 @@ movies = function(){
     </div>
     <div id="resultsLine" class="results-line"><strong>${found.length}</strong> saved movie${found.length===1?'':'s'} match${found.length===1?'es':''}</div>
     <div id="movieGrid" class="movie-grid">${found.map(movieCard).join('')||'<div class="empty">No saved Radar movies match these filters yet.</div>'}</div>
+    </div>
+  </section>
+
+  <section class="section hq-radar-tools" aria-labelledby="hq-radar-tools-title">
+    <h2 id="hq-radar-tools-title">Movie tools</h2>
+    <div class="movie-header-actions">
+      <button class="primary" onclick="addMovie()">+ Add movie</button>
+      <button class="secondary our-movies-shortcut" onclick="hqWorkspace.open('ourmovies')">Our Movies</button>
+      <button id="radarFiltersButton" class="secondary" aria-expanded="${!!showMovieFilters}" aria-controls="movieFilterHost" onclick="toggleMovieFilters()">⚙ Filters${filterCount?` (${filterCount})`:''}</button>
+      <button class="secondary" onclick="openTraitManager()">🧀 Trait Library</button>
+      <button class="secondary" onclick="discoverCheeseMovies(true)">Refresh picks</button>
+    </div>
+    ${sharedRadarToolbarHtml()}
+    ${cheesePresetButtons()}
+    <div id="movieFilterHost">${showMovieFilters?cheeseFilterPanel():''}</div>
+    <div id="newFindMatchLine" class="subtle"><strong>${newFindCount}</strong> New Find${newFindCount===1?'':'s'} match the current Radar filters</div>
   </section>`;
 };
 
@@ -167,6 +167,11 @@ function sharedRadarRefreshToolbar(){
 let sharedRadarRefreshTimer=null;
 function sharedRadarRefreshResults(){
   if(currentTab!=='movies') return;
+  const browse=document.getElementById('radarBrowseResults');
+  if(browse){
+    browse.hidden=searchText.trim().length>=2;
+    if(browse.hidden){sharedRadarUpdateFilterButton();return;}
+  }
   const found=filteredMovies();
   const newFindCount=sharedRadarCandidateCount();
 
@@ -205,6 +210,7 @@ function sharedRadarSetTraitButtonState(id,selected){
 // ---------------------------------------------------------------------------
 window.toggleMovieFilters=()=>{
   showMovieFilters=!showMovieFilters;
+  document.getElementById('radarFiltersButton')?.setAttribute('aria-expanded',String(showMovieFilters));
   const host=document.getElementById('movieFilterHost');
   if(host) host.innerHTML=showMovieFilters?cheeseFilterPanel():'';
 };
