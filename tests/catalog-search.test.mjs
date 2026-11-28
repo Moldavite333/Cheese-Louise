@@ -3,6 +3,53 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectCatalog,createCatalogHandler} from '../supabase/functions/_shared/romantiverse-catalog.mjs';
 const catalog=JSON.parse(readFileSync(new URL('../supabase/functions/_shared/romantiverse-catalog.json',import.meta.url),'utf8'));
+const titleSearch=globalThis.clMovieTitleSearch;
+
+test('direct search ranks real catalog titles before the limit and ignores discovery filters',()=>{
+ const movie=catalog.movies.find(m=>m.title==='Love, Fall & Order');
+ assert.ok(movie&&catalog.movies.indexOf(movie)>20);
+ const result=selectCatalog(catalog,{query:'Love Fall and Order 2019',title_search:true,max_results:1,filters:{season:'Winter',yearMin:2099}});
+ assert.equal(result.results[0].catalog_id,movie.id);
+ assert.equal(result.results[0].title_search_score,700);
+});
+
+test('premiere-day, spelling, partial titles, actor names, and verified alias resolve without conflating identities',()=>{
+ const query=text=>titleSearch.parse(text);
+ const santa={title:'Return to Santa',premiere_date:'2026-11-27',source_metadata:{stars:['Paul Campbell','Rachel Boston']}};
+ for(const text of ['Return to Santa','Return Santa','Return to Snta','Santa Return','Return to','Paul Campbell','Rachel Boston']){
+  assert.ok(titleSearch.score(santa,query(text)),text);
+ }
+ const birding={title:'Adventures in Love & Birding',year:2025};
+ for(const text of ['Adventures in Love and Birding','Adventures in Birding']){
+  assert.ok(titleSearch.score(birding,query(text)),text);
+ }
+ const original={title:'A Biltmore Christmas',year:2023,verified_aliases:['Biltmore Christmas']};
+ const sequel={title:'A Grand Biltmore Christmas',year:2026};
+ assert.equal(titleSearch.score(original,query('Biltmore Christmas')),500);
+ assert.ok(titleSearch.compare(original,sequel,query('A Biltmore Christmas'))<0);
+ assert.ok(titleSearch.compare(original,sequel,query('A Grand Biltmore Christmas'))>0);
+ assert.ok(titleSearch.compare(original,{...original,year:2028},query('A Biltmore Christmas (2023)'))<0);
+});
+
+test('a confident workspace result suppresses provider lookup even when the shared catalog is stale',async()=>{
+ const {handler,calls}=exactHandler();
+ const response=await handler(new Request('https://fixture/search',{method:'POST',body:JSON.stringify({
+  query:'Return to Santa',title_search:true,lookup_exact:true,workspace_exact:true
+ })}));
+ assert.equal(response.status,200);
+ assert.equal(calls.length,1);
+});
+
+test('a verified time can cross the premiere boundary without changing the movie identity',()=>{
+ const releaseDay=new Date(2026,10,27,12);
+ const movie={id:'catalog-return-to-santa-2026',title:'Return to Santa',premiere_date:'2026-11-27'};
+ assert.equal(titleSearch.release(movie,releaseDay),'today');
+ assert.equal(titleSearch.release(movie,new Date(2026,10,28,12)),'released');
+ const timed={...movie,source_metadata:{premiere:{verified:true,at:'2026-11-27T20:00:00-05:00'}}};
+ assert.equal(titleSearch.release(timed,new Date('2026-11-28T00:59:00Z')),'upcoming');
+ assert.equal(titleSearch.release(timed,new Date('2026-11-28T01:00:00Z')),'released');
+ assert.equal(movie.id,timed.id);
+});
 test('explicit exact catalog titles bypass conflicting filters without changing discovery',()=>{
  const input={query:'A Biltmore Christmas',lookup_exact:true,filters:{season:'Fall',yearMin:2025,studio:'Other'}};
  assert.equal(selectCatalog(catalog,input).results[0].title,'A Biltmore Christmas');
@@ -48,7 +95,10 @@ test('specific searches use the same Bingo catalog and mystery franchises stay o
 });
 test('failed shared catalog fetch uses the bundled Bingo catalog and never falls back to broad movie search',async()=>{
  const calls=[],handler=createCatalogHandler({fallback:catalog,fetcher:async url=>{calls.push(url);throw Error('Offline')}});
- const r=await handler(new Request('https://fixture/search',{method:'POST',body:JSON.stringify({query:'fall'})}));assert.equal(r.status,200);assert.equal((await r.json()).results.length,12);assert.equal(calls.length,1);assert.ok(calls[0].includes('/catalog/movies.json'));
+ const r=await handler(new Request('https://fixture/search',{method:'POST',body:JSON.stringify({query:'fall'})}));
+ const data=await r.json();
+ assert.equal(r.status,200);assert.equal(data.results.length,12);assert.equal(data.catalog_stale,true);
+ assert.equal(data.catalog_checked_at,null);assert.equal(calls.length,1);assert.ok(calls[0].includes('/catalog/movies.json'));
 });
 test('metadata enrichment cannot add a different title or remake to a catalog result',async()=>{
  const handler=createCatalogHandler({fallback:catalog,env:()=> 'fixture-token',fetcher:async url=>new Response(JSON.stringify(url.includes('/catalog/')?catalog:{results:[{id:1,title:'Cinderella',release_date:'2015-01-01',genre_ids:[10749]}]}))});

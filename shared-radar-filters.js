@@ -133,6 +133,7 @@ movies = function(){
     ${cheesePresetButtons()}
     <div id="movieFilterHost">${showMovieFilters?cheeseFilterPanel():''}</div>
 
+    <div id="radarBrowseResults" ${searchText.trim().length>=2?'hidden':''}>
     <div id="newFindMatchLine" class="subtle" style="margin:16px 0 8px"><strong>${newFindCount}</strong> New Find${newFindCount===1?'':'s'} match the current Radar filters</div>
     <div id="radarDiscoveryResults" class="discovery-section">${discoveryPanel()}</div>
 
@@ -141,6 +142,7 @@ movies = function(){
     </div>
     <div id="resultsLine" class="results-line"><strong>${found.length}</strong> saved movie${found.length===1?'':'s'} match${found.length===1?'es':''}</div>
     <div id="movieGrid" class="movie-grid">${found.map(movieCard).join('')||'<div class="empty">No saved Radar movies match these filters yet.</div>'}</div>
+    </div>
   </section>`;
 };
 
@@ -167,6 +169,11 @@ function sharedRadarRefreshToolbar(){
 let sharedRadarRefreshTimer=null;
 function sharedRadarRefreshResults(){
   if(currentTab!=='movies') return;
+  const browse=document.getElementById('radarBrowseResults');
+  if(browse){
+    browse.hidden=searchText.trim().length>=2;
+    if(browse.hidden){sharedRadarUpdateFilterButton();return;}
+  }
   const found=filteredMovies();
   const newFindCount=sharedRadarCandidateCount();
 

@@ -6,14 +6,14 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 function setup(){
  const timers=new Map(),requests=[];let nextTimer=0,saved=null,respond=async query=>({data:{results:[{tmdb_id:query==='autumn'?10:20,title:query,season:'Fall'}],expanded_terms:[]}});
  const context={
- window:null,state:{movies:[],traits:[],filterPresets:[],discoveryResults:[]},movieFilters:{mode:'all',traitIds:[],traitCategories:[],minScore:0},searchText:'',currentTab:'movies',workspace:{id:'ws'},
+ window:null,AbortController,state:{movies:[],traits:[],filterPresets:[],discoveryResults:[]},movieFilters:{mode:'all',traitIds:[],traitCategories:[],minScore:0},searchText:'',currentTab:'movies',workspace:{id:'ws'},
  movieMatchesCheeseFilters:()=>true,activeFilterCount:()=>0,cheeseFilterPanel:()=>'<div class="score-filter"></div><div class="preset-actions"></div>',movieCard:()=>'',cheeseMovieModal:()=>'',movies:()=>'',topbar:()=>'',render(){},loadAll:async()=>{},me:()=> 'test',esc:value=>String(value??''),alert(){},prompt:()=> 'Saved view',
  document:{getElementById:()=>null},setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{fn,ms});return id},clearTimeout:id=>timers.delete(id),
- v16MatchesNetwork:()=>true,v16MatchesRelease:()=>true,discoveryEstimate:()=>({score:0,traits:[]}),discoveryCard:()=>'<div class="new-find-score"></div>',
+ v16MatchesNetwork:()=>true,v16MatchesRelease:()=>true,discoveryEstimate:()=>({score:0,traits:[]}),discoveryCard:()=>'<div class="new-find-score"></div>',discoverySavedMovie:()=>null,
  db:{functions:{invoke:async(name,{body})=>{requests.push(body);return respond(body.query)}},from:()=>({upsert:async payload=>{saved=payload;return {error:null}}})}};
  context.window=context;context.setSearch=value=>{context.searchText=value};
- vm.createContext(context);for(const file of ['supabase/functions/_shared/movie-content-policy.js','holiday-season-filters.js','supabase/functions/_shared/our-movie-taste.js','movie-taste.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
- return {context,requests,saved:()=>saved,respond:fn=>{respond=fn},flush:async()=>{for(const [id,timer] of [...timers])if(timer.ms===450){timers.delete(id);timer.fn()}await new Promise(setImmediate)}};
+ vm.createContext(context);for(const file of ['supabase/functions/_shared/movie-content-policy.js','holiday-season-filters.js','supabase/functions/_shared/our-movie-taste.js','movie-taste.js','supabase/functions/_shared/movie-title-search.js','romantiverse-search.js','year-filter.js'])vm.runInContext(read(file),context,{filename:file});
+ return {context,requests,saved:()=>saved,respond:fn=>{respond=fn},flush:async()=>{for(const [id,timer] of [...timers])if(timer.ms===250){timers.delete(id);timer.fn()}await new Promise(setImmediate)}};
 }
 test('cached external search results cannot display mixed Horror/Romance or explicit horror metadata',()=>{
  const {context:c}=setup();
@@ -53,6 +53,7 @@ test('ordinary exact-title lookup issues one request and keeps all Radar filters
  await c.runRomantiverseSearch('A Biltmore Christmas');
  assert.equal(h.requests.length,1);assert.equal(h.requests[0].query,'A Biltmore Christmas');
  assert.equal(c.movieFilters.yearMin,2025);assert.equal(c.movieFilters.season,'Fall');
+ assert.equal(Object.keys(h.requests[0].filters).length,0);
  assert.equal(h.requests[0].lookup_exact,true);
 });
 test('exact title matches survive filters, hidden flags and existing-movie exclusion',async()=>{
@@ -66,6 +67,18 @@ test('exact title matches survive filters, hidden flags and existing-movie exclu
 test('saved exact title is shown even when the external catalog returns nothing',async()=>{
  const h=setup(),c=h.context;c.searchText='Falling Together';c.state.movies=[{id:'saved',title:'Falling Together'}];h.respond(async()=>({data:{results:[]}}));
  await c.runRomantiverseSearch(c.searchText);assert.equal(c.romantiverseSearchVisibleResults()[0].id,'saved');
+});
+test('workspace matches render immediately and survive a failed source without touching review status',async()=>{
+ const h=setup(),c=h.context;
+ c.state.movies=[{id:'santa',title:'Return to Santa',premiere_date:'2026-11-27',status:'recorded',votes:{nick:'no',jenny:'no'}}];
+ c.movieFilters={season:'Fall',mode:'yes',yearMin:2099};
+ c.setSearch('Return to Snta');
+ assert.match(c.romantiverseSearchPanel(),/Return to Santa[\s\S]*Recorded · Both No[\s\S]*Open movie/);
+ h.respond(async()=>({error:new Error('Catalog offline')}));
+ await h.flush();
+ assert.match(c.romantiverseSearchPanel(),/Catalog offline[\s\S]*Return to Santa/);
+ assert.equal(c.state.movies[0].status,'recorded');
+ assert.equal(c.state.movies.length,1);
 });
 test('season and holiday aliases match explicit metadata, including serialized source metadata',()=>{
  const {context:c}=setup();

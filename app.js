@@ -319,17 +319,46 @@ async function comment(id){
   await loadAll(); render();
 }
 
-async function addMovie(){
-  const title=prompt('Movie title:'); if(!title) return;
-  const network=prompt('Network / studio:','Hallmark')||'';
-  const scoreRaw=prompt('Cheese potential 0–100:','85');
-  const cheese_score=Math.max(0,Math.min(100,Number(scoreRaw)||0));
-  const tags=(prompt('Tags, separated by commas:','Small town, Christmas')||'').split(',').map(x=>x.trim()).filter(Boolean);
-  const summary=prompt('Short premise / why it looks promising:','')||'';
-  const {data,error}=await db.from('movies').insert({workspace_id:workspace.id,title,network,cheese_score,tags,summary,created_by:me()}).select().single();
-  if(error) return alert(error.message);
-  await logActivity(`added ${title} to the Movie Radar.`,'movie',data.id);
-  await loadAll(); render();
+let manualMoviePending=false;
+async function addMovie(prefill=''){
+  if(!workspace||manualMoviePending)return;
+  const search=globalThis.clMovieTitleSearch;
+  const suggested=search.parse(prefill);
+  const title=prompt('Movie title',suggested.title)?.trim();
+  if(!title)return;
+  const enteredYear=prompt('Release year (optional)',suggested.year||'');
+  if(enteredYear===null)return;
+  const yearText=enteredYear.trim();
+  if(yearText&&!/^(18|19|20|21)\d{2}$/.test(yearText))return alert('Enter a four-digit release year or leave it blank.');
+  const year=Number(yearText)||null;
+  const wid=workspace.id;
+  manualMoviePending=true;
+  try{
+    await loadAll();
+    if(workspace?.id!==wid)return;
+    const query={key:search.normalize(title),year};
+    const matches=state.movies.filter(movie=>search.score(movie,query)>=500&&(!year||!search.year(movie)||search.year(movie)===year));
+    if(matches.length){
+      if(matches.length===1)openMovie(matches[0].id);
+      else {
+        alert('Several existing movies match. Compare their years and cast in Movie Radar before adding one.');
+        window.setSearch(title);
+      }
+      return;
+    }
+    const network=prompt('Airing network (optional)');
+    if(network===null)return;
+    const summary=prompt('Short premise (optional)');
+    if(summary===null||!confirm('Add '+title+(year?' ('+year+')':'')+' as a manual movie?'))return;
+    const {data,error}=await db.from('movies').insert({workspace_id:wid,title,network:network.trim()||null,summary:summary.trim()||null,
+      source_metadata:{source_type:'manual',year,identity_verified:false},created_by:me()}).select().single();
+    if(error)throw error;
+    if(workspace?.id!==wid)return;
+    await logActivity(`added ${title} to the Movie Radar.`,'movie',data.id);
+    await loadAll();
+    if(workspace?.id===wid)openMovie(data.id);
+  }catch(error){alert(error.message||String(error));}
+  finally{manualMoviePending=false;}
 }
 
 async function scheduleMovie(id){

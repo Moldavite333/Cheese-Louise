@@ -63,6 +63,18 @@ function clHideDiscoveryFromDetail(tmdbId){
   hideDiscoveredMovie(Number(tmdbId));
 }
 
+window.clPrepareSavedMovie=function(movieId,episodeId){
+  if(!(state.movies||[]).some(movie=>movie.id===movieId))return;
+  if(episodeId){
+    if(!(state.episodes||[]).some(episode=>episode.id===episodeId&&episode.movie_id===movieId))return;
+    window.hqWorkspace.open('episodes');
+    if(currentTab==='episodes')window.openEpisode(episodeId);
+    return;
+  }
+  window.hqWorkspace.open('watchalong');
+  if(currentTab==='watchalong')window.watchAlongChangeMovie(movieId);
+};
+
 function clSavedMovieDetailModal(){
   const m=(state.movies||[]).find(x=>x.id===selectedMovie);
   if(!m) return '';
@@ -71,6 +83,10 @@ function clSavedMovieDetailModal(){
   const traits=(m.selectedTraits||[]).slice().sort((a,b)=>Number(b.points||0)-Number(a.points||0)||a.name.localeCompare(b.name));
   const meta=[m.network,m.premiere_date?fmtDate(m.premiere_date):m.date,m.holiday,m.season].filter(Boolean);
   const notes=(m.notes||'').trim();
+  const episodes=(state.episodes||[]).filter(episode=>episode.movie_id===m.id);
+  const prepare=episodes.length===1
+    ?`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}','${esc(episodes[0].id)}')">Resume episode</button>`
+    :`<button class="primary" onclick="clPrepareSavedMovie('${esc(m.id)}')">Open Watch Along</button>`;
 
   return `<div class="modal-backdrop" onclick="clCloseSavedMovieDetails(event)"><div class="modal cl-movie-detail-modal" onclick="event.stopPropagation()">
     <div class="modal-header cl-movie-detail-header">
@@ -85,9 +101,11 @@ function clSavedMovieDetailModal(){
         <div><div class="kicker">Where it is</div>${clMovieDetailProviderPills(m.providers)}</div>
         ${clMovieDetailLinks(m)}
         <div class="cl-movie-detail-actions">
-          <button class="${saved?'primary':'secondary'}" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
+          ${prepare}
+          <button class="secondary" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
           <button class="secondary" onclick="scheduleMovie('${m.id}')">📅 Schedule</button>
         </div>
+        ${episodes.length>1?`<details><summary>Linked episodes</summary>${episodes.map(episode=>`<button class="secondary" onclick="clPrepareSavedMovie('${esc(m.id)}','${esc(episode.id)}')">${esc(episode.title)}</button>`).join('')}</details>`:''}
       </div>
     </div>
 

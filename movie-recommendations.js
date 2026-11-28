@@ -25,8 +25,13 @@ discoverCheeseMovies=async function(force=false){
   if(sequence!==clRecommendationSequence||workspace?.id!==workspaceId)return;
   if(error)throw error;if(data?.error)throw new Error(data.error);
   if(!Array.isArray(data?.results))throw new Error('Movie recommendations returned an incomplete response.');
+  if(data.catalog_stale&&state.discoveryResults?.length){
+   discoveryError='The catalog could not refresh. Showing the previous picks.';
+   return;
+  }
   state.discoveryResults=data.results.filter(m=>m.source_type==='bingo_catalog'&&!clMovieIsHorror(m));
-  clRecommendationMeta=data;clRecProfileSignature=profileSignature;discoveryLoaded=true;clRecLastFetchAt=Date.now();
+  clRecommendationMeta=data;clRecProfileSignature=profileSignature;discoveryLoaded=true;
+  if(!data.catalog_stale)clRecLastFetchAt=Date.parse(data.catalog_checked_at)||Date.now();
   const next={ids:[...new Set([...history.ids,...state.discoveryResults.map(m=>Number(m.tmdb_id))])].slice(-2000),titles:[...new Set([...history.titles,...state.discoveryResults.map(m=>m.title)])].slice(-2000),batch:(history.batch+1)%10000};
   clRecMemoryHistory.set(clRecStorageKey(),next);
   try{localStorage.setItem(clRecStorageKey(),JSON.stringify(next));}catch{clRecommendationMeta.history_warning='This browser could not save discovery history; repeat prevention will last only while this page stays open.';}
@@ -51,8 +56,8 @@ discoveryPanel=function(){
  const currentProfile=JSON.stringify(clRecPreferences());if(clRecommendationMeta&&clRecProfileSignature!==currentProfile&&!discoveryLoading){clearTimeout(clRecRefreshTimer);clRecRefreshTimer=setTimeout(()=>discoverCheeseMovies(true),100);}
  const checked=clRecLastFetchAt?'Checked '+new Date(clRecLastFetchAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not checked yet';
  const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">'+esc(checked)+' · Rechecks while Movie Radar is open</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Refresh picks</button></div>';
- if(discoveryLoading)return '<div class="new-find-panel card card-pad">'+title+'<div class="discovery-loading"><span class="discovery-spinner">♥</span> Matching your favorites and finding a fresh batch with posters…</div></div>';
- if(discoveryError)return '<div class="new-find-panel card card-pad">'+title+'<div class="empty" role="status">'+esc(discoveryError)+'<p><button class="secondary" onclick="discoverCheeseMovies(true)">Try again</button></p></div></div>';
+ if(discoveryLoading&&!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<div class="discovery-loading"><span class="discovery-spinner">♥</span> Matching your favorites and finding a fresh batch with posters…</div></div>';
+ if(discoveryError&&!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<div class="empty" role="status">'+esc(discoveryError)+'</div></div>';
  if(!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<button class="primary" onclick="discoverCheeseMovies(true)">Find movies for us</button></div>';
  let rows=(state.discoveryResults||[]).filter(c=>{
   const saved=clRecSavedMovie(c);
@@ -62,14 +67,42 @@ discoveryPanel=function(){
  if(clTasteSort==='taste')rows=clTasteRank(rows).sort((a,b)=>clRecYesCount(b)-clRecYesCount(a));
  if(clTasteSort==='newest')rows=rows.slice().sort((a,b)=>String(b.premiere_date||'').localeCompare(String(a.premiere_date||'')));
  else if(clTasteSort==='relevance')rows=rows.slice().sort((a,b)=>Number(b.recommendation_score||0)-Number(a.recommendation_score||0));
+ const sections=clRecDiscoverySections(rows);
  const meta=clRecommendationMeta||{},matched=meta.matched_favorites||[],unmatched=meta.unmatched_favorites||[];
  return '<div class="new-find-panel">'+title+'<div class="new-find-stats"><span class="pill">'+rows.length+' matches after filters</span><span class="subtle">'+matched.length+' Our Movies templates</span></div>'+
+  (discoveryError||meta.catalog_stale?'<p role="status" class="subtle">'+esc(discoveryError||'The live catalog did not respond. Showing the bundled catalog.')+'</p>':'')+
   (meta.partial?'<p class="subtle">Some movie sources did not respond. Showing the searches that completed.</p>':'')+
   (meta.history_warning?'<p class="subtle" role="status">'+esc(meta.history_warning)+'</p>':'')+
   '<details><summary>Which favorites shaped this batch?</summary><p class="subtle">'+matched.map(m=>esc(m.title)+' ('+Number(m.year)+')').join(' · ')+(unmatched.length?'<br>Could not confidently match: '+unmatched.map(esc).join(' · '):'')+'</p></details>'+
-  '<p class="subtle">'+(meta.include_broader?'Broader catalog matches included.':'Close story matches only.')+' '+Number(meta.broader_count||0)+' other catalog matches available.</p>'+(!meta.include_broader?'<button class="secondary" onclick="clShowBroaderMatches()">Show broader catalog matches</button>':'')+'<div class="new-find-grid">'+(rows.slice(0,20).map(clRecFeedCard).join('')+(rows.length>20?'</div><h3>More matches</h3><div class="new-find-grid">'+rows.slice(20).map(clRecFeedCard).join(''):'')||'<div class="empty card card-pad">No catalog movies match the current filters.<p><button class="secondary" onclick="clBroadenFinder()">Clear filters & find fresh picks</button></p><button class="secondary" onclick="clRecStartOver()">Include previously shown movies</button></div>')+'</div>'+
+  '<p class="subtle">'+(meta.include_broader?'Broader catalog matches included.':'Close story matches only.')+' '+Number(meta.broader_count||0)+' other catalog matches available.</p>'+(!meta.include_broader?'<button class="secondary" onclick="clShowBroaderMatches()">Show broader catalog matches</button>':'')+
+  '<h3>Coming Soon</h3>'+(sections.soon.length?'<div class="new-find-grid">'+sections.soon.map(clRecFeedCard).join('')+'</div>':'<p class="subtle">No verified upcoming premieres in this view.</p>')+
+  '<h3>Top 20 for Cheese Louise</h3>'+(sections.top.length?'<div class="new-find-grid">'+sections.top.map(clRecFeedCard).join('')+'</div>':'<p class="subtle">No confirmed released movies match this view.</p>')+
+  (sections.more.length?'<h3>More Movies to Discover</h3><div class="new-find-grid">'+sections.more.map(clRecFeedCard).join('')+'</div>':'')+
+  (!rows.length?'<button class="secondary" onclick="clBroadenFinder()">Clear filters</button>':'')+
   '<div class="subtle">Movie data: TMDB · availability: JustWatch via TMDB. Matching explains metadata similarities; it does not verify scenes.</div></div>';
 };
+function clRecDiscoverySections(rows,now=new Date()){
+ const search=globalThis.clMovieTitleSearch;
+ const soon=[],top=[],more=[];
+ for(const movie of rows){
+  const saved=clRecSavedMovie(movie);
+  const sourceMeta=clRecMeta(movie),savedMeta=clRecMeta(saved);
+  const sourcePremiere=!saved?.premiere_date||saved.premiere_date===movie.premiere_date?sourceMeta.premiere:null;
+  const identity=saved?{...movie,...saved,premiere_date:saved.premiere_date||movie.premiere_date,
+   source_metadata:{...sourceMeta,premiere:sourcePremiere,...savedMeta}}:movie;
+  const meta=clRecMeta(identity);
+  const release=search.release(identity,now);
+  const source=identity.source_url||'';
+  const verified=source.startsWith('https://')&&(meta.source_type==='hallmark_official'||meta.verification_status==='metadata_verified'||meta.premiere?.verified);
+  if((release==='upcoming'||release==='today')&&verified)soon.push({movie,identity});
+  else if(release==='released'&&top.length<20)top.push(movie);
+  else more.push(movie);
+ }
+ soon.sort((a,b)=>String(a.identity.premiere_date||'').localeCompare(String(b.identity.premiere_date||''))||
+  String(clRecMeta(a.identity).premiere?.at||'').localeCompare(String(clRecMeta(b.identity).premiere?.at||''))||
+  String(a.movie.tmdb_id).localeCompare(String(b.movie.tmdb_id)));
+ return {soon:soon.map(item=>item.movie),top,more};
+}
 const clRecOriginalSort=window.clSetTasteSort;
 window.clSetTasteSort=value=>{clRecOriginalSort(value);sharedRadarRefreshResults();};
 function clRecSavedMovie(candidate){

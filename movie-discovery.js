@@ -115,14 +115,14 @@ function discoveryMatchesCurrentView(c){
 
 function discoveryCard(c){
   const est=discoveryEstimate(c);
-  const providerText=(c.providers||[]).slice(0,3).join(' · ') || c.network || 'Hallmark';
+  const providerText=(c.providers||[]).slice(0,3).join(' · ') || 'Watch options unknown';
   const date=c.premiere_date||String(c.year||'Date TBA');
   const meta=[c.holiday,c.season].filter(Boolean).join(' · ');
   const why=(c.why||[]).slice(0,6);
   return `<article class="new-find-card card">
     <div class="new-find-poster">${c.poster_url?`<img src="${esc(c.poster_url)}" alt="${esc(c.title)} poster" loading="lazy">`:`<div class="new-find-poster-fallback">CL</div>`}</div>
     <div class="new-find-body">
-      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Hallmark')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
+      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Network unknown')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
       <h3>${esc(c.title)}</h3>
       <div class="subtle">${esc(date)}${meta?` · ${esc(meta)}`:''}</div>
       <div class="subtle provider-line">${esc(providerText)}</div>
@@ -208,9 +208,23 @@ async function discoverCheeseMovies(force=false){
   if(discoveryLoaded) setTimeout(()=>discoveryHydratePosters(force),0);
 }
 
-async function addDiscoveredMovie(id,applyTraits){
-  const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
+const discoveryPendingAdds=new Map();
+function addDiscoveredMovie(id,applyTraits){
+  return persistDiscoveredMovie(id,applyTraits);
+}
+function persistDiscoveredMovie(id,applyTraits,candidate){
+  const c=candidate||(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(id));
+  if(!c||!workspace)return;
+  const key=workspace.id+':'+(c.tmdb_type||'movie')+':'+Number(id);
+  if(discoveryPendingAdds.has(key))return discoveryPendingAdds.get(key);
+  const pending=saveDiscoveredMovie(id,applyTraits,c).finally(()=>discoveryPendingAdds.delete(key));
+  discoveryPendingAdds.set(key,pending);
+  return pending;
+}
+
+async function saveDiscoveredMovie(id,applyTraits,c){
   if(!c||!workspace) return;
+  const workspaceId=workspace.id;
   const existing=discoverySavedMovie(c);
   if(existing){ selectedMovie=existing.id; render(); return; }
 
@@ -237,7 +251,13 @@ async function addDiscoveredMovie(id,applyTraits){
   if(/^\d{4}-\d{2}-\d{2}$/.test(c.premiere_date||'')) payload.premiere_date=c.premiere_date;
 
   const {data,error}=await db.from('movies').insert(payload).select().single();
+  if(error?.code==='23505'&&workspace?.id===workspaceId){
+    await loadAll();
+    const existing=discoverySavedMovie(c);
+    if(existing&&workspace?.id===workspaceId){openMovie(existing.id);return;}
+  }
   if(error) return alert(error.message);
+  if(workspace?.id!==workspaceId)return;
 
   const suggestions=applyTraits?discoveryTraitSuggestions(c):[];
   if(suggestions.length){
@@ -249,6 +269,7 @@ async function addDiscoveredMovie(id,applyTraits){
   discoveryHidden.add(Number(id));
   await logActivity(`found and added ${c.title} from ${originLabel}${suggestions.length?` with ${suggestions.length} confirmed Cheese Traits`:''}.`,'movie',data.id);
   await loadAll();
+  if(workspace?.id!==workspaceId)return;
   selectedMovie=data.id; traitSearch=''; traitSelectedOnly=false; render();
 }
 

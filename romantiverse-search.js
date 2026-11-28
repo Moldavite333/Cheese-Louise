@@ -13,6 +13,14 @@ let romantiverseSearchSequence=0;
 let romantiverseSearchForUs=false;
 let romantiverseSearchWarning='';
 const romantiverseSearchCache=new Map();
+const romantiverseTitleSearch=globalThis.clMovieTitleSearch;
+let romantiverseSearchController;
+
+function romantiverseWorkspaceMatches(rawQuery){
+ const query=romantiverseTitleSearch.parse(rawQuery);
+ return (state.movies||[]).map(movie=>({...movie,title_search_score:romantiverseTitleSearch.score(movie,query)}))
+  .filter(movie=>movie.title_search_score);
+}
 
 function romantiverseSearchCandidate(id){
   return (state.romantiverseSearchResults||[]).find(c=>Number(c.tmdb_id)===Number(id));
@@ -62,6 +70,23 @@ function romantiverseSearchMatchesFilters(c){
 }
 
 function romantiverseSearchVisibleResults(){
+  if(!romantiverseSearchForUs&&String(searchText||'').trim().length>=2){
+    const query=romantiverseTitleSearch.parse(searchText);
+    const workspaceMatches=romantiverseWorkspaceMatches(searchText);
+    const external=romantiverseSearchLoadedQuery===romantiverseFilterQuery()?(state.romantiverseSearchResults||[]):[];
+    const combined=new Map(workspaceMatches.map(movie=>['workspace:'+movie.id,movie]));
+    for(const candidate of external){
+      const score=candidate.title_search_score??romantiverseTitleSearch.score(candidate,query);
+      const saved=romantiverseSearchLinkedMovie(candidate);
+      const key=saved?'workspace:'+saved.id:(candidate.tmdb_type||'movie')+':'+candidate.tmdb_id;
+      if(!combined.has(key))combined.set(key,{...(saved||candidate),title_search_score:score});
+      if(saved&&combined.has(key)&&!romantiverseTitleSearch.metadata(saved).availability?.length){
+        const availability=romantiverseTitleSearch.metadata(candidate).availability;
+        if(availability?.length)combined.set(key,{...combined.get(key),source_metadata:{...romantiverseTitleSearch.metadata(saved),availability}});
+      }
+    }
+    return [...combined.values()].sort((a,b)=>romantiverseTitleSearch.compare(a,b,query)).slice(0,120);
+  }
   const existing=typeof discoveryExistingIds==='function' ? discoveryExistingIds() : new Set();
   const pool=[...(state.romantiverseSearchResults||[])];
   for(const m of state.movies||[])if(romantiverseExactTitle(m)&&!pool.some(c=>romantiverseSavedResult(c)?.id===m.id))pool.push(m);
@@ -73,6 +98,50 @@ function romantiverseSearchVisibleResults(){
   // Exact-title matches must never be buried below taste-ranked suggestions.
   const ranked=typeof clTasteRank==='function'?clTasteRank(results):results;
   return ranked.slice().sort((a,b)=>Number(romantiverseExactTitle(b))-Number(romantiverseExactTitle(a)));
+}
+
+function romantiverseSearchLinkedMovie(candidate){
+ const byId=discoverySavedMovie(candidate);
+ if(byId)return byId;
+ const title=romantiverseTitleSearch.normalize(candidate.title),year=romantiverseTitleSearch.year(candidate);
+ if(!year)return null;
+ const providerId=movie=>(movie.tmdb_type||'movie')==='movie'?Number(movie.tmdb_id):Number(romantiverseTitleSearch.metadata(movie).poster_tmdb_id);
+ const candidates=(state.movies||[]).filter(movie=>{
+  if(romantiverseTitleSearch.normalize(movie.title)!==title||romantiverseTitleSearch.year(movie)!==year)return false;
+  const savedId=providerId(movie),sourceId=providerId(candidate);
+  if(savedId&&sourceId)return savedId===sourceId;
+  return !movie.tmdb_id||movie.tmdb_type!==candidate.tmdb_type||Number(movie.tmdb_id)===Number(candidate.tmdb_id);
+ });
+ return candidates.length===1?candidates[0]:null;
+}
+
+function romantiverseTitleCard(movie){
+ const cast=romantiverseTitleSearch.cast(movie).slice(0,4);
+ const availability=romantiverseTitleSearch.metadata(movie).availability;
+ const watch=Array.isArray(availability)?availability.slice(0,2).filter(option=>option?.verified&&option.provider):[];
+ const saved=!!movie.id;
+ const votes=Object.values(movie.votes||{});
+ const release=romantiverseTitleSearch.release(movie);
+ const status=(saved?[
+  movie.status==='recorded'?'Recorded':null,
+  votes.filter(v=>v==='no').length>=2?'Both No':null,
+  votes.filter(v=>v==='yes').length>=2?'Both Yes':null,
+  Object.values(movie.bookmarks||{}).some(Boolean)||movie.status==='saved'?'Saved':null,
+  release==='today'?'Premieres today':release==='upcoming'?'Upcoming':null,
+  romantiverseTitleSearch.metadata(movie).source_type==='manual'?'Manual entry':null
+ ]:[movie.source_type==='tmdb_exact_title'?'TMDB · exact title':movie.source_type==='tmdb_title_lookup'?'TMDB · possible match':'Romantiverse Bingo catalog',
+   movie.title_search_score<100?'Related result':null]).filter(Boolean);
+ return `<article class="new-find-card card">
+  <div class="new-find-poster">${movie.poster_url?`<img src="${esc(movie.poster_url)}" alt="" loading="lazy">`:'<div class="new-find-poster-fallback">CL</div>'}</div>
+  <div class="new-find-body"><h3>${esc(movie.title)}</h3>
+   <div class="subtle">${[romantiverseTitleSearch.year(movie),movie.network].filter(Boolean).map(esc).join(' · ')}</div>
+   ${status.length?`<div class="subtle">${status.map(esc).join(' · ')}</div>`:''}
+   ${cast.length?`<div class="subtle">${cast.map(esc).join(' · ')}</div>`:''}
+   ${watch.map(option=>`<div class="subtle">${[option.provider,option.access_type,option.market,option.available_from?'from '+option.available_from:''].filter(Boolean).map(esc).join(' · ')}</div>`).join('')}
+   ${movie.summary?`<p>${esc(movie.summary)}</p>`:''}
+   ${saved?`<button class="primary" onclick="openMovie('${esc(movie.id)}')">Open movie</button>`:
+    `<button class="primary" onclick="addRomantiverseSearchMovie(${Number(movie.tmdb_id)},false)">Add and open</button>`}
+  </div></article>`;
 }
 
 function romantiverseSearchCard(c){
@@ -116,6 +185,22 @@ window.romantiverseFilterQuery=romantiverseFilterQuery;
 function romantiverseSearchPanel(){
   const taste=typeof clTastePanel==='function'?clTastePanel():'';
   const q=romantiverseFilterQuery();
+  if(!romantiverseSearchForUs&&String(searchText||'').trim().length>=2){
+    const visible=romantiverseSearchVisibleResults();
+    const loaded=romantiverseSearchLoadedQuery===q;
+    const busy=romantiverseSearchLoading||!loaded;
+    const query=romantiverseTitleSearch.parse(q);
+    const manual=!busy&&query.key.length>=2&&!visible.some(movie=>romantiverseTitleSearch.confident(movie,query));
+    const status=busy?'Searching movie titles…':romantiverseSearchError||romantiverseSearchWarning||
+      (visible.length?'':'No movies match this search.');
+    return `<section class="rom-search-panel" aria-label="Movie search results">
+      <div class="rom-search-head"><h2>Results for “${esc(q)}”</h2>
+      ${!busy&&(romantiverseSearchError||romantiverseSearchWarning)?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true)">Retry</button>':''}</div>
+      <div role="status" class="subtle">${esc(status)}</div>
+      <div class="new-find-grid">${visible.map(romantiverseTitleCard).join('')}</div>
+      ${manual?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,true)">Check TMDB for similar titles</button> <button class="secondary" onclick="addMovie(searchText)">Add a movie manually</button>':''}
+    </section>`;
+  }
   if(q.length<2&&!romantiverseSearchForUs){
     return taste+'<div class="rom-search-idle card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search by idea, not just title.</strong><div class="subtle">Try cats, bakery, widow, tree farm, royal, small town, veterinarian… Choose a season or holiday to search for more titles, or type a movie title or idea. “Not classified” only filters records already loaded; it does not guess unknown classifications.</div></div>';
   }
@@ -150,35 +235,50 @@ function romantiverseSearchPanel(){
 function refreshRomantiverseSearchPanel(){
   const host=document.getElementById('romantiverseSearchHost');
   if(host) host.innerHTML=romantiverseSearchPanel();
+  const browse=document.getElementById('radarBrowseResults');
+  if(browse)browse.hidden=String(searchText||'').trim().length>=2;
 }
 
-async function runRomantiverseSearch(rawQuery,force=false,forUs=false){
+async function runRomantiverseSearch(rawQuery,force=false,forUs=false,broaderLookup=false){
+ clearTimeout(romantiverseSearchTimer);
+ romantiverseSearchController?.abort();
+ const controller=new AbortController();
+ romantiverseSearchController=controller;
  const query=romantiverseFilterQuery(rawQuery),seq=++romantiverseSearchSequence;
+ const direct=!forUs&&String(rawQuery||'').trim().length>=2;
  romantiverseSearchForUs=forUs;romantiverseSearchWarning='';
  const loadedQuery=forUs?'__taste__':query;
  if(query.length<2&&!forUs){romantiverseSearchLoading=false;romantiverseSearchError='';romantiverseSearchLoadedQuery='';romantiverseSearchExpandedTerms=[];state.romantiverseSearchResults=[];refreshRomantiverseSearchPanel();return;}
+ if(romantiverseSearchLoadedQuery!==loadedQuery)state.romantiverseSearchResults=[];
  romantiverseSearchLoading=true;romantiverseSearchError='';romantiverseSearchLoadedQuery=loadedQuery;refreshRomantiverseSearchPanel();
  try{
   const filters={holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax};
-  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{body:{query:forUs?'':query,filters,max_results:120,include_broader:true,lookup_exact:!forUs&&String(rawQuery||'').trim().length>=2,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
+  const parsed=romantiverseTitleSearch.parse(query);
+  const workspaceExact=direct&&romantiverseWorkspaceMatches(query).some(movie=>romantiverseTitleSearch.confident(movie,parsed));
+  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{signal:controller.signal,body:{query:forUs?'':query,filters:direct?{}:filters,max_results:120,include_broader:true,title_search:direct,workspace_exact:workspaceExact,lookup_exact:direct&&!workspaceExact,broader_lookup:direct&&broaderLookup,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
   if(seq!==romantiverseSearchSequence)return;
   if(error||data?.error)throw Error(data?.error||error?.message||'The Cheese Louise movie catalog could not load.');
   if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');
-  state.romantiverseSearchResults=data.results.filter(c=>(c.source_type==='bingo_catalog'||(!forUs&&String(rawQuery||'').trim()&&c.source_type==='tmdb_exact_title'&&c.exact_title_match===true&&romantiverseTitleKey(c.title)===romantiverseTitleKey(query)))&&!clMovieIsHorror(c));
+  state.romantiverseSearchResults=data.results.filter(c=>(c.source_type==='bingo_catalog'||
+   (direct&&c.source_type==='tmdb_exact_title'&&c.exact_title_match===true&&romantiverseTitleSearch.normalize(c.title)===parsed.key)||
+   (direct&&broaderLookup&&c.source_type==='tmdb_title_lookup'&&romantiverseTitleSearch.score(c,parsed)>=200))&&!clMovieIsHorror(c));
   romantiverseSearchExpandedTerms=data.expanded_terms||[];
-  romantiverseSearchWarning=data.exact_lookup_warning||'Exact title matches appear first, including saved movies, regardless of active filters. Other results use the Bingo catalog and current filters.';
+  romantiverseSearchWarning=[data.catalog_stale?'The shared catalog could not refresh. Showing available catalog and workspace results.':'',data.exact_lookup_warning].filter(Boolean).join(' ');
  }catch(error){if(seq!==romantiverseSearchSequence)return;state.romantiverseSearchResults=[];romantiverseSearchExpandedTerms=[];romantiverseSearchError=error.message||String(error);}
  finally{if(seq===romantiverseSearchSequence){romantiverseSearchLoading=false;refreshRomantiverseSearchPanel();}}
 }
 function scheduleRomantiverseSearch(value){
   clearTimeout(romantiverseSearchTimer);
+  romantiverseSearchController?.abort();
   romantiverseSearchSequence++;
   const q=romantiverseFilterQuery(value);
   if(q.length<2){
     runRomantiverseSearch('');
     return;
   }
-  romantiverseSearchTimer=setTimeout(()=>runRomantiverseSearch(value,false),450);
+  romantiverseSearchForUs=false;
+  refreshRomantiverseSearchPanel();
+  romantiverseSearchTimer=setTimeout(()=>runRomantiverseSearch(value,false),250);
 }
 
 function ensureRomantiverseCandidateInDiscovery(id){
@@ -191,8 +291,11 @@ function ensureRomantiverseCandidateInDiscovery(id){
 }
 
 async function addRomantiverseSearchMovie(id,applyTraits){
-  if(!ensureRomantiverseCandidateInDiscovery(id)) return;
-  await addDiscoveredMovie(Number(id),!!applyTraits);
+  const candidate=romantiverseSearchCandidate(id);
+  if(!candidate||clMovieIsHorror(candidate))return;
+  const saved=romantiverseSearchLinkedMovie(candidate);
+  if(saved){openMovie(saved.id);return;}
+  await persistDiscoveredMovie(Number(id),!!applyTraits,candidate);
 }
 
 async function voteRomantiverseSearchMovie(id,value){
@@ -209,7 +312,7 @@ const romantiverseSearchOriginalMovies=movies;
 movies=function(){
   let html=romantiverseSearchOriginalMovies();
   const host='<div id="romantiverseSearchHost" class="rom-search-host">'+romantiverseSearchPanel()+'</div>';
-  const marker='<div id="newFindMatchLine"';
+  const marker='<div id="radarBrowseResults"';
   const at=html.indexOf(marker);
   if(at>=0) html=html.slice(0,at)+host+html.slice(at);
   else html=host+html;
