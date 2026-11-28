@@ -56,9 +56,17 @@ try{
     source_metadata:{stars:['Paul Campbell','Rachel Boston']},status:'needs_review',votes:{a:'no',b:'no'},
     comments:[],tags:[],bookmarks:{}}];
    state.episodes=[{id:'episode-santa',title:'Return to Santa episode',movie_id:'santa',status:'recorded'}];
-   discoveryLoaded=true;movieFilters.season='Fall';movieFilters.yearMin=2099;movieFilters.mode='yes';
+   state.movies.push({id:'biltmore',title:'A Biltmore Christmas',year:2023,network:'Hallmark Channel',
+    votes:{a:'yes',b:'yes'},comments:[],tags:[],bookmarks:{}});
+   state.discoveryResults=[{title:'A Biltmore Christmas',year:2023,tmdb_id:2023,source_type:'bingo_catalog'}];
+   discoveryLoaded=true;clRecLastFetchAt=Date.now();
    hqWorkspace.open('movies');
   });
+  const spotlight=page.locator('#radarDiscoveryResults .cl-feed-card--spotlight');
+  await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
+  assert.match(await spotlight.innerText(),/Both voted Yes[\s\S]*A Biltmore Christmas/);
+  assert.ok(await spotlight.evaluate(el=>getComputedStyle(el).borderTopWidth==='2px'));
+  await page.evaluate(()=>{movieFilters.season='Fall';movieFilters.yearMin=2099;movieFilters.mode='yes';});
   const search=page.getByRole('searchbox',{name:'Search Movie Radar'});
   await search.fill('Return to Santa');
   const panel=page.getByRole('region',{name:'Movie search results'});

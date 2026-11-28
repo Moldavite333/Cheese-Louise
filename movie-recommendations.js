@@ -55,7 +55,7 @@ window.clRecStartOver=()=>{clRecMemoryHistory.delete(clRecStorageKey());try{loca
 discoveryPanel=function(){
  const currentProfile=JSON.stringify(clRecPreferences());if(clRecommendationMeta&&clRecProfileSignature!==currentProfile&&!discoveryLoading){clearTimeout(clRecRefreshTimer);clRecRefreshTimer=setTimeout(()=>discoverCheeseMovies(true),100);}
  const checked=clRecLastFetchAt?'Checked '+new Date(clRecLastFetchAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not checked yet';
- const title='<div class="new-find-header"><div><div class="page-title small-title">Picked for your taste</div><div class="subtle">'+esc(checked)+' · Rechecks while Movie Radar is open</div></div><button class="secondary" onclick="clFindForUs()" '+(discoveryLoading?'disabled':'')+'>Refresh picks</button></div>';
+ const title='<div class="new-find-header"><div><div class="page-title small-title">Your Cheese Louise feed</div><div class="subtle">'+esc(checked)+'</div></div><button class="secondary" onclick="discoverCheeseMovies(true)" '+(discoveryLoading?'disabled':'')+'>Refresh picks</button></div>';
  if(discoveryLoading&&!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<div class="discovery-loading"><span class="discovery-spinner">♥</span> Matching your favorites and finding a fresh batch with posters…</div></div>';
  if(discoveryError&&!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<div class="empty" role="status">'+esc(discoveryError)+'</div></div>';
  if(!discoveryLoaded)return '<div class="new-find-panel card card-pad">'+title+'<button class="primary" onclick="discoverCheeseMovies(true)">Find movies for us</button></div>';
@@ -69,27 +69,29 @@ discoveryPanel=function(){
  else if(clTasteSort==='relevance')rows=rows.slice().sort((a,b)=>Number(b.recommendation_score||0)-Number(a.recommendation_score||0));
  const sections=clRecDiscoverySections(rows);
  const meta=clRecommendationMeta||{},matched=meta.matched_favorites||[],unmatched=meta.unmatched_favorites||[];
- return '<div class="new-find-panel">'+title+'<div class="new-find-stats"><span class="pill">'+rows.length+' matches after filters</span><span class="subtle">'+matched.length+' Our Movies templates</span></div>'+
+ return '<div class="new-find-panel">'+title+
   (discoveryError||meta.catalog_stale?'<p role="status" class="subtle">'+esc(discoveryError||'The live catalog did not respond. Showing the bundled catalog.')+'</p>':'')+
   (meta.partial?'<p class="subtle">Some movie sources did not respond. Showing the searches that completed.</p>':'')+
   (meta.history_warning?'<p class="subtle" role="status">'+esc(meta.history_warning)+'</p>':'')+
-  '<details><summary>Which favorites shaped this batch?</summary><p class="subtle">'+matched.map(m=>esc(m.title)+' ('+Number(m.year)+')').join(' · ')+(unmatched.length?'<br>Could not confidently match: '+unmatched.map(esc).join(' · '):'')+'</p></details>'+
-  '<p class="subtle">'+(meta.include_broader?'Broader catalog matches included.':'Close story matches only.')+' '+Number(meta.broader_count||0)+' other catalog matches available.</p>'+(!meta.include_broader?'<button class="secondary" onclick="clShowBroaderMatches()">Show broader catalog matches</button>':'')+
-  '<h3>Coming Soon</h3>'+(sections.soon.length?'<div class="new-find-grid">'+sections.soon.map(clRecFeedCard).join('')+'</div>':'<p class="subtle">No verified upcoming premieres in this view.</p>')+
-  '<h3>Top 20 for Cheese Louise</h3>'+(sections.top.length?'<div class="new-find-grid">'+sections.top.map(clRecFeedCard).join('')+'</div>':'<p class="subtle">No confirmed released movies match this view.</p>')+
-  (sections.more.length?'<h3>More Movies to Discover</h3><div class="new-find-grid">'+sections.more.map(clRecFeedCard).join('')+'</div>':'')+
+  '<h3>Coming Soon</h3>'+(sections.soon.length?'<div class="new-find-grid">'+sections.soon.map(movie=>clRecFeedCard(movie,true)).join('')+'</div>':'<p class="subtle">No verified upcoming premieres in this view.</p>')+
+  '<h3>Top 20 for Cheese Louise</h3>'+(sections.top.length?'<div class="new-find-grid">'+sections.top.map(movie=>clRecFeedCard(movie)).join('')+'</div>':'<p class="subtle">No confirmed released movies match this view.</p>')+
+  (sections.more.length?'<h3>More Movies to Discover</h3><div class="new-find-grid">'+sections.more.map(movie=>clRecFeedCard(movie)).join('')+'</div>':'')+
   (!rows.length?'<button class="secondary" onclick="clBroadenFinder()">Clear filters</button>':'')+
-  '<div class="subtle">Movie data: TMDB · availability: JustWatch via TMDB. Matching explains metadata similarities; it does not verify scenes.</div></div>';
+  '<details><summary>About these picks</summary><p class="subtle">'+rows.length+' matches · '+matched.length+' favorites informed this feed</p><p class="subtle">'+matched.map(m=>esc(m.title)+(m.year?' ('+Number(m.year)+')':'')).join(' · ')+(unmatched.length?'<br>Unmatched favorites: '+unmatched.map(esc).join(' · '):'')+'</p></details></div>';
 };
+function clRecFeedIdentity(movie,saved){
+ if(!saved)return movie;
+ const sourceMeta=clRecMeta(movie);
+ const sourcePremiere=!saved.premiere_date||saved.premiere_date===movie.premiere_date?sourceMeta.premiere:null;
+ return {...movie,...saved,premiere_date:saved.premiere_date||movie.premiere_date,
+  source_metadata:{...sourceMeta,premiere:sourcePremiere,...clRecMeta(saved)}};
+}
 function clRecDiscoverySections(rows,now=new Date()){
  const search=globalThis.clMovieTitleSearch;
  const soon=[],top=[],more=[];
  for(const movie of rows){
   const saved=clRecSavedMovie(movie);
-  const sourceMeta=clRecMeta(movie),savedMeta=clRecMeta(saved);
-  const sourcePremiere=!saved?.premiere_date||saved.premiere_date===movie.premiere_date?sourceMeta.premiere:null;
-  const identity=saved?{...movie,...saved,premiere_date:saved.premiere_date||movie.premiere_date,
-   source_metadata:{...sourceMeta,premiere:sourcePremiere,...savedMeta}}:movie;
+  const identity=clRecFeedIdentity(movie,saved);
   const meta=clRecMeta(identity);
   const release=search.release(identity,now);
   const source=identity.source_url||'';
@@ -110,7 +112,21 @@ function clRecSavedMovie(candidate){
  return (state.movies||[]).find(m=>clRecNorm(m.title)===clRecNorm(candidate.title)&&(!candidate.year||!(m.year||clRecMeta(m).year)||Number(m.year||clRecMeta(m).year)===Number(candidate.year)))||null;
 }
 function clRecYesCount(candidate){return Object.values(clRecSavedMovie(candidate)?.votes||{}).filter(v=>v==='yes').length;}
-function clRecFeedCard(candidate){const saved=clRecSavedMovie(candidate);return saved?movieCard(saved):discoveryCard(candidate);}
+function clRecFeedCard(candidate,upcoming=false){
+ const saved=clRecSavedMovie(candidate),movie=clRecFeedIdentity(candidate,saved),meta=clRecMeta(movie);
+ const mutual=Object.values(saved?.votes||{}).filter(v=>v==='yes').length>=2;
+ const upcomingDate=meta.premiere?.verified&&Number.isFinite(Date.parse(meta.premiere.at))
+  ?new Date(meta.premiere.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'})
+  :movie.premiere_date&&new Date(movie.premiere_date+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'});
+ const premiere=upcoming&&upcomingDate?[upcomingDate,meta.premiere?.platform||movie.network].filter(Boolean).join(' · '):'';
+ const watch=Array.isArray(meta.availability)?meta.availability.find(entry=>entry?.verified&&entry.provider):null;
+ const watchText=watch?[watch.provider,watch.access_type,watch.available_from?'from '+watch.available_from:null].filter(Boolean).join(' · '):'';
+ return '<div class="cl-feed-card'+(mutual?' cl-feed-card--spotlight':'')+'">'+
+  (mutual?'<div class="cl-feed-spotlight"><span aria-hidden="true">✦</span> <strong>Don’t miss</strong><span>Both voted Yes</span></div>':'')+
+  (premiere?'<div class="cl-feed-premiere">'+esc(premiere)+'</div>':'')+
+  (watchText?'<div class="cl-feed-premiere">'+esc(watchText)+'</div>':'')+
+  (saved?movieCard(saved):discoveryCard(candidate))+'</div>';
+}
 const clRecDiscoveryCard=discoveryCard;
 discoveryCard=function(movie){
  let html=clRecDiscoveryCard(movie);

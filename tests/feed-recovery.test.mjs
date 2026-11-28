@@ -46,6 +46,17 @@ test('a verified future premiere never uses a released Top 20 slot',()=>{
  assert.equal(after.top[0].title,santa.title);
  assert.equal(after.more.length,1);
 });
+test('the gold spotlight is reserved for mutual Yes and verified watch options are labeled',()=>{
+ const {c}=client();
+ const movie={title:'Return to Santa',year:2026,tmdb_id:1,premiere_date:'2026-11-27',network:'Hallmark Channel',
+  source_metadata:{availability:[{provider:'Hallmark+',access_type:'Subscription',available_from:'2026-11-28',verified:true}]}};
+ c.state.movies=[{id:'santa',title:movie.title,year:2026,votes:{nick:'yes',jenny:'yes'}}];
+ const featured=c.clRecFeedCard(movie,true);
+ assert.match(featured,/cl-feed-card--spotlight[\s\S]*Don’t miss[\s\S]*Both voted Yes/);
+ assert.match(featured,/Hallmark Channel[\s\S]*Hallmark\+ · Subscription · from 2026-11-28/);
+ c.state.movies[0].votes.jenny='no';
+ assert.doesNotMatch(c.clRecFeedCard(movie),/cl-feed-card--spotlight/);
+});
 test('recorded and released episode links supersede stale movie review status',async()=>{
  const {c}=client();await c.discoverCheeseMovies(true);
  const picks=c.state.discoveryResults.slice(0,3);
