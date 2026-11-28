@@ -53,9 +53,9 @@ try{
    session={user:{id:'host-a'}};workspace={id:'search-fixture'};profile={display_name:'Host'};
    members=[];profiles={};
    state.movies=[{id:'santa',title:'Return to Santa',premiere_date:'2026-11-27',network:'Hallmark Channel',
-    source_metadata:{stars:['Paul Campbell','Rachel Boston']},status:'recorded',votes:{a:'no',b:'no'},
+    source_metadata:{stars:['Paul Campbell','Rachel Boston']},status:'needs_review',votes:{a:'no',b:'no'},
     comments:[],tags:[],bookmarks:{}}];
-   state.episodes=[{id:'episode-santa',title:'Return to Santa episode',movie_id:'santa',status:'idea'}];
+   state.episodes=[{id:'episode-santa',title:'Return to Santa episode',movie_id:'santa',status:'recorded'}];
    discoveryLoaded=true;movieFilters.season='Fall';movieFilters.yearMin=2099;movieFilters.mode='yes';
    hqWorkspace.open('movies');
   });
