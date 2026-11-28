@@ -38,13 +38,16 @@
  async function useCandidate(id,fromSearch=false){
   if(selecting)return;
   const candidate=fromSearch?romantiverseSearchCandidate(id):(state.discoveryResults||[]).find(movie=>Number(movie.tmdb_id)===Number(id));
-  if(!candidate||clMovieIsHorror(candidate))return;
+  if(!candidate||(!fromSearch&&!clRomantiverseFeedAllows(candidate)))return;
   const scope=key();
   selecting=true;
   try{
    const linked=romantiverseSearchLinkedMovie(candidate);
-   const movieId=linked?.id||await persistDiscoveredMovie(Number(id),false,candidate);
-   if(movieId&&scope===key())useMovie(movieId);
+   const movieId=linked?.id||await persistDiscoveredMovie(candidate.tmdb_id,false,candidate);
+   if(movieId&&scope===key()){
+    if(fromSearch&&typeof clSearchMovieDetail!=='undefined'&&clSearchMovieDetail)clCloseDiscoveryMovieDetails();
+    useMovie(movieId);
+   }
   }catch(error){alert(error.message||String(error));}
   finally{selecting=false;}
  }
@@ -99,7 +102,7 @@
    ?'<label>Choose an episode <select onchange="clEpisodeWizard.chooseEpisode(this.value)"><option value="">Select…</option>'+
      episodes.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.title)+'</option>').join('')+'</select></label>':'';
   return '<section class="hq-episode-wizard card" aria-label="Episode setup"><div><strong>Episode setup</strong><span>Step '+(step+1)+' of '+steps.length+' · '+steps[step]+'</span>'+
-   (movie?'<p>'+esc(movie.title)+(episode?' · '+esc(episode.title):'')+'</p>':'<p>Search Movie Radar, then choose Start setup on a movie.</p>')+'</div>'+
+   (movie?'<p>'+esc(movie.title)+(episode?' · '+esc(episode.title):'')+'</p>':'<p>Search Movie Radar, then choose Start Episode Setup on a movie.</p>')+'</div>'+
    '<div class="hq-wizard-actions">'+chooser+
     (needsLink&&!episodes.length?'<button class="primary" type="button" onclick="clEpisodeWizard.createEpisode()">Create linked episode</button>':'')+
     (!needsLink?'<button class="primary" type="button" onclick="clEpisodeWizard.show()">'+action+'</button>':'')+

@@ -16,6 +16,7 @@ let romantiverseSearchBroaderLookup=false;
 const romantiverseSearchCache=new Map();
 const romantiverseTitleSearch=globalThis.clMovieTitleSearch;
 let romantiverseSearchController;
+let romantiverseResultReturn;
 
 function romantiverseWorkspaceMatches(rawQuery){
  const query=romantiverseTitleSearch.parse(rawQuery);
@@ -24,7 +25,26 @@ function romantiverseWorkspaceMatches(rawQuery){
 }
 
 function romantiverseSearchCandidate(id){
-  return (state.romantiverseSearchResults||[]).find(c=>Number(c.tmdb_id)===Number(id));
+  return (state.romantiverseSearchResults||[]).find(c=>romantiverseCandidateKey(c)===String(id)||
+    String(c.tmdb_id)===String(id));
+}
+function romantiverseCandidateKey(movie){return (movie.tmdb_type||'movie')+':'+movie.tmdb_id;}
+function openRomantiverseResult(button){
+ const id=button.dataset.resultId;
+ romantiverseResultReturn={id,query:searchText,scroll:window.scrollY};
+ if(button.dataset.saved==='true')openMovie(id);
+ else clOpenDiscoveryMovieDetails(id,true);
+}
+function restoreRomantiverseResult(){
+ const position=romantiverseResultReturn;
+ romantiverseResultReturn=null;
+ if(!position||position.query!==searchText)return;
+ requestAnimationFrame(()=>{
+  if(searchText!==position.query||document.querySelector('.modal-backdrop'))return;
+  const button=Array.from(document.querySelectorAll('[data-result-id]')).find(el=>el.dataset.resultId===position.id);
+  window.scrollTo(0,position.scroll);
+  button?.focus({preventScroll:true});
+ });
 }
 
 function romantiverseTitleKey(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
@@ -81,6 +101,12 @@ function romantiverseSearchVisibleResults(){
       const saved=romantiverseSearchLinkedMovie(candidate);
       const key=saved?'workspace:'+saved.id:(candidate.tmdb_type||'movie')+':'+candidate.tmdb_id;
       if(!combined.has(key))combined.set(key,{...(saved||candidate),title_search_score:score});
+      else if(score>combined.get(key).title_search_score)combined.get(key).title_search_score=score;
+      const providerId=Number(romantiverseTitleSearch.metadata(candidate).poster_tmdb_id);
+      const providerKey=providerId?'movie:'+providerId:null;
+      if(!saved&&providerKey&&providerKey!==key&&combined.has(providerKey))combined.delete(providerKey);
+      if(!saved&&candidate.tmdb_type==='movie'&&external.some(other=>other!==candidate&&other.tmdb_type==='catalog'&&
+        Number(romantiverseTitleSearch.metadata(other).poster_tmdb_id)===Number(candidate.tmdb_id)))combined.delete(key);
       if(saved&&combined.has(key)&&!romantiverseTitleSearch.metadata(saved).availability?.length){
         const availability=romantiverseTitleSearch.metadata(candidate).availability;
         if(availability?.length)combined.set(key,{...combined.get(key),source_metadata:{...romantiverseTitleSearch.metadata(saved),availability}});
@@ -91,7 +117,8 @@ function romantiverseSearchVisibleResults(){
   const existing=typeof discoveryExistingIds==='function' ? discoveryExistingIds() : new Set();
   const pool=[...(state.romantiverseSearchResults||[])];
   for(const m of state.movies||[])if(romantiverseExactTitle(m)&&!pool.some(c=>romantiverseSavedResult(c)?.id===m.id))pool.push(m);
-  const results=pool.filter(c=>!clMovieIsHorror(c)&&(romantiverseExactTitle(c)||(
+  const results=pool.filter(c=>!clMovieIsHorror(c)&&
+   (!romantiverseSearchForUs||clRomantiverseFeedAllows(c,romantiverseSearchLinkedMovie(c)))&&(romantiverseExactTitle(c)||(
     !existing.has((c.tmdb_type||'movie')+':'+Number(c.tmdb_id)) &&
     !(typeof discoveryHidden!=='undefined' && discoveryHidden.has(Number(c.tmdb_id))) &&
     romantiverseSearchMatchesFilters(c)
@@ -119,7 +146,7 @@ function romantiverseSearchLinkedMovie(candidate){
 function romantiverseTitleCard(movie){
  const cast=romantiverseTitleSearch.cast(movie).slice(0,4);
  const availability=romantiverseTitleSearch.metadata(movie).availability;
- const watch=Array.isArray(availability)?availability.slice(0,2).filter(option=>option?.verified&&option.provider):[];
+ const watch=Array.isArray(availability)?availability.filter(option=>option?.verified&&option.provider).slice(0,2):[];
  const saved=!!movie.id;
  const votes=Object.values(movie.votes||{});
  const release=romantiverseTitleSearch.release(movie);
@@ -132,17 +159,16 @@ function romantiverseTitleCard(movie){
   romantiverseTitleSearch.metadata(movie).source_type==='manual'?'Manual entry':null
  ]:[movie.source_type==='tmdb_exact_title'?'TMDB · exact title':movie.source_type==='tmdb_title_lookup'?'TMDB · possible match':'Romantiverse Bingo catalog',
    movie.title_search_score<100?'Related result':null]).filter(Boolean);
- return `<article class="new-find-card card">
-  <div class="new-find-poster">${movie.poster_url?`<img src="${esc(movie.poster_url)}" alt="" loading="lazy">`:'<div class="new-find-poster-fallback">CL</div>'}</div>
-  <div class="new-find-body"><h3>${esc(movie.title)}</h3>
-   <div class="subtle">${[romantiverseTitleSearch.year(movie),movie.network].filter(Boolean).map(esc).join(' · ')}</div>
+ const resultId=esc(saved?movie.id:romantiverseCandidateKey(movie));
+ return `<article class="cl-editorial-card card">
+  <div class="cl-editorial-poster"><span aria-hidden="true">CL</span>${movie.poster_url?`<img src="${esc(movie.poster_url)}" alt="" loading="lazy" onerror="this.remove()">`:''}</div>
+  <div class="cl-editorial-copy"><h3>${esc(movie.title)}</h3>
+   <div class="subtle">${[romantiverseTitleSearch.year(movie),movie.network||romantiverseTitleSearch.studios(movie)[0]].filter(Boolean).map(esc).join(' · ')}</div>
    ${status.length?`<div class="subtle">${status.map(esc).join(' · ')}</div>`:''}
    ${cast.length?`<div class="subtle">${cast.map(esc).join(' · ')}</div>`:''}
-   ${watch.map(option=>`<div class="subtle">${[option.provider,option.access_type,option.market,option.available_from?'from '+option.available_from:''].filter(Boolean).map(esc).join(' · ')}</div>`).join('')}
-   ${movie.summary?`<p>${esc(movie.summary)}</p>`:''}
-   ${saved?`<button class="primary" onclick="openMovie('${esc(movie.id)}')">Open movie</button>`:
-    `<button class="primary" onclick="addRomantiverseSearchMovie(${Number(movie.tmdb_id)},false)">Add and open</button>`}
-   <button type="button" class="secondary" data-movie-id="${esc(saved?movie.id:movie.tmdb_id)}" onclick="${saved?'clEpisodeWizard.useMovie(this.dataset.movieId)':'clEpisodeWizard.useCandidate(Number(this.dataset.movieId),true)'}">Start setup</button>
+   ${watch.length?watch.map(option=>`<div class="cl-editorial-watch">Watch · ${[option.provider,option.access_type,option.market,option.available_from?'from '+option.available_from:''].filter(Boolean).map(esc).join(' · ')}</div>`).join(''):'<div class="subtle">No verified watch option</div>'}
+   <button type="button" class="secondary cl-editorial-action" data-result-id="${resultId}" data-saved="${saved}" onclick="openRomantiverseResult(this)">Open movie</button>
+   <button type="button" class="secondary" data-movie-id="${resultId}" onclick="clEpisodeWizard.${saved?'useMovie(this.dataset.movieId)':'useCandidate(this.dataset.movieId,true)'}">Start Episode Setup</button>
   </div></article>`;
 }
 
@@ -185,7 +211,6 @@ function romantiverseFilterQuery(rawQuery=searchText){
 window.romantiverseFilterQuery=romantiverseFilterQuery;
 
 function romantiverseSearchPanel(){
-  const taste=typeof clTastePanel==='function'?clTastePanel():'';
   const q=romantiverseFilterQuery();
   if(!romantiverseSearchForUs&&String(searchText||'').trim().length>=2){
     const visible=romantiverseSearchVisibleResults();
@@ -200,11 +225,11 @@ function romantiverseSearchPanel(){
       ${!busy&&(romantiverseSearchError||romantiverseSearchWarning)?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,romantiverseSearchBroaderLookup)">Retry</button>':''}</div>
       <div role="status" class="subtle">${esc(status)}</div>
       <div class="new-find-grid">${visible.map(romantiverseTitleCard).join('')}</div>
-      ${manual?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,true)">Look up on TMDB</button> <button class="secondary" onclick="addMovie(searchText)">Add a movie manually</button>':''}
+      ${manual?(!romantiverseSearchBroaderLookup?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,true)">Search more sources</button> ':'')+'<button class="secondary" onclick="addMovie(searchText)">Add a movie manually</button>':''}
     </section>`;
   }
   if(q.length<2&&!romantiverseSearchForUs){
-    return taste+'<div class="rom-search-idle card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search by idea, not just title.</strong><div class="subtle">Try cats, bakery, widow, tree farm, royal, small town, veterinarian… Choose a season or holiday to search for more titles, or type a movie title or idea. “Not classified” only filters records already loaded; it does not guess unknown classifications.</div></div>';
+    return '';
   }
 
   const label=romantiverseSearchForUs?'Your shared taste':q;
@@ -212,19 +237,19 @@ function romantiverseSearchPanel(){
   const visible=loaded?romantiverseSearchVisibleResults():[];
 
   if(romantiverseSearchLoading){
-    return taste+'<div class="rom-search-panel card card-pad"><div class="rom-search-head"><div><div class="kicker">Searching the Romantiverse</div><strong>“'+esc(label)+'”</strong></div><span class="discovery-spinner">🧀</span></div><div class="subtle">Searching the shared Romantiverse Bingo movie catalog…</div></div>';
+    return '<div class="rom-search-panel card card-pad"><div class="rom-search-head"><div><div class="kicker">Searching the Romantiverse</div><strong>“'+esc(label)+'”</strong></div><span class="discovery-spinner">🧀</span></div><div class="subtle">Searching the shared Romantiverse Bingo movie catalog…</div></div>';
   }
 
   if(romantiverseSearchError && loaded){
-    return taste+'<div class="rom-search-panel card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search hit a snag.</strong><div class="subtle">'+esc(romantiverseSearchError)+'</div><button class="secondary" style="margin-top:10px" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">Try again</button></div>';
+    return '<div class="rom-search-panel card card-pad"><div class="kicker">Romantiverse Search</div><strong>Search hit a snag.</strong><div class="subtle">'+esc(romantiverseSearchError)+'</div><button class="secondary" style="margin-top:10px" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">Try again</button></div>';
   }
 
   if(!loaded){
-    return taste+'<div class="rom-search-panel card card-pad"><div class="kicker">Romantiverse Search</div><strong>Getting “'+esc(label)+'” ready…</strong></div>';
+    return '<div class="rom-search-panel card card-pad"><div class="kicker">Romantiverse Search</div><strong>Getting “'+esc(label)+'” ready…</strong></div>';
   }
 
   const terms=romantiverseSearchExpandedTerms.slice(0,8);
-  return taste+'<div class="rom-search-panel">'+
+  return '<div class="rom-search-panel">'+
     '<div class="rom-search-head"><div><div class="kicker">Romantiverse Search</div><div class="page-title small-title">Results for “'+esc(label)+'”</div><div class="subtle">Exact titles are shown first. Filters apply to other catalog matches.</div></div><button class="secondary" onclick="runRomantiverseSearch(searchText,true,romantiverseSearchForUs)">↻ Search again</button></div>'+
     (romantiverseSearchWarning?'<p role="status" class="subtle">'+esc(romantiverseSearchWarning)+'</p>':'')+
     (terms.length?'<div class="rom-search-expansion"><span class="subtle">Also looking for:</span><div class="pills">'+terms.map(t=>'<span class="pill">'+esc(t)+'</span>').join('')+'</div></div>':'')+
@@ -264,10 +289,11 @@ async function runRomantiverseSearch(rawQuery,force=false,forUs=false,broaderLoo
   if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');
   state.romantiverseSearchResults=data.results.filter(c=>(c.source_type==='bingo_catalog'||
    (direct&&c.source_type==='tmdb_exact_title'&&c.exact_title_match===true&&romantiverseTitleSearch.normalize(c.title)===parsed.key)||
-   (direct&&broaderLookup&&c.source_type==='tmdb_title_lookup'&&romantiverseTitleSearch.score(c,parsed)>=200))&&!clMovieIsHorror(c));
+   (direct&&broaderLookup&&c.source_type==='tmdb_title_lookup'&&romantiverseTitleSearch.score(c,parsed)>=200))&&
+   (direct||(!clMovieIsHorror(c)&&(!forUs||clRomantiverseFeedAllows(c)))));
   romantiverseSearchExpandedTerms=data.expanded_terms||[];
   romantiverseSearchWarning=[data.catalog_stale?'The shared catalog could not refresh. Showing available catalog and workspace results.':'',data.exact_lookup_warning].filter(Boolean).join(' ');
- }catch(error){if(seq!==romantiverseSearchSequence)return;state.romantiverseSearchResults=[];romantiverseSearchExpandedTerms=[];romantiverseSearchError=error.message||String(error);}
+ }catch(error){if(seq!==romantiverseSearchSequence)return;romantiverseSearchExpandedTerms=[];romantiverseSearchError='Search was incomplete. '+(error.message||String(error));}
  finally{if(seq===romantiverseSearchSequence){romantiverseSearchLoading=false;refreshRomantiverseSearchPanel();}}
 }
 function scheduleRomantiverseSearch(value){
@@ -295,10 +321,11 @@ function ensureRomantiverseCandidateInDiscovery(id){
 
 async function addRomantiverseSearchMovie(id,applyTraits){
   const candidate=romantiverseSearchCandidate(id);
-  if(!candidate||clMovieIsHorror(candidate))return;
+  if(!candidate)return;
   const saved=romantiverseSearchLinkedMovie(candidate);
+  if(typeof clSearchMovieDetail!=='undefined'&&clSearchMovieDetail)clCloseDiscoveryMovieDetails();
   if(saved){openMovie(saved.id);return;}
-  await persistDiscoveredMovie(Number(id),!!applyTraits,candidate);
+  await persistDiscoveredMovie(candidate.tmdb_id,!!applyTraits,candidate);
 }
 
 async function voteRomantiverseSearchMovie(id,value){
@@ -319,6 +346,7 @@ movies=function(){
   const at=html.indexOf(marker);
   if(at>=0) html=html.slice(0,at)+host+html.slice(at);
   else html=host+html;
+  if(typeof clTastePanel==='function')html=html.replace('<div id="newFindMatchLine"',clTastePanel()+'<div id="newFindMatchLine"');
   return html;
 };
 

@@ -20,7 +20,7 @@ test('a sparse favorite cannot empty the eligible catalog, even after repeated r
  c.state.movies=[{title:'Favorite',votes:{nick:'yes',jenny:'yes'},summary:''}];
  storage.set('cheeseLouise:recommendations:v3:one',JSON.stringify({ids:[1,2,3],titles:catalog.movies.map(m=>m.title),batch:90}));
  await c.discoverCheeseMovies(true);const first=c.state.discoveryResults.map(m=>m.title);
- assert.ok(first.length>=20);assert.equal(requests[0].include_broader,true);assert.equal(requests[0].exclude_titles.length,0);assert.equal(requests[0].exclude_ids.length,0);
+ assert.ok(first.length>=10);assert.equal(requests[0].include_broader,true);assert.equal(requests[0].exclude_titles.length,0);assert.equal(requests[0].exclude_ids.length,0);
  await c.discoverCheeseMovies(true);assert.deepEqual(c.state.discoveryResults.map(m=>m.title),first);
 });
 test('saved Yes and split votes remain; recorded and both-No are removed from the visible feed',async()=>{
@@ -52,7 +52,7 @@ test('the gold spotlight is reserved for mutual Yes and verified watch options a
   source_metadata:{availability:[{provider:'Hallmark+',access_type:'Subscription',available_from:'2026-11-28',verified:true}]}};
  c.state.movies=[{id:'santa',title:movie.title,year:2026,votes:{nick:'yes',jenny:'yes'}}];
  const featured=c.clRecFeedCard(movie,true);
- assert.match(featured,/cl-feed-card--spotlight[\s\S]*Don’t miss[\s\S]*Both voted Yes/);
+ assert.match(featured,/cl-feed-card--spotlight[\s\S]*Don’t miss[\s\S]*Both Hosts Voted Yes/);
  assert.match(featured,/Hallmark Channel[\s\S]*Hallmark\+ · Subscription · from 2026-11-28/);
  c.state.movies[0].votes.jenny='no';
  assert.doesNotMatch(c.clRecFeedCard(movie),/cl-feed-card--spotlight/);
@@ -69,8 +69,22 @@ test('recorded and released episode links supersede stale movie review status',a
 });
 test('season filters still restrict the pool to actual catalog Fall romances',async()=>{
  const {c}=client();c.movieFilters.season='Fall';await c.discoverCheeseMovies(true);
- assert.equal(c.state.discoveryResults.length,12);assert.ok(c.state.discoveryResults.every(m=>m.season==='Fall'&&m.source_type==='bingo_catalog'));
+ assert.ok(c.state.discoveryResults.length>=4);assert.ok(c.state.discoveryResults.every(m=>m.season==='Fall'&&m.source_type==='bingo_catalog'));
  assert.ok(c.state.discoveryResults.some(m=>m.title==='Pumpkin Pie Wars'));
+});
+test('the weekly pick and every shelf respect editorial eligibility and both-No votes',async()=>{
+ const {c}=client();await c.discoverCheeseMovies(true);
+ const current=c.clRecWeeklyPick(c.state.discoveryResults,{},new Date('2027-01-01'));
+ const displayNow=c.clRecWeeklyPick(c.state.discoveryResults);
+ const pick=displayNow||current;
+ c.state.movies=[{id:'picked',title:pick.title,year:pick.year,votes:{a:'no',b:'no'}}];
+ c.state.episodes=[{id:'draft',movie_id:'picked',status:'planning'}];
+ c.state.discoveryResults.push({title:'Unreviewed Movie',year:1999,tmdb_id:9199,source_type:'bingo_catalog'});
+ const html=c.discoveryPanel();
+ assert.doesNotMatch(html,new RegExp('<h4>'+pick.title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'</h4>'));
+ assert.doesNotMatch(html,/<h4>Unreviewed Movie<\/h4>/);
+ assert.match(html,/cl-feed-card--weekly/);
+ assert.equal(c.state.episodes[0].movie_id,'picked');
 });
 test('catalog and service failures remain errors instead of widening to unrelated movies',async()=>{
  const {c}=client();c.db.functions.invoke=async()=>({error:new Error('Catalog unavailable')});

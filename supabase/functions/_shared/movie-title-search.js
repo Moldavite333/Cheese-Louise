@@ -45,6 +45,23 @@
     return key.split(' ').filter(word => word && !['a', 'an', 'the', 'to', 'of', 'in', 'and'].includes(word));
   }
 
+  function studios(movie) {
+    const meta = metadata(movie);
+    return [movie.network, movie.studio, movie.production_company, movie.production_companies,
+      meta.production_company, meta.production_companies].flat()
+      .map(value => typeof value === 'string' ? value : value?.name).filter(Boolean);
+  }
+
+  function plotScore(movie, query) {
+    const terms = words(query.key).filter(word => !['movie','film','with','about','where','who','that','find','at','for','from'].includes(word));
+    const plot = normalize([movie.title, movie.summary, movie.synopsis, movie.overview].filter(Boolean).join(' '));
+    const tokens = new Set(plot.split(' '));
+    const hits = terms.filter(term => tokens.has(term) ||
+      (term.length > 4 && [...tokens].some(token => token.startsWith(term))) ||
+      (term === 'travel' && /\b(time travels?|travels? (back in|through) time)\b/.test(plot))).length;
+    return terms.length >= 2 && hits >= Math.max(2, Math.ceil(terms.length * 0.75)) ? 40 + hits : 0;
+  }
+
   function oneEdit(a, b) {
     if (Math.abs(a.length - b.length) > 1) return false;
     let i = 0;
@@ -79,8 +96,11 @@
           (word.length >= 3 && titleWords[i].length >= 4 && oneEdit(word, titleWords[i])))) return 200 + requestedYear;
       }
     }
-    if (cast(movie).some(name => normalize(name).includes(query.key))) return 100 + requestedYear;
-    return 0;
+    const credits = [...cast(movie), ...studios(movie)].map(normalize);
+    if (credits.some(name => name.includes(query.key))) return 120 + requestedYear;
+    const identityWords = new Set(words([canonical, ...alternate, ...credits].join(' ')));
+    if (requestedWords.length > 1 && requestedWords.every(word => identityWords.has(word))) return 110 + requestedYear;
+    return plotScore(movie, query);
   }
 
   function compare(a, b, query) {
@@ -100,5 +120,5 @@
       episode.movie_id === movie.id && ['recorded', 'released', 'published'].includes(episode.status)));
   }
 
-  root.clMovieTitleSearch = {normalize, parse, metadata, year, cast, score, compare, confident, release, recorded};
+  root.clMovieTitleSearch = {normalize, parse, metadata, year, cast, studios, score, compare, confident, release, recorded};
 })(globalThis);

@@ -19,7 +19,24 @@
  ];
  function features(m){const meta=metadata(m),raw=[m.title,m.summary,m.synopsis,m.overview,m.tagline,...names(m.keywords?.keywords||m.keywords),...names(meta.keywords),...names(m.traits),...Object.values(m.story_facts||{}).flat()].filter(Boolean).join(' ');const value=norm(raw).replace(/\bmagic of (?:christmas|love|the holidays)\b/g,'');return definitions.filter(d=>d.rx.test(value));}
  function signals(m){const votes=Object.values(m.votes||{}),yes=votes.filter(v=>v==='yes').length,no=votes.filter(v=>v==='no').length,maybe=votes.includes('maybe'),saved=Object.values(m.bookmarks||{}).some(v=>v===true);return {yes,no,maybe,saved,weight:no&&!yes?0:yes>=2?3:yes&&!no?2:yes&&no?.35:saved?1:maybe?.45:0,negative:no&&!yes?Math.min(3,no*1.5):yes&&no?.5:0,kind:yes>=2?'both_yes':yes&&!no?'yes':yes&&no?'split':saved?'saved':maybe?'maybe':'none'};}
- function preferences(movies=[]){const likes=[],dislikes=[];for(const m of movies){const s=signals(m),meta=metadata(m),value={title:String(m.title||'').slice(0,200),year:m.year||meta.year||Number(String(m.premiere_date||'').slice(0,4))||null,summary:String(m.summary||m.synopsis||'').slice(0,5000),keywords:names(m.keywords?.keywords||m.keywords||meta.keywords).slice(0,30),traits:names(m.selectedTraits).slice(0,30),signal:s.kind,weight:s.weight};if(s.weight)likes.push(value);if(s.negative||m.status==='passed')dislikes.push({...value,weight:s.negative||1.5})}return {likes,dislikes};}
+ function preferences(movies=[],episodes=[]){
+  const stageWeights={selected:.3,watched:.6,recorded:.7};
+  const stages=new Map();
+  for(const episode of episodes){
+   if(!episode.movie_id)continue;
+   const stage=['recorded','released','published'].includes(episode.status)?'recorded':episode.status==='watched'?'watched':'selected';
+   if(stageWeights[stage]>(stageWeights[stages.get(episode.movie_id)]||0))stages.set(episode.movie_id,stage);
+  }
+  const likes=[],dislikes=[];
+  for(const m of movies){
+   const s=signals(m),meta=metadata(m)||{},stage=stages.get(m.id);
+   const weight=s.weight||(!s.no&&m.status!=='passed'&&stageWeights[stage])||0;
+   const value={title:String(m.title||'').slice(0,200),year:m.year||meta.year||Number(String(m.premiere_date||'').slice(0,4))||null,summary:String(m.summary||m.synopsis||'').slice(0,5000),keywords:names(m.keywords?.keywords||m.keywords||meta.keywords).slice(0,30),traits:names(m.selectedTraits).slice(0,30),signal:s.kind==='none'?(stage||'none'):s.kind,weight};
+   if(weight)likes.push(value);
+   if(s.negative||m.status==='passed')dislikes.push({...value,weight:s.negative||1.5});
+  }
+  return {likes,dislikes};
+ }
  function profile(input={}){const likes=(input.likes||[]).slice(0,100).map(m=>({...m,weight:Math.max(.1,Math.min(3,Number(m.weight)||1)),features:features(m)})),dislikes=(input.dislikes||[]).slice(0,100).map(m=>({...m,weight:Math.max(.1,Math.min(3,Number(m.weight)||1)),features:features(m)}));const total=likes.reduce((n,m)=>n+m.weight,0)||1,negativeTotal=dislikes.reduce((n,m)=>n+m.weight,0)||1;const learned=definitions.map(d=>{const positive=likes.filter(m=>m.features.some(f=>f.id===d.id)).reduce((n,m)=>n+m.weight,0),negative=dislikes.filter(m=>m.features.some(f=>f.id===d.id)).reduce((n,m)=>n+m.weight,0);return {...d,positive,weight:positive?Math.max(-2,1+positive/total*3-negative/negativeTotal*3):0}});return {likes,dislikes,learned,count:likes.length,both:likes.filter(m=>m.signal==='both_yes').length};}
  function match(movie,p){const ids=new Set(features(movie).map(f=>f.id)),shared=p.learned.filter(f=>f.weight>0&&ids.has(f.id));let anchor=null;for(const seed of p.likes){const overlap=shared.filter(f=>seed.features.some(x=>x.id===f.id));if(!overlap.length)continue;const quality=overlap.reduce((n,f)=>n+f.weight*(f.hook?3:1),0)*(.75+seed.weight/3);if(!anchor||quality>anchor.quality)anchor={seed,overlap,quality};}
  const penalties=p.learned.filter(f=>ids.has(f.id)&&f.weight<0).reduce((n,f)=>n-f.weight*5,0),hook=shared.some(f=>f.hook),core=shared.filter(f=>f.id!=='work'),close=!!anchor&&anchor.seed.weight>=1&&!['maybe','split'].includes(anchor.seed.signal)&&(hook||core.length>=2)&&penalties<10;

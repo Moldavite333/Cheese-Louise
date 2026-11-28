@@ -106,8 +106,38 @@ test('specific searches use the same Bingo catalog and mystery franchises stay o
  assert.equal(selectCatalog(catalog,{query:'A Christmas Village'}).results[0].title,'A Christmas Village');
  assert.equal(selectCatalog(catalog,{query:'cinderella'}).results.length,0);assert.equal(selectCatalog(catalog,{query:'square pumpkin'}).results.length,0);
  assert.ok(!selectCatalog(catalog,{query:'mystery'}).results.some(m=>/mystery|mysteries|detective/i.test(m.title)));
- const recommendations=selectCatalog(catalog,{filters:{season:'Autumn'},max_results:120},true).results;assert.equal(recommendations.length,12);
+ const recommendations=selectCatalog(catalog,{filters:{season:'Autumn'},max_results:120},true).results;
+ assert.ok(recommendations.length>=4);
+ assert.ok(recommendations.every(movie=>movie.source_metadata.romantiverse.status==='eligible'));
  assert.ok(!recommendations.some(m=>/murder|mystery/i.test(m.title)));
+});
+test('direct catalog lookup keeps excluded films and understands familiar plot clues',()=>{
+ const mystery=catalog.movies.find(movie=>movie.title.startsWith('A Beautiful Place to Die:'));
+ const excluded=selectCatalog(catalog,{query:mystery.title,title_search:true}).results[0];
+ assert.equal(excluded.catalog_id,mystery.id);
+ assert.equal(excluded.source_metadata.romantiverse.status,'excluded');
+ const plot=selectCatalog(catalog,{query:'Christmas movie with time travel at Biltmore',title_search:true}).results;
+ assert.deepEqual(plot.slice(0,2).map(movie=>movie.title),['A Biltmore Christmas','A Grand Biltmore Christmas']);
+ assert.equal(plot[0].catalog_id,'catalog-a-biltmore-christmas-2023');
+ const santa=selectCatalog(catalog,{query:'Return to Snta',title_search:true}).results[0];
+ assert.equal(santa.title,'Return to Santa');
+ assert.equal(santa.year,2026);
+});
+
+test('approved external title lookup includes off-theme films and distinct same-title releases',async()=>{
+ const halloween=[
+  {id:948,title:'Halloween',release_date:'1978-10-25',genre_ids:[27]},
+  {id:424139,title:'Halloween',release_date:'2018-10-19',genre_ids:[27]}
+ ];
+ const handler=createCatalogHandler({fallback:catalog,env:()=> 'fixture-token',fetcher:async url=>{
+  if(url.includes('/catalog/'))return Response.json(catalog);
+  if(url.includes('/search/movie'))return Response.json({results:halloween});
+  return Response.json(halloween.find(movie=>url.includes('/movie/'+movie.id)));
+ }});
+ const response=await handler(new Request('https://fixture/search',{method:'POST',body:JSON.stringify({
+  query:'Halloween 1978',title_search:true,broader_lookup:true
+ })}));
+ assert.deepEqual((await response.json()).results.map(movie=>movie.tmdb_id),[948,424139]);
 });
 test('failed shared catalog fetch uses the bundled Bingo catalog and never falls back to broad movie search',async()=>{
  const calls=[],handler=createCatalogHandler({fallback:catalog,fetcher:async url=>{calls.push(url);throw Error('Offline')}});

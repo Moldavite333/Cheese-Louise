@@ -15,7 +15,7 @@ body.hq-signed-in {
 .hq-signed-in :is(.hq-sidebar,.hq-mobile-nav) {background: #14231d;}
 .hq-signed-in .hq-topbar {background: #101b18f7;box-shadow: 0 8px 20px #09140e21;}
 .hq-signed-in .hq-topbar-line > strong {font-size: .86rem;color: var(--text);}
-.hq-signed-in :is(.hq-sidebar-brand strong,.hq-radar-intro h1,.hq-today h1,.new-find-header .page-title) {
+.hq-signed-in :is(.hq-sidebar-brand strong,.hq-today h1,.new-find-header .page-title) {
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
 }
@@ -56,15 +56,15 @@ body.hq-signed-in {
 .hq-clear-search:hover {background: #dfdfca;}
 .hq-movie-search .hq-clear-search:focus-visible {outline: 2px solid #254134;outline-offset: 1px;}
 .hq-movie-search:has(input:placeholder-shown) .hq-clear-search {visibility: hidden;}
-.hq-radar-intro {padding-bottom: 6px;}
 .hq-episode-wizard {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:12px 0;padding:14px 16px;border-inline-start:3px solid var(--accent);}
 .hq-episode-wizard strong,.hq-episode-wizard span {display:block;}
 .hq-episode-wizard span,.hq-episode-wizard p {color:var(--muted);font-size:.9rem;margin:0;}
 .hq-wizard-actions {display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .hq-wizard-actions select {min-height:44px;max-width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;}
-.hq-radar-intro h1 {margin: .15rem 0;font-size: clamp(2.4rem,5vw,4.2rem);line-height: 1;}
-.hq-radar-lede {color: var(--muted);margin: .7rem 0 1rem;}
-.hq-radar-intro .movie-header-actions .primary {background: var(--panel-2);color: var(--text);border: 1px solid var(--line);}
+.hq-radar-tools {border-top:1px solid var(--line);padding-top:1rem;}
+.hq-radar-tools h2 {margin:0 0 .75rem;font-size:1.15rem;}
+.hq-radar-tools .movie-header-actions {margin-bottom:.85rem;}
+.hq-radar-feed .rom-search-host:empty {display:none;}
 #radarDiscoveryResults .new-find-header {padding: .85rem 0;margin-bottom: .65rem;border-bottom: 1px solid var(--line);}
 #radarDiscoveryResults .new-find-panel > h3 {margin: 1.45rem 0 .75rem;font-size: 1.25rem;letter-spacing: -.02em;}
 #radarDiscoveryResults .new-find-grid {
@@ -93,9 +93,25 @@ body.hq-signed-in {
 #romantiverseSearchHost .rom-search-panel > [role="status"]:empty {display: none;}
 #romantiverseSearchHost .rom-search-head h2 {font-family: Georgia, serif;font-size: clamp(1.35rem,3vw,2rem);}
 #romantiverseSearchHost .rom-search-panel .new-find-grid {margin: 1rem 0;gap: 16px;}
+#romantiverseSearchHost .rom-search-panel .new-find-grid {grid-template-columns:repeat(auto-fill,minmax(min(100%,215px),1fr));}
+.cl-editorial-copy h3 {margin:0;font-size:1.16rem;line-height:1.2;overflow-wrap:anywhere;}
+.cl-editorial-copy button,.cl-editorial-source {min-height:44px;align-content:center;}
+.cl-weekly-pick {margin-block:1.6rem;padding:clamp(.75rem,2vw,1.5rem);border:1px solid #55796d;border-radius:var(--radius);background:#172c28;}
+.cl-weekly-pick h3 {margin:0 0 .8rem;font-family:Georgia,serif;font-size:1.6rem;}
+.cl-feed-card--weekly .cl-editorial-card {display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);}
+.cl-feed-card--weekly .cl-editorial-poster {align-self:start;}
+.cl-feed-card--weekly .cl-editorial-copy {padding:clamp(1rem,3vw,2rem);gap:.6rem;justify-content:center;}
+.cl-feed-card--weekly .cl-editorial-copy h4 {font-size:clamp(1.45rem,4vw,2.55rem);}
+.cl-feed-card--weekly .cl-editorial-copy .cl-editorial-action {margin-top:.15rem;}
+.cl-weekly-votes {display:flex;flex-wrap:wrap;gap:.5rem;}
+.cl-weekly-votes [aria-pressed="true"] {border-color:#92cdb8;background:#25483d;}
+.cl-editorial-copy .cl-weekly-reason {max-width:46ch;font-size:1rem;margin-block:.3rem .5rem;}
+@media (max-width:600px) {
+  .cl-feed-card--weekly .cl-editorial-card {grid-template-columns:minmax(0,1fr);}
+}
 @media (max-width: 600px) {
-  .hq-radar-intro .movie-header-actions {gap: 6px;}
-  .hq-radar-intro .movie-header-actions button {padding-inline: .65rem;}
+  .hq-radar-tools .movie-header-actions {gap: 6px;}
+  .hq-radar-tools .movie-header-actions button {padding-inline: .65rem;}
   #radarDiscoveryResults .new-find-header {align-items: flex-start;}
   #radarDiscoveryResults .new-find-panel > h3 {font-size: 1.1rem;}
 }

@@ -2,6 +2,7 @@
 // Makes saved Radar cards and New Finds open a large, read-friendly detail view.
 
 let clDiscoveryMovieDetailId = null;
+let clSearchMovieDetail = null;
 
 function clMovieDetailInteractiveTarget(target){
   return !!target?.closest?.('button,a,input,select,textarea,summary,details,label');
@@ -26,7 +27,8 @@ function clMovieDetailPoster(item){
     : `<div class="cl-movie-detail-poster cl-movie-detail-poster-fallback">CL</div>`;
 }
 
-function clOpenDiscoveryMovieDetails(tmdbId){
+function clOpenDiscoveryMovieDetails(tmdbId,fromSearch=false){
+  clSearchMovieDetail=fromSearch?romantiverseSearchCandidate(tmdbId):null;
   const id=Number(tmdbId);
   // Romantiverse Search keeps external matches in its own state array.
   // Promote the clicked candidate before opening so the existing detail,
@@ -34,7 +36,7 @@ function clOpenDiscoveryMovieDetails(tmdbId){
   if(typeof ensureRomantiverseCandidateInDiscovery==='function'){
     ensureRomantiverseCandidateInDiscovery(id);
   }
-  clDiscoveryMovieDetailId=id;
+  clDiscoveryMovieDetailId=fromSearch?clSearchMovieDetail?.tmdb_id:id;
   selectedMovie=null;
   render();
 }
@@ -42,7 +44,9 @@ function clOpenDiscoveryMovieDetails(tmdbId){
 function clCloseDiscoveryMovieDetails(event){
   if(event && event.target!==event.currentTarget) return;
   clDiscoveryMovieDetailId=null;
+  clSearchMovieDetail=null;
   render();
+  if(typeof restoreRomantiverseResult==='function')restoreRomantiverseResult();
 }
 
 function clCloseSavedMovieDetails(event){
@@ -51,6 +55,7 @@ function clCloseSavedMovieDetails(event){
   if(typeof traitSearch!=='undefined') traitSearch='';
   if(typeof traitSelectedOnly!=='undefined') traitSelectedOnly=false;
   render();
+  if(typeof restoreRomantiverseResult==='function')restoreRomantiverseResult();
 }
 
 async function clAddDiscoveryFromDetail(tmdbId,applyTraits){
@@ -116,7 +121,7 @@ function clSavedMovieDetailModal(){
         ${clMovieDetailLinks(m)}
         <div class="cl-movie-detail-actions">
           ${prepare}
-          <button type="button" class="secondary" data-movie-id="${esc(m.id)}" onclick="clEpisodeWizard.useMovie(this.dataset.movieId)">Start setup</button>
+          <button type="button" class="secondary" data-movie-id="${esc(m.id)}" onclick="clEpisodeWizard.useMovie(this.dataset.movieId)">Start Episode Setup</button>
           <button class="secondary" onclick="bookmark('${m.id}')">🔖 ${saved?'Saved':'Save'}</button>
           <button class="secondary" onclick="scheduleMovie('${m.id}')">📅 Schedule</button>
         </div>
@@ -170,8 +175,18 @@ function clSavedMovieDetailModal(){
 }
 
 function clDiscoveryMovieDetailModal(){
-  const c=(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(clDiscoveryMovieDetailId));
+  const c=clSearchMovieDetail||(state.discoveryResults||[]).find(x=>Number(x.tmdb_id)===Number(clDiscoveryMovieDetailId));
   if(!c) return '';
+  if(clSearchMovieDetail){
+   const key=esc(romantiverseCandidateKey(c));
+   return `<div class="modal-backdrop" onclick="clCloseDiscoveryMovieDetails(event)"><div class="modal cl-movie-detail-modal" onclick="event.stopPropagation()">
+    <div class="modal-header"><h2>${esc(c.title)}</h2><button class="close" aria-label="Close movie" onclick="clCloseDiscoveryMovieDetails()">×</button></div>
+    <div class="cl-movie-detail-hero"><div>${clMovieDetailPoster(c)}</div><div><p>${[clMovieTitleSearch.year(c),c.network,...clMovieTitleSearch.cast(c).slice(0,4)].filter(Boolean).map(esc).join(' · ')}</p>
+    <p>${esc(c.summary||'No synopsis is available yet.')}</p>${clMovieDetailLinks(c)}
+    <button type="button" class="secondary" data-result-key="${key}" onclick="addRomantiverseSearchMovie(this.dataset.resultKey,false)">Add to Radar</button>
+    <button type="button" class="primary" data-result-key="${key}" onclick="clEpisodeWizard.useCandidate(this.dataset.resultKey,true)">Start Episode Setup</button></div></div>
+   </div></div>`;
+  }
   const est=typeof discoveryEstimate==='function'?discoveryEstimate(c):{traits:[],score:0};
   const traits=est?.traits||[];
   const why=c.why||[];

@@ -25,7 +25,8 @@ test('cached external search results cannot display mixed Horror/Romance or expl
 
 test('catalog taste discovery uses one bounded request, keeps the catalog pool and rejects general movie rows',async()=>{
  const h=setup(),c=h.context;
- h.respond(async()=>({data:{results:[{tmdb_id:1,title:'Shared Christmas film',source_type:'bingo_catalog'},...Array.from({length:60},(_,i)=>({tmdb_id:i+2,title:'Catalog movie '+i,source_type:'bingo_catalog'})),{tmdb_id:999,title:'Cinderella',source_type:'tmdb_search'}],expanded_terms:[]}}));
+ const source_metadata={romantiverse:{status:'eligible',reason:'Reviewed episode hook',source:'https://fixture.test/movie'}};
+ h.respond(async()=>({data:{results:[{tmdb_id:1,title:'Shared Christmas film',source_type:'bingo_catalog',source_metadata},...Array.from({length:60},(_,i)=>({tmdb_id:i+2,title:'Catalog movie '+i,source_type:'bingo_catalog',source_metadata})),{tmdb_id:998,title:'Unreviewed',source_type:'bingo_catalog'},{tmdb_id:999,title:'Cinderella',source_type:'tmdb_search'}],expanded_terms:[]}}));
  await c.runRomantiverseSearch('',true,true);
  assert.equal(h.requests.length,1);assert.equal(c.state.romantiverseSearchResults.length,61);
  assert.ok(!c.state.romantiverseSearchResults.some(m=>m.title==='Cinderella'));
