@@ -37,6 +37,11 @@ try{
  await page.getByRole('heading',{name:'Today',exact:true}).waitFor();
  assert.ok(await page.getByRole('heading',{name:'Upcoming episode',exact:true}).isVisible());
  assert.ok(await page.locator('.hq-next-item').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
+ const colors=await page.locator('body').evaluate(el=>{
+  const style=getComputedStyle(el);
+  return [style.backgroundColor,style.color,style.colorScheme];
+ });
+ assert.deepEqual(colors,['rgb(25, 21, 28)','rgb(255, 242, 226)','dark']);
  assert.deepEqual(await page.locator('.hq-workflow h3').allTextContents(),['Plan the episode','Record and edit','Publish and promote']);
  const workflow=page.locator('.hq-workflow');
  assert.equal(await workflow.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width<=760?1:3);
@@ -207,6 +212,7 @@ try{
    await page.evaluate(()=>clProduction.view('record'));
    assert.equal(await page.locator('.cl-storyboard,.clp-marker,.clp-segment-map').count(),0,'Live Record is a reading desk without scenes or markers');
    assert.ok(await page.getByRole('heading',{name:'Nick’s recording notes',exact:true}).isVisible());
+   assert.equal(await page.locator('.cldesk-notes').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 244, 229)','Live notes retain a light paper surface');
    assert.ok(!(await page.locator('.cldesk-notes').innerText()).includes('Jenny’s separate scene note'),'Other host’s scene notes stay out of the desk');
    assert.ok(await page.locator('.cldesk-bingo .clp-bingo-board').isVisible(),'Own Bingo card stays available');
    assert.equal(await page.locator('.cldesk-bingo .clp-bingo-cell.is-bingo').count(),0,'Broken line stays broken on the desk');
