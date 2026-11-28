@@ -25,7 +25,7 @@ try{
   if(await partner.locator('.mix-tabs details:not([open]) > summary').count())await partner.locator('.mix-tabs details:not([open]) > summary').click();await partner.getByRole('button',{name:'Check shared draft',exact:true}).click();await partner.getByRole('button',{name:'Recipe',exact:true}).click();await page.locator('.mix-meta textarea').last().fill('Nick latest '+width);await saved(page);await partner.locator('.mix-meta textarea').last().fill('Jenny conflicting '+width);await partner.locator('#mix-conflict:not([hidden])').waitFor();partner.once('dialog',d=>d.accept());await partner.getByRole('button',{name:'Load shared draft',exact:true}).click();await saved(partner);await partner.waitForFunction(expected=>[...document.querySelectorAll('.mix-meta textarea')].at(-1)?.value===expected,'Nick latest '+width);
   await page.route('**/__fixture/api',route=>route.request().postDataJSON()?.rpc==='mixology_save'?route.abort():route.continue());await page.locator('.mix-meta textarea').last().fill('Offline recovery '+width);await page.getByRole('status').filter({hasText:'Shared save failed'}).waitFor();
   // Navigation is deliberate in this fixture; acknowledge the unsynced-draft warning.
-  page.on('dialog',d=>d.accept());await boot(page);await page.getByText('Recent recipe drafts',{exact:true}).click();await page.locator('.mix-entry details button').first().click();await page.getByRole('button',{name:'Recipe',exact:true}).click();assert.equal(await page.locator('.mix-meta textarea').last().inputValue(),'Offline recovery '+width);await page.unroute('**/__fixture/api');if(await page.locator('.mix-tabs details:not([open]) > summary').count())await page.locator('.mix-tabs details:not([open]) > summary').click();await page.getByRole('button',{name:'Retry save',exact:true}).click();await saved(page);
+  page.once('dialog',d=>d.accept());await boot(page);await page.getByText('Recent recipe drafts',{exact:true}).click();await page.locator('.mix-entry details button').first().click();await page.getByRole('button',{name:'Recipe',exact:true}).click();assert.equal(await page.locator('.mix-meta textarea').last().inputValue(),'Offline recovery '+width);await page.unroute('**/__fixture/api');if(await page.locator('.mix-tabs details:not([open]) > summary').count())await page.locator('.mix-tabs details:not([open]) > summary').click();await page.getByRole('button',{name:'Retry save',exact:true}).click();await saved(page);
   await page.screenshot({path:'artifacts/mixology-recipe-'+width+'.png',fullPage:true});
   // Development is embedded in HQ, so returning must preserve an unfinished episode form.
   await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();
@@ -38,6 +38,7 @@ try{
   await page.evaluate(()=>{selectedEpisode=null;openCocktailBar()});
   const newCocktail=page.getByRole('button',{name:'New cocktail',exact:true});
   const before=await page.evaluate(()=>state.cocktails.length);
+  page.removeAllListeners('dialog');
   page.once('dialog',dialog=>dialog.dismiss());await newCocktail.click();
   assert.equal(await page.evaluate(()=>state.cocktails.length),before);
   assert.ok(await newCocktail.isVisible());
