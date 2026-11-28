@@ -34,9 +34,15 @@ try{
   state.schedule=[{id:'fixture-event',title:'Record the holiday episode and review the very long production checklist together',item_type:'record',starts_at:new Date().toISOString(),notes:'Fixture calendar item'}];
   render();
  });
- await page.getByRole('heading',{name:'Make the next episode.',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Today',exact:true}).waitFor();
  assert.ok(await page.getByRole('heading',{name:'Upcoming episode',exact:true}).isVisible());
- assert.ok(await page.locator('.hq-overview').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
+ assert.ok(await page.locator('.hq-next-item').innerText().then(text=>text.includes('Nov 2, 2026')),'Date-only release keeps its calendar day');
+ assert.deepEqual(await page.locator('.hq-workflow h3').allTextContents(),['Plan the episode','Record and edit','Publish and promote']);
+ const workflow=page.locator('.hq-workflow');
+ assert.equal(await workflow.evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width<=760?1:3);
+ await workflow.getByRole('button',{name:'Calendar',exact:true}).click();
+ assert.equal(await page.locator('#hq-main').getAttribute('data-hq-view'),'schedule');
+ await page.evaluate(()=>hqWorkspace.open('home'));
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dashboard fits '+width);
  if(width<=900){
   assert.equal(await page.locator('.hq-mobile-nav button').count(),5);
