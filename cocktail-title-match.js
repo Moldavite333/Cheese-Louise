@@ -112,12 +112,14 @@
   function mmRecipeStoryMatch(movie,candidate){
     // Match distinctive ingredients actually named in the story, not ingredients
     // inferred from a generic "cozy / romantic" mood shared by most of the library.
-    const text=[movie?.title,movie?.summary,...(movie?.selectedTraits||[]).map(t=>t.name)].filter(Boolean).join(' ');
+    const story=clMatchingMovieContext(movie);
+    const text=[story.title,story.summary].filter(Boolean).join(' ');
     const recipe=clRecipeRows(candidate).map(r=>r.ingredient).join(' ');
     const clues=[
       [/\bmaple\b/i,/\bmaple\b/i,'maple',18],
       [/\bpumpkin\b/i,/\bpumpkin\b/i,'pumpkin',18],
-      [/\bapple\b|\bcider\b|\borchard\b/i,/\bapple\b|\bcider\b|calvados|applejack/i,'apple / orchard',16],
+      [/\bapples?\b/i,/\bapples?\b|calvados|applejack/i,'apple',16],
+      [/\bcider\b/i,/\bcider\b/i,'cider',16],
       [/\bpear\b/i,/\bpear\b/i,'pear',16],
       [/\bcoffee\b|\bcaf[eé]\b|\bbarista\b|\bespresso\b/i,/\bcoffee\b|espresso|kahlua/i,'coffee',16],
       [/\bchocolate\b|\bcocoa\b/i,/chocolate|cacao|cocoa/i,'chocolate',16],
