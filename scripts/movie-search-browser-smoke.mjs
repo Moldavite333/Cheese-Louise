@@ -64,7 +64,7 @@ try{
    state.episodes=[{id:'episode-santa',title:'Return to Santa episode',movie_id:'santa',status:'recorded'}];
    state.movies.push({id:'biltmore',title:'A Biltmore Christmas',year:2023,network:'Hallmark Channel',
     votes:{a:'yes',b:'yes'},comments:[],tags:[],bookmarks:{}});
-   state.discoveryResults=[{title:'A Biltmore Christmas',year:2023,tmdb_id:2023,source_type:'bingo_catalog'}];
+   state.discoveryResults=[{title:'A Biltmore Christmas',year:2023,tmdb_id:2023,source_type:'bingo_catalog',poster_url:'/icon.svg'}];
    state.discoveryResults.push({title:'A Grand Biltmore Christmas: A Very Long Alternate Title for Layout Testing',year:2024,tmdb_id:3024,source_type:'bingo_catalog'});
    discoveryLoaded=true;clRecLastFetchAt=Date.now();
    hqWorkspace.open('movies');
@@ -73,6 +73,11 @@ try{
   await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
   assert.match(await spotlight.innerText(),/Both voted Yes[\s\S]*A Biltmore Christmas/);
   assert.ok(await spotlight.evaluate(el=>getComputedStyle(el).borderTopWidth==='2px'));
+  assert.ok(await spotlight.locator('.cl-editorial-poster img').evaluate(async img=>{
+   await img.decode();
+   const poster=img.getBoundingClientRect(),card=img.closest('article').getBoundingClientRect();
+   return poster.width>=200&&poster.width>=card.width-2&&Math.abs(poster.height/poster.width-1.5)<0.02;
+  }));
   await page.evaluate(async()=>{window.__failFeed=true;await discoverCheeseMovies(true);});
   await page.getByText('The catalog could not refresh. Showing the previous picks.',{exact:true}).waitFor();
   assert.equal(await spotlight.count(),1);
