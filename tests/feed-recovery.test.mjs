@@ -12,7 +12,7 @@ function client(){
  movieCard:m=>'<article>SAVED '+m.title+'</article>',discoveryCard:m=>'<article>'+m.title+'</article>',discoverySavedMovie:()=>null,discoveryMatchesCurrentView:()=>true,
  clSetTasteSort(){},sharedRadarRefreshResults(){},clTasteSort:'taste',clTasteRank:rows=>rows,
  db:{functions:{invoke:async(name,{body})=>{requests.push(body);return {data:selectCatalog(catalog,body,true)}}}}};
- c.window=c;vm.createContext(c);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),c);vm.runInContext(read('supabase/functions/_shared/our-movie-taste.js'),c);vm.runInContext(read('movie-recommendations.js'),c);
+ c.window=c;vm.createContext(c);vm.runInContext(read('supabase/functions/_shared/movie-content-policy.js'),c);vm.runInContext(read('supabase/functions/_shared/our-movie-taste.js'),c);vm.runInContext(read('supabase/functions/_shared/movie-title-search.js'),c);vm.runInContext(read('movie-recommendations.js'),c);
  return {c,requests,storage};
 }
 test('a sparse favorite cannot empty the eligible catalog, even after repeated refreshes',async()=>{
@@ -28,7 +28,23 @@ test('saved Yes and split votes remain; recorded and both-No are removed from th
  c.state.movies=picks.map((m,i)=>({title:m.title,year:m.year,status:i===2?'recorded':'needs_review',votes:i===0?{nick:'yes',jenny:'yes'}:i===1?{nick:'no',jenny:'yes'}:{nick:'no',jenny:'no'}}));
  c.discoveryHidden.add(picks[0].tmdb_id);
  const html=c.discoveryPanel();assert.ok(html.includes('SAVED '+picks[0].title));assert.ok(html.includes('SAVED '+picks[1].title));
- assert.ok(!html.includes('<article>SAVED '+picks[2].title));assert.ok(!html.includes('<article>SAVED '+picks[3].title));assert.ok(html.includes('More matches'));
+ assert.ok(!html.includes('<article>SAVED '+picks[2].title));assert.ok(!html.includes('<article>SAVED '+picks[3].title));
+ assert.ok(html.indexOf('Coming Soon')<html.indexOf('Top 20 for Cheese Louise'));
+ assert.ok(html.indexOf('Top 20 for Cheese Louise')<html.indexOf('More Movies to Discover'));
+});
+test('a verified future premiere never uses a released Top 20 slot',()=>{
+ const {c}=client();
+ const now=new Date('2026-11-28T00:59:00Z');
+ const santa={title:'Return to Santa',year:2026,premiere_date:'2026-11-27',tmdb_id:999,
+  source_url:'https://www.hallmarkchannel.com/return-to-santa',source_metadata:{premiere:{verified:true,at:'2026-11-27T20:00:00-05:00'}}};
+ const released=Array.from({length:20},(_,index)=>({title:'Released '+index,year:2025,tmdb_id:index+1}));
+ const before=c.clRecDiscoverySections([santa,...released],now);
+ assert.equal(before.soon[0].title,santa.title);
+ assert.equal(before.top.length,20);
+ const after=c.clRecDiscoverySections([santa,...released],new Date('2026-11-28T01:00:00Z'));
+ assert.equal(after.soon.length,0);
+ assert.equal(after.top[0].title,santa.title);
+ assert.equal(after.more.length,1);
 });
 test('season filters still restrict the pool to actual catalog Fall romances',async()=>{
  const {c}=client();c.movieFilters.season='Fall';await c.discoverCheeseMovies(true);
@@ -39,4 +55,12 @@ test('catalog and service failures remain errors instead of widening to unrelate
  const {c}=client();c.db.functions.invoke=async()=>({error:new Error('Catalog unavailable')});
  await c.discoverCheeseMovies(true);assert.equal(c.discoveryError,'Catalog unavailable');assert.equal(c.discoveryLoading,false);
  assert.equal(c.state.discoveryResults.length,0);
+});
+test('a stale refresh preserves the existing picks and last successful check',async()=>{
+ const {c}=client();await c.discoverCheeseMovies(true);
+ const existing=c.state.discoveryResults;
+ c.db.functions.invoke=async()=>({data:{results:[],catalog_stale:true,catalog_checked_at:null}});
+ await c.discoverCheeseMovies(true);
+ assert.equal(c.state.discoveryResults,existing);
+ assert.match(c.discoveryPanel(),/could not refresh\. Showing the previous picks/);
 });

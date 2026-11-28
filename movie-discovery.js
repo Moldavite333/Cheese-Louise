@@ -115,14 +115,14 @@ function discoveryMatchesCurrentView(c){
 
 function discoveryCard(c){
   const est=discoveryEstimate(c);
-  const providerText=(c.providers||[]).slice(0,3).join(' · ') || 'Watch options unknown';
+  const providerText=(c.providers||[]).slice(0,3).join(' · ') || c.network || 'Hallmark';
   const date=c.premiere_date||String(c.year||'Date TBA');
   const meta=[c.holiday,c.season].filter(Boolean).join(' · ');
   const why=(c.why||[]).slice(0,6);
   return `<article class="new-find-card card">
     <div class="new-find-poster">${c.poster_url?`<img src="${esc(c.poster_url)}" alt="${esc(c.title)} poster" loading="lazy">`:`<div class="new-find-poster-fallback">CL</div>`}</div>
     <div class="new-find-body">
-      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Network unknown')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
+      <div class="new-find-topline"><span class="kicker">${esc(c.network||'Hallmark')}</span><span class="radar-match">🎯 ${Number(c.match_score||100)} match</span></div>
       <h3>${esc(c.title)}</h3>
       <div class="subtle">${esc(date)}${meta?` · ${esc(meta)}`:''}</div>
       <div class="subtle provider-line">${esc(providerText)}</div>
