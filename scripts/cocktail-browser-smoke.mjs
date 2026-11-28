@@ -21,6 +21,7 @@ try{for(const width of [390,1440]){
   state=new Proxy({movies,cocktails:recipes,onlineCocktails:[],episodes:[],traits:[],schedule:[],ideas:[],activity:[],filterPresets:[]},{get:(target,key)=>key in target?target[key]:[]});
   clOnlineCatalogStatus={loaded:true,loading:false,error:'',updatedAt:null};openCocktailBar();
  });
+ await page.getByRole('button',{name:'Open classic catalog and matching tools',exact:true}).click();
  const select=page.locator('.cl-match-panel select');await select.waitFor();await select.selectOption('fall');
  const first=await page.locator('.cl-smart-match-card .cl-match-score strong').first().innerText();
  await select.selectOption('summer');const second=await page.locator('.cl-smart-match-card .cl-match-score strong').first().innerText();assert.notEqual(first,second,'Changing movie/season must rerank actual cocktails');
