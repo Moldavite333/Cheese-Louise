@@ -59,3 +59,10 @@ test('changing season on the same movie invalidates stale generated suggestions 
  assert.match(h.context.clGeneratedVersionsHtml('m'),/cl-generated-card/);movie.season='Summer';assert.match(h.context.clGeneratedVersionsHtml('m'),/Movie details or the cocktail library changed/);
  assert.equal(h.context.state.cocktails.length,3);await h.context.clGenerateThree('m');assert.match(h.context.clGeneratedVersionsHtml('m'),/cl-generated-card/);
 });
+
+test('apple and cider story clues require explicit movie evidence',()=>{
+ const h=cocktailHarness(),drink=recipe('Cider Highball','apple cider\nrum','Rum');
+ const clues=movie=>h.context.clSmartMatch(movie,drink).reasons.filter(r=>r.startsWith('story ingredient:'));
+ assert.deepEqual(Array.from(clues({title:'Home Again',summary:'A family reunites at an orchard.',selectedTraits:[{name:'Apple cider'}]})),[]);
+ assert.deepEqual(Array.from(clues({title:'Home Again',synopsis:'They share a glass of cider.'})),['story ingredient: cider']);
+});
