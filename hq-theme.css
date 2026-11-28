@@ -1,0 +1,149 @@
+/* Shared signed-in palette, typography, and surfaces for Cheese Louise HQ. */
+body.hq-signed-in {
+  --bg: #19151c;
+  --background: var(--bg);
+  --panel: #251e28;
+  --panel-2: #302737;
+  --surface: var(--panel-2);
+  --line: #514354;
+  --text: #fff2e2;
+  --muted: #c9b9c5;
+  --accent: #ffc879;
+  --accent2: #efa9ad;
+  --shadow: 0 5px 16px #100c131f;
+  --radius: 12px;
+  --hq-chrome: #211820;
+  --hq-selected: #453039;
+  --hq-display: Georgia, Cambria, "Times New Roman", serif;
+  color-scheme: dark;
+}
+.hq-signed-in .hq-sidebar,
+.hq-signed-in .hq-topbar,
+.hq-signed-in .hq-mobile-nav {
+  background: var(--hq-chrome);
+}
+.hq-signed-in .hq-topbar {
+  box-shadow: 0 10px 0 var(--bg);
+}
+.hq-sidebar-brand {
+  margin-bottom: 10px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid var(--line);
+}
+.hq-sidebar-brand > span {
+  flex: none;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent);
+  font: 700 16px var(--hq-display);
+}
+.hq-sidebar-brand strong {
+  font: 700 19px/1.25 var(--hq-display);
+}
+.hq-sidebar-brand small {
+  margin-top: 3px;
+}
+.hq-sidebar button.is-active,
+.hq-more-panel section button.is-active,
+.hq-mobile-nav button.is-active,
+.hq-mobile-nav button[aria-expanded="true"] {
+  background: var(--hq-selected);
+  box-shadow: inset 0 -2px var(--accent);
+}
+.hq-sidebar button.is-active,
+.hq-more-panel section button.is-active {
+  box-shadow: none;
+}
+.hq-location > span {
+  color: var(--text);
+}
+.hq-signed-in .hq-account summary {
+  background: var(--panel);
+}
+.hq-signed-in :is(.topbar, #hq-main, .modal) :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.hq-signed-in #hq-main :is(.page-title, .section > h1, .hq-next-item > h2, .watch-hero h1, .mix-header h1, .clp-header h1) {
+  font-family: var(--hq-display);
+  font-weight: 600;
+  letter-spacing: -.025em;
+}
+.hq-today > h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
+  line-height: 1.06;
+}
+.hq-next-item {
+  overflow-wrap: anywhere;
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(115deg, #382633, var(--panel) 76%);
+}
+.hq-next-item > h2 {
+  font-size: clamp(1.55rem, 3.4vw, 2.5rem);
+  line-height: 1.15;
+}
+.hq-workflow-stage {
+  border-top: 2px solid var(--stage-accent, var(--accent));
+}
+.hq-workflow-stage:nth-child(2) {
+  --stage-accent: #b7d2c1;
+}
+.hq-workflow-stage:nth-child(3) {
+  --stage-accent: var(--accent2);
+}
+.hq-workflow-stage h3 {
+  color: var(--stage-accent, var(--accent));
+}
+.hq-workflow-stage button,
+.hq-signed-in .secondary {
+  border-radius: 8px;
+}
+.hq-signed-in .primary {
+  border-radius: 8px;
+}
+.hq-signed-in button.primary:not(:disabled):hover {
+  background: #ffda9e;
+}
+.hq-signed-in :is(.watch-jump-links, .clp-sticky-actions) {
+  border-color: var(--line);
+}
+.hq-signed-in :is(.poster, .cl-movie-poster):has(.radar-poster-image) {
+  background: var(--panel-2);
+}
+.hq-signed-in .poster:has(.radar-poster-image) .poster-title {
+  background: #19151cd9;
+}
+/* The live notes keep their paper surface and use the shared HQ colors in the toolbar. */
+.hq-signed-in .cldesk {
+  --desk-cream: #fff4e5;
+  --desk-green: var(--hq-chrome);
+  --desk-gold: var(--accent);
+  --desk-ink: #31252d;
+  --desk-line: #dfcdbf;
+  background: #edddce;
+  border-color: #9d858f;
+  color-scheme: light;
+}
+.hq-signed-in .cldesk-movie select {
+  color-scheme: dark;
+}
+.hq-signed-in .cldesk-host,
+.hq-signed-in .cldesk-timer button {
+  border-color: #765e71;
+}
+.hq-signed-in .cldesk-timer button {
+  background: #43303f;
+}
+.hq-signed-in .cldesk-timer button:hover {
+  background: #584054;
+}
+@media (forced-colors: active) {
+  .hq-sidebar button.is-active,
+  .hq-more-panel section button.is-active,
+  .hq-mobile-nav button.is-active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
