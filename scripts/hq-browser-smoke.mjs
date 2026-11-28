@@ -251,6 +251,14 @@ try{
  await page.waitForFunction(()=>!discoveryLoading&&discoveryLoaded);
  assert.ok(await page.getByText('Your shared taste',{exact:true}).isVisible());
  await page.waitForFunction(()=>document.querySelector('.new-find-poster img')?.naturalWidth>0);
+ const posterCard=page.locator('.new-find-card').filter({has:page.locator('.new-find-poster img')}).first();
+ const geometry=await posterCard.evaluate(card=>{
+  const poster=card.querySelector('.new-find-poster').getBoundingClientRect();
+  const body=card.querySelector('.new-find-body').getBoundingClientRect();
+  return {width:poster.width,ratio:poster.width/poster.height,stacked:body.top>=poster.bottom-1,full:Math.abs(card.clientWidth-poster.width)<=1};
+ });
+ assert.ok(geometry.width>=Math.min(300,width-40),'Poster is large enough to read at '+width);
+ assert.ok(Math.abs(geometry.ratio-2/3)<.02&&geometry.stacked&&geometry.full,'Recommendation is a full-width portrait poster above details');
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Movie-based recommendations render');
  await page.getByRole('button',{name:'Refresh picks',exact:true}).click();
  await page.waitForFunction(()=>!discoveryLoading&&state.discoveryResults[0]?.tmdb_id===1000);
