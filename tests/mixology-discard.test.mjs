@@ -8,6 +8,7 @@ test('only workspace members can delete unused drafts; versions and episode link
  try{
   await db.exec('reset role');
   await db.exec(await readFile(new URL('../supabase/migrations/20261128090000_mixology_discard_draft.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261128090100_mixology_unused_draft_guard.sql',import.meta.url),'utf8'));
   await as(db,U);
   const id=crypto.randomUUID();
   const document={schemaVersion:1,name:'Untitled cocktail',servings:1,ingredients:[],steps:[],glassware:'',garnish:'',notes:''};
