@@ -48,19 +48,22 @@ test('taste ranking learns both people’s votes, keeps exact titles first, and 
  assert.ok(c.clTasteMatch(magic).score>3);
 });
 
-test('ordinary exact-title lookup issues one request and keeps all Radar filters',async()=>{
+test('ordinary title search keeps Radar filters in place and offers provider lookup on request',async()=>{
  const h=setup(),c=h.context;c.movieFilters={mode:'all',yearMin:2025,season:'Fall'};
  await c.runRomantiverseSearch('A Biltmore Christmas');
  assert.equal(h.requests.length,1);assert.equal(h.requests[0].query,'A Biltmore Christmas');
  assert.equal(c.movieFilters.yearMin,2025);assert.equal(c.movieFilters.season,'Fall');
  assert.equal(Object.keys(h.requests[0].filters).length,0);
- assert.equal(h.requests[0].lookup_exact,true);
+ assert.equal(h.requests[0].lookup_exact,false);
+ await c.runRomantiverseSearch('A Biltmore Christmas',true,false,true);
+ assert.equal(h.requests[1].lookup_exact,true);
+ assert.equal(h.requests[1].broader_lookup,true);
 });
 test('exact title matches survive filters, hidden flags and existing-movie exclusion',async()=>{
  const h=setup(),c=h.context;c.searchText='Falling Together';c.movieFilters={mode:'mutual',season:'Winter',holiday:'Christmas',yearMin:2025,minScore:100};
  h.respond(async()=>({data:{results:[{tmdb_id:123,title:'Falling Together',year:2024,source_type:'tmdb_exact_title',exact_title_match:true},{tmdb_id:99,title:'Unrelated',source_type:'tmdb_exact_title',exact_title_match:true}]}}));
  c.discoveryHidden=new Set([123]);c.discoveryExistingIds=()=>new Set(['movie:123']);
- await c.runRomantiverseSearch(c.searchText);assert.equal(c.state.romantiverseSearchResults.length,1);assert.equal(c.romantiverseSearchVisibleResults()[0].title,'Falling Together');
+ await c.runRomantiverseSearch(c.searchText,true,false,true);assert.equal(c.state.romantiverseSearchResults.length,1);assert.equal(c.romantiverseSearchVisibleResults()[0].title,'Falling Together');
  c.state.movies=[{id:'saved',title:'Falling Together',premiere_date:'2024-09-21',status:'recorded'}];
  assert.equal(c.romantiverseSearchVisibleResults().length,1);assert.equal(c.romantiverseSavedResult(c.state.romantiverseSearchResults[0]).id,'saved');
 });

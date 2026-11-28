@@ -243,6 +243,7 @@ try{
  assert.ok(await page.getByText('A magical new romance 0',{exact:true}).isVisible(),'Refreshing preserves eligible recommendations instead of exhausting them');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Taste finder fits '+width);
  await search.fill('Falling Together');
+ await page.locator('#romantiverseSearchHost').getByRole('button',{name:'Look up on TMDB'}).click();
  await page.waitForFunction(()=>state.romantiverseSearchResults.some(m=>m.title==='Falling Together'));
  assert.ok(await page.locator('#romantiverseSearchHost').getByRole('heading',{name:'Falling Together',exact:true}).isVisible(),'Exact title outside catalog is visible');
  await page.evaluate(()=>{movieFilters.holiday='Christmas';movieFilters.yearMin=2026;movieFilters.mode='mutual';refreshRomantiverseSearchPanel()});

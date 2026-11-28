@@ -40,6 +40,10 @@ try{
       await new Promise(resolve=>setTimeout(resolve,500));
       return {data:{results:[{title:'Return to Santa',year:2026,tmdb_type:'catalog',tmdb_id:301,source_type:'bingo_catalog',title_search_score:600}]}};
      }
+     if(name==='search-romantiverse'&&body.query==='Falling Together'&&body.broader_lookup){
+      return {data:{results:[{title:'Falling Together',year:2024,tmdb_type:'movie',tmdb_id:2024,
+       source_type:'tmdb_exact_title',exact_title_match:true,stars:['Ashley Williams','Paul Campbell']}]}};
+     }
      return {data:{results:[],count:0}};
     }}
    })};
@@ -74,6 +78,12 @@ try{
   await dialog.getByRole('heading',{name:'Return to Santa'}).waitFor();
   await dialog.getByRole('button',{name:'Resume episode'}).click();
   await page.waitForFunction(()=>currentTab==='episodes'&&selectedEpisode==='episode-santa');
+  await page.evaluate(()=>{closeEpisode();hqWorkspace.search();});
+  await search.fill('Falling Together');
+  await panel.getByRole('button',{name:'Look up on TMDB'}).click();
+  await panel.getByRole('heading',{name:'Falling Together',exact:true}).waitFor();
+  assert.match(await panel.innerText(),/TMDB · exact title/);
+  assert.ok(await panel.getByRole('button',{name:'Add and open'}).isVisible());
   assert.equal(await page.evaluate(()=>window.__movieWrites),0);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.close();

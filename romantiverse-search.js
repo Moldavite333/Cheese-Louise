@@ -12,6 +12,7 @@ let romantiverseSearchTimer=null;
 let romantiverseSearchSequence=0;
 let romantiverseSearchForUs=false;
 let romantiverseSearchWarning='';
+let romantiverseSearchBroaderLookup=false;
 const romantiverseSearchCache=new Map();
 const romantiverseTitleSearch=globalThis.clMovieTitleSearch;
 let romantiverseSearchController;
@@ -195,10 +196,10 @@ function romantiverseSearchPanel(){
       (visible.length?'':'No movies match this search.');
     return `<section class="rom-search-panel" aria-label="Movie search results">
       <div class="rom-search-head"><h2>Results for “${esc(q)}”</h2>
-      ${!busy&&(romantiverseSearchError||romantiverseSearchWarning)?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true)">Retry</button>':''}</div>
+      ${!busy&&(romantiverseSearchError||romantiverseSearchWarning)?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,romantiverseSearchBroaderLookup)">Retry</button>':''}</div>
       <div role="status" class="subtle">${esc(status)}</div>
       <div class="new-find-grid">${visible.map(romantiverseTitleCard).join('')}</div>
-      ${manual?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,true)">Check TMDB for similar titles</button> <button class="secondary" onclick="addMovie(searchText)">Add a movie manually</button>':''}
+      ${manual?'<button class="secondary" onclick="runRomantiverseSearch(searchText,true,false,true)">Look up on TMDB</button> <button class="secondary" onclick="addMovie(searchText)">Add a movie manually</button>':''}
     </section>`;
   }
   if(q.length<2&&!romantiverseSearchForUs){
@@ -246,6 +247,7 @@ async function runRomantiverseSearch(rawQuery,force=false,forUs=false,broaderLoo
  romantiverseSearchController=controller;
  const query=romantiverseFilterQuery(rawQuery),seq=++romantiverseSearchSequence;
  const direct=!forUs&&String(rawQuery||'').trim().length>=2;
+ romantiverseSearchBroaderLookup=direct&&broaderLookup;
  romantiverseSearchForUs=forUs;romantiverseSearchWarning='';
  const loadedQuery=forUs?'__taste__':query;
  if(query.length<2&&!forUs){romantiverseSearchLoading=false;romantiverseSearchError='';romantiverseSearchLoadedQuery='';romantiverseSearchExpandedTerms=[];state.romantiverseSearchResults=[];refreshRomantiverseSearchPanel();return;}
@@ -255,7 +257,7 @@ async function runRomantiverseSearch(rawQuery,force=false,forUs=false,broaderLoo
   const filters={holiday:movieFilters.holiday,season:movieFilters.season,studio:movieFilters.studio,yearMin:movieFilters.yearMin,yearMax:movieFilters.yearMax};
   const parsed=romantiverseTitleSearch.parse(query);
   const workspaceExact=direct&&romantiverseWorkspaceMatches(query).some(movie=>romantiverseTitleSearch.confident(movie,parsed));
-  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{signal:controller.signal,body:{query:forUs?'':query,filters:direct?{}:filters,max_results:120,include_broader:true,title_search:direct,workspace_exact:workspaceExact,lookup_exact:direct&&!workspaceExact,broader_lookup:direct&&broaderLookup,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
+  const {data,error}=await db.functions.invoke(forUs?'recommend-romantiverse':'search-romantiverse',{signal:controller.signal,body:{query:forUs?'':query,filters:direct?{}:filters,max_results:120,include_broader:true,title_search:direct,workspace_exact:workspaceExact,lookup_exact:direct&&broaderLookup,broader_lookup:direct&&broaderLookup,...(forUs&&typeof clRecPreferences==='function'?clRecPreferences():{})}});
   if(seq!==romantiverseSearchSequence)return;
   if(error||data?.error)throw Error(data?.error||error?.message||'The Cheese Louise movie catalog could not load.');
   if(!Array.isArray(data?.results))throw Error('The movie catalog returned an incomplete response.');

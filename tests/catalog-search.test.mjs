@@ -4,6 +4,22 @@ import {readFileSync} from 'node:fs';
 import {selectCatalog,createCatalogHandler} from '../supabase/functions/_shared/romantiverse-catalog.mjs';
 const catalog=JSON.parse(readFileSync(new URL('../supabase/functions/_shared/romantiverse-catalog.json',import.meta.url),'utf8'));
 const titleSearch=globalThis.clMovieTitleSearch;
+const reportedQueries=JSON.parse(readFileSync(new URL('./fixtures/movie-search-queries.json',import.meta.url),'utf8'));
+
+test('reported queries retain their supplied spelling and resolve against known workspace and public titles',()=>{
+ const local=[
+  {title:'Return to Santa',year:2026,stars:['Paul Campbell','Rachel Boston']},
+  ...['Adventures in Love & Birding','Pumpkin Regatta Romance','The Nights Before Christmas','Hot Frosty',
+   'Christmas at the Catnip Café','A Grand Biltmore Christmas','Coupled Up for Christmas',
+   'A Christmas Movie Christmas','Craft Me a Romance'].map(title=>({title}))
+ ];
+ for(const [input,expected] of reportedQueries){
+  const query=titleSearch.parse(input);
+  const names=[...local,...catalog.movies].filter(movie=>titleSearch.score(movie,query)).map(movie=>movie.title);
+  if(expected)assert.ok(names.includes(expected),input);
+  else assert.equal(names.length,0,input);
+ }
+});
 
 test('direct search ranks real catalog titles before the limit and ignores discovery filters',()=>{
  const movie=catalog.movies.find(m=>m.title==='Love, Fall & Order');
