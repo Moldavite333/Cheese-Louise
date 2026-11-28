@@ -35,7 +35,14 @@ try{
   await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
   await page.getByRole('button',{name:'Prepare linked cocktail',exact:true}).click();await page.getByRole('heading',{name:'Preparation & servings',exact:true}).waitFor();await page.getByRole('button',{name:'Back to cocktails',exact:true}).click();await page.locator('#epOutline').waitFor();assert.equal(await page.locator('#epOutline').inputValue(),'Unfinished episode outline '+width);
   // A standalone recipe gets a new canonical identity; the counterpart starts empty.
-  await page.evaluate(()=>{selectedEpisode=null;openCocktailBar()});await page.getByRole('button',{name:'New cocktail',exact:true}).click();await saved(page);
+  await page.evaluate(()=>{selectedEpisode=null;openCocktailBar()});
+  const newCocktail=page.getByRole('button',{name:'New cocktail',exact:true});
+  const before=(await f.db.query('select id from cocktails where workspace_id=$1',[W])).rows.length;
+  page.once('dialog',dialog=>dialog.dismiss());await newCocktail.click();
+  assert.equal((await f.db.query('select id from cocktails where workspace_id=$1',[W])).rows.length,before);
+  assert.ok(await newCocktail.isVisible());
+  page.once('dialog',dialog=>dialog.accept('Standalone trial '+width));await newCocktail.click();await saved(page);
+  assert.equal(await page.locator('#mix-name').inputValue(),'Standalone trial '+width);
   await page.locator('#mix-name').fill('Standalone trial '+width);await saved(page);await page.getByRole('button',{name:'Add ingredient',exact:true}).click();await page.getByRole('button',{name:'Add step',exact:true}).click();await saved(page);
   await page.getByRole('button',{name:'Save recipe',exact:true}).click();await page.getByRole('status').filter({hasText:/Saved v\d+/}).waitFor();
   await page.locator('.mix-toolbar select').selectOption('alcohol_free');await saved(page);assert.equal(await page.locator('.mix-ingredient').count(),0);if(await page.locator('.mix-tabs details:not([open]) > summary').count())await page.locator('.mix-tabs details:not([open]) > summary').click();await page.getByRole('button',{name:'Taste',exact:true}).click();assert.match(await page.locator('.mix-panel').innerText(),/Save a version first/);
