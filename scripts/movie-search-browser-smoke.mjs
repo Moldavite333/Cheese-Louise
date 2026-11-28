@@ -72,7 +72,10 @@ try{
   const spotlight=page.locator('#radarDiscoveryResults .cl-feed-card--spotlight');
   await spotlight.getByText('Don’t miss',{exact:true}).waitFor();
   assert.match(await spotlight.innerText(),/Both voted Yes[\s\S]*A Biltmore Christmas/);
-  assert.ok(await spotlight.evaluate(el=>getComputedStyle(el).borderTopWidth==='2px'));
+  assert.ok(await spotlight.evaluate(el=>{
+   const style=getComputedStyle(el);
+   return style.borderTopStyle==='solid'&&Number.parseFloat(style.borderTopWidth)>0&&style.borderTopColor==='rgb(237, 188, 96)';
+  }),'The mutual-Yes spotlight has a visible gold border');
   assert.ok(await spotlight.locator('.cl-editorial-poster img').evaluate(async img=>{
    await img.decode();
    const poster=img.getBoundingClientRect(),card=img.closest('article').getBoundingClientRect();
